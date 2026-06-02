@@ -6,9 +6,8 @@ config({ path: [".env.local", ".env"] })
 export default defineConfig({
   out: "./drizzle",
   schema: "./src/db/schema.js",
-  dialect: "postgresql",
+  dialect: "sqlite",
   dbCredentials: {
-    url: process.env.DATABASE_URL
-  }
+    url: process.env.DATABASE_URL,
+  },
 })
-
