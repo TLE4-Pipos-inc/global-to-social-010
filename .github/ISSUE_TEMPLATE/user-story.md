@@ -15,7 +15,10 @@ type: Feature
 [Korte beschrijving van de functionaliteit en bijzonderheden]
 
 # Acceptatiecriteria
-- [ ] [points] 
+## Back-End
+- [ ] [points]
+## Front-End
+- [ ] [points]
 
 # Definition of Done
 - [ ] Genoeg contrast
