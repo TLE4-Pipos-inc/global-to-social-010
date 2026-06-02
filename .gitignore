@@ -4,6 +4,7 @@ node_modules/
 dist/
 build/
 
+.idea
 .env
 .env.*
 !.env.example
