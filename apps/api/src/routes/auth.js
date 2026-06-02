@@ -34,6 +34,13 @@ function setAuthCookie(res, token) {
   });
 }
 
+function isUniqueEmailError(error) {
+  return (
+    error?.code === "SQLITE_CONSTRAINT_UNIQUE" ||
+    (error?.code === "SQLITE_CONSTRAINT" && String(error?.message ?? "").includes("users.email"))
+  );
+}
+
 router.post("/register", async (req, res) => {
   const firstName = String(req.body.firstName ?? "").trim();
   const email = normalizeEmail(req.body.email);
@@ -49,12 +56,6 @@ router.post("/register", async (req, res) => {
     return res.status(400).json({ message: "Password must be at least 8 characters" });
   }
 
-  const existingUser = db.select().from(users).where(eq(users.email, email)).get();
-
-  if (existingUser) {
-    return res.status(409).json({ message: "Email is already registered" });
-  }
-
   const saltRounds = Number(process.env.SALT_ROUNDS ?? 12);
   const passwordHash = await bcrypt.hash(password, saltRounds);
   const user = {
@@ -66,14 +67,21 @@ router.post("/register", async (req, res) => {
     campus,
   };
 
-  db.insert(users).values(user).run();
+  try {
+    db.insert(users).values(user).run();
+  } catch (error) {
+    if (isUniqueEmailError(error)) {
+      return res.status(409).json({ message: "Email is already registered" });
+    }
+
+    return res.status(500).json({ message: "Could not register user" });
+  }
 
   const token = signAccessToken(user);
   setAuthCookie(res, token);
 
   return res.status(201).json({
     user: publicUser(user),
-    token,
   });
 });
 
@@ -102,7 +110,6 @@ router.post("/login", async (req, res) => {
 
   return res.json({
     user: publicUser(user),
-    token,
   });
 });
 
