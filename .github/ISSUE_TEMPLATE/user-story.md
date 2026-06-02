@@ -18,13 +18,11 @@ type: Feature
 - [ ] [points] 
 
 # Definition of Done
-- [ ] WCAG AA
 - [ ] Genoeg contrast
-- [ ] Goede hiërarchie (semantische tags)
 - [ ] Formulieren word gevalideerd
 - [ ] Formulieren input word behouden bij validatie fouten.
 - [ ] User errors worden correct afgevangen en getoond
-- [ ] Taal niveau van 19-26 jaar
+- [ ] Taal niveau van 19-21 jaar
 - [ ] Spelling controle
 - [ ] Getest op edge cases
 - [ ] Styling op orde volgens style guide/design system
