@@ -3,7 +3,8 @@
   "private": true,
   "packageManager": "pnpm@11.0.0",
   "devDependencies": {
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "prettier": "^3.8.3"
   },
   "scripts": {
     "dev:web": "pnpm --filter web dev",
