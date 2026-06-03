@@ -53,6 +53,9 @@ importers:
       uuid:
         specifier: ^13.0.0
         version: 13.0.2
+      zod:
+        specifier: 'catalog:'
+        version: 4.4.3
     devDependencies:
       drizzle-kit:
         specifier: ^0.31.10
