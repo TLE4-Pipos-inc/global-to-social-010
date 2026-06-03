@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const RegisterUserSchema = z.object({
-  firstName: z.string().trim().min(1).max(100),
+  name: z.string().trim().min(1).max(100),
   email: z.email().trim().toLowerCase(),
   password: z.string().min(8).max(128),
   school: z.string().trim().max(120).optional(),
@@ -15,7 +15,7 @@ export const LoginUserSchema = z.object({
 
 export const PublicUserSchema = z.object({
   id: z.uuidv4(),
-  firstName: z.string(),
+  name: z.string(),
   email: z.email(),
   school: z.string().nullable().optional(),
   campus: z.string().nullable().optional(),

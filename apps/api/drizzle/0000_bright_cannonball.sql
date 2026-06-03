@@ -189,8 +189,8 @@ CREATE TABLE `user_interests` (
 --> statement-breakpoint
 CREATE TABLE `users` (
 	`id` text PRIMARY KEY NOT NULL,
-	`first_name` text NOT NULL,
-	`email` text,
+	`name` text NOT NULL,
+	`email` text NOT NULL,
 	`password` text NOT NULL,
 	`school` text,
 	`campus` text,

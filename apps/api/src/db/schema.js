@@ -12,8 +12,8 @@ import {
 
 export const users = sqliteTable("users", {
   id: text("id").primaryKey(),
-  firstName: text("first_name").notNull(),
-  email: text("email").unique(),
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
   password: text("password").notNull(),
   school: text("school"),
   campus: text("campus"),

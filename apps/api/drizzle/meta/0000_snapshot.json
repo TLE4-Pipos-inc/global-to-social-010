@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "e4f818a1-637b-438b-b5bb-547bc2f713d1",
+  "id": "dc20a260-d88b-4625-883a-f053ae5225dc",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "collage_photos": {
@@ -1330,8 +1330,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "first_name": {
-          "name": "first_name",
+        "name": {
+          "name": "name",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -1341,7 +1341,7 @@
           "name": "email",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "autoincrement": false
         },
         "password": {
