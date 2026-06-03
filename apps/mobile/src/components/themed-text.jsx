@@ -1,6 +1,6 @@
-import { StyleSheet, Text } from "react-native";
+import { StyleSheet, Text } from "react-native"
 
-import { Colors } from "../constants/theme";
+import { Colors } from "../constants/theme"
 
 export function ThemedText({ style, type = "default", ...rest }) {
   return (
@@ -11,12 +11,13 @@ export function ThemedText({ style, type = "default", ...rest }) {
         type === "title" ? styles.title : undefined,
         type === "defaultSemiBold" ? styles.defaultSemiBold : undefined,
         type === "subtitle" ? styles.subtitle : undefined,
+        type === "text" ? styles.text : undefined,
         type === "link" ? styles.link : undefined,
         style,
       ]}
       {...rest}
     />
-  );
+  )
 }
 
 const styles = StyleSheet.create({
@@ -38,9 +39,13 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "bold",
   },
+  text: {
+    fontSize: 16,
+    lineHeight: 24,
+  },
   link: {
     lineHeight: 30,
     fontSize: 16,
     color: "#0a7ea4",
   },
-});
+})

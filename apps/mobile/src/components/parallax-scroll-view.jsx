@@ -9,7 +9,7 @@ import Animated, {
 import { ThemedView } from '../components/themed-view';
 import { Colors } from '../constants/theme';
 
-const HEADER_HEIGHT = 250;
+const HEADER_HEIGHT = 0;
 
 export default function ParallaxScrollView({
   children,
@@ -60,7 +60,6 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: 32,
     gap: 16,
     overflow: 'hidden',
   },
