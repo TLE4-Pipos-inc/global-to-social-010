@@ -8,13 +8,19 @@ import { Colors } from '../../constants/theme';
 export default function TabLayout() {
   return (
     <Tabs
+      style={{ backgroundColor: Colors.yellowColor }}
       screenOptions={{
         tabBarActiveTintColor: Colors.tint,
         tabBarButton: HapticTab,
         headerShown: true,
+        headerStyle: { backgroundColor: Colors.yellowColor },
+        tabBarStyle: {
+            backgroundColor: Colors.yellowColor, // bottom tab color
+            borderTopWidth: 0,
+          },
         headerTitleStyle: {
-          fontSize: 32,
-          fontWeight: "700",
+          fontSize: 24,
+          fontFamily: "Montserrat-Bold"
         },
       }}
     >
@@ -23,7 +29,7 @@ export default function TabLayout() {
         options={{
           title: "Map",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="map.fill" color={color} />
+            <IconSymbol size={24} name="map.fill" color={Colors.text} />
           ),
         }}
       />
@@ -33,7 +39,7 @@ export default function TabLayout() {
         options={{
           title: "Home",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="house.fill" color={color} />
+            <IconSymbol size={24} name="house.fill" color={Colors.text} />
           ),
         }}
       />
@@ -43,7 +49,7 @@ export default function TabLayout() {
         options={{
           title: "Profile",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="person.fill" color={color} />
+            <IconSymbol size={24} name="person.fill" color={Colors.text} />
           ),
         }}
       />

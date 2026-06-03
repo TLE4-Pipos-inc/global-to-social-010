@@ -59,7 +59,7 @@ const styles = StyleSheet.create({
         height: 72,
         borderRadius: 18,
         borderWidth: 1,
-        borderColor: Colors.darkOutlineColor,
+        borderColor: Colors.darkGreenColor,
         justifyContent: "center",
         alignItems: "center",
         backgroundColor: "transparent",
@@ -80,6 +80,6 @@ const styles = StyleSheet.create({
     darkOutlineText: {
         fontSize: 22,
         fontWeight: "500",
-        color: Colors.darkOutlineColor,
+        color: Colors.darkGreenColor,
     },
 });

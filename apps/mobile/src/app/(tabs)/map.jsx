@@ -33,6 +33,15 @@ export default function App() {
   return (
     <View style={styles.container}>
       <MapView region={{ latitude: 51.9244, longitude: 4.4777, latitudeDelta: 0.1, longitudeDelta: 0.1, }} style={styles.map} showsUserLocation={true} >
+        {location && (
+          <Marker
+            coordinate={{
+              latitude: 51.9200601,
+              longitude: 4.4868003,
+            }}
+            title="Markthal"
+          />
+        )}
       </MapView>
       <StatusBar style="auto" />
     </View>
