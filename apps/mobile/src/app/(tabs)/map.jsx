@@ -32,15 +32,7 @@ export default function App() {
   }, []);
   return (
     <View style={styles.container}>
-      <MapView style={styles.map} showsUserLocation={true} >
-        {
-          location && (
-            <Marker
-              title={"marker"}
-              coordinate={ location.coords }
-              pinColor={'#FF0000'}
-            />
-          )}
+      <MapView region={{ latitude: 51.9244, longitude: 4.4777, latitudeDelta: 0.1, longitudeDelta: 0.1, }} style={styles.map} showsUserLocation={true} >
       </MapView>
       <StatusBar style="auto" />
     </View>
