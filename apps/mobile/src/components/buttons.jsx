@@ -29,7 +29,7 @@ export const PrimaryDarkOutlineButton = ({ title, ...props }) => (
 
 const styles = StyleSheet.create({
     lightFilled: {
-        height: 72,
+        height: 52,
         borderRadius: 18,
         // backgroundColor: "#5D952B",
         backgroundColor: Colors.lightGreenColor,
@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
     filledText: {
         fontSize: 22,
         fontWeight: "600",
-        color: "#000",
+        color: "#fff",
     },
 
     lightOutlineText: {
