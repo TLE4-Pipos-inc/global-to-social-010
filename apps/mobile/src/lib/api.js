@@ -22,15 +22,15 @@ async function fetchWithAuth(path, init) {
     })
 
     if (refreshed.ok) {
-      const { result } = await refreshed.json()
-      setAccessToken(result.accessToken)
+      const { token } = await refreshed.json()
+      setAccessToken(token)
 
       response = await fetch(url, {
         ...init,
         credentials: 'include',
         headers: {
           ...init?.headers,
-          Authorization: `Bearer ${result.accessToken}`,
+          Authorization: `Bearer ${token}`,
         },
       })
     } else {

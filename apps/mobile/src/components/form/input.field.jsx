@@ -1,11 +1,11 @@
-import React from 'react'
-import { TextInput, Text, View, StyleSheet } from 'react-native'
-import { useFieldContext } from '../../lib/form-context'
-import { Colors } from '../../constants/theme'
+import React from "react"
+import { TextInput, Text, View, StyleSheet } from "react-native"
+import { useFieldContext } from "../../lib/form-context"
+import { Colors } from "../../constants/theme"
 
 const InputField = ({ label, ...props }) => {
   const field = useFieldContext()
-  const hasError = field.state.meta.errors.length > 0
+  const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid
 
   return (
     <View style={styles.container}>
@@ -17,8 +17,11 @@ const InputField = ({ label, ...props }) => {
         onBlur={field.handleBlur}
         {...props}
       />
-      {hasError && (
-        <Text style={styles.error}>{field.state.meta.errors[0]}</Text>
+      {isInvalid && (
+        <Text style={styles.error}>
+          {field.state.meta.errors[0]?.message ??
+            String(field.state.meta.errors[0])}
+        </Text>
       )}
     </View>
   )
@@ -32,7 +35,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
     color: Colors.text,
   },
   input: {

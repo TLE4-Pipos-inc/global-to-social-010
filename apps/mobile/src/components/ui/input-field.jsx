@@ -1,6 +1,6 @@
 import React from 'react'
 import { TextInput, Text, View, StyleSheet } from 'react-native'
-import { useFieldContext } from '../../lib/form'
+import { useFieldContext } from "../../lib/form-context"
 import { Colors } from '../../constants/theme'
 
 export const InputField = ({ label, ...props }) => {

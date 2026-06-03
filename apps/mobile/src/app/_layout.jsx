@@ -1,20 +1,20 @@
-import { Stack, useRouter } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
-import "react-native-reanimated";
-import { API_URL } from "../constants/api";
-import { getAccessToken, setAccessToken } from "../lib/token";
+import { Stack, useRouter } from "expo-router"
+import { StatusBar } from "expo-status-bar"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { useEffect, useState } from "react"
+import "react-native-reanimated"
+import { API_URL } from "../constants/api"
+import { getAccessToken, setAccessToken } from "../lib/token"
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient()
 
 export const unstable_settings = {
   anchor: "(tabs)",
-};
+}
 
 export default function RootLayout() {
-  const router = useRouter();
-  const [ready, setReady] = useState(false);
+  const router = useRouter()
+  const [ready, setReady] = useState(false)
 
   useEffect(() => {
     async function bootstrap() {
@@ -23,22 +23,24 @@ export default function RootLayout() {
           const res = await fetch(`${API_URL}/api/auth/refresh`, {
             method: "POST",
             credentials: "include",
-          });
+          })
           if (res.ok) {
-            const { token } = await res.json();
-            setAccessToken(token);
+            const { token } = await res.json()
+            setAccessToken(token)
           }
         } catch {}
       }
-      setReady(true);
+      setReady(true)
     }
-    bootstrap();
-  }, []);
+    bootstrap()
+  }, [])
 
   useEffect(() => {
-    if (!ready) return;
-    if (!getAccessToken()) router.replace("/(auth)/login");
-  }, [ready]);
+    if (!ready) return
+    if (!getAccessToken()) router.replace("/(auth)/login")
+  }, [ready])
+
+  if (!ready) return null
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -52,5 +54,5 @@ export default function RootLayout() {
       </Stack>
       <StatusBar style="dark" />
     </QueryClientProvider>
-  );
+  )
 }
