@@ -38,6 +38,10 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "bold",
   },
+  text: {
+    fontSize: 16,
+    lineHeight: 24,
+  },
   link: {
     lineHeight: 30,
     fontSize: 16,
