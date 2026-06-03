@@ -1,7 +1,7 @@
 import express from "express"
 import cors from "cors"
 import cookieParser from "cookie-parser"
-// import userRouter from "#/routes/user.js"
+import authRouter from "./routes/auth.js"
 
 // ConnectDB();
 
@@ -18,7 +18,7 @@ app.use(
 )
 
 // Routes
-// app.use("/api/user", userRouter);
+app.use("/api/auth", authRouter)
 
 app.get("/api/status", (_req, res) => {
   res.json({ message: "API is running" })
