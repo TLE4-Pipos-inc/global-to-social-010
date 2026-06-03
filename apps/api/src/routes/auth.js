@@ -151,7 +151,6 @@ router.post("/logout", (_req, res) => {
 })
 
 router.get("/me", requireAuth, (req, res) => {
-  console.log("Retrieving user information for:", res.locals.payload.userId)
   const user = db
     .select({
       id: users.id,
