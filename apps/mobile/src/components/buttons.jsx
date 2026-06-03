@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
     filledText: {
         fontSize: 24,
         fontWeight: "600",
-        color: "#000",
+        color: "#fff",
     },
 
     lightOutlineText: {
