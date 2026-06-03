@@ -5,11 +5,9 @@ import { ThemedText } from '../themed-text';
 import { ThemedView } from '../themed-view';
 import { IconSymbol } from './icon-symbol';
 import { Colors } from '../../constants/theme';
-import { useColorScheme } from '../../hooks/use-color-scheme';
 
 export function Collapsible({ children, title }) {
   const [isOpen, setIsOpen] = useState(false);
-  const theme = useColorScheme() ?? 'light';
 
   return (
     <ThemedView>
@@ -21,7 +19,7 @@ export function Collapsible({ children, title }) {
           name="chevron.right"
           size={18}
           weight="medium"
-          color={theme === 'light' ? Colors.light.icon : Colors.dark.icon}
+          color={Colors.icon}
           style={{ transform: [{ rotate: isOpen ? '90deg' : '0deg' }] }}
         />
 
