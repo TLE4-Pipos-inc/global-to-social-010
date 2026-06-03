@@ -45,7 +45,7 @@ export default function RootLayout() {
     if (!getAccessToken()) router.replace("/(auth)/login")
   }, [ready])
 
-  if (!ready) return null
+  if (!ready || !fontsLoaded) return null
 
   return (
     <QueryClientProvider client={queryClient}>
