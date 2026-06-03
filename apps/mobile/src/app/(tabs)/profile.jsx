@@ -9,35 +9,6 @@ import { useAccountQuery } from "../../features/auth/hooks/query"
 import { setAccessToken } from "../../lib/token"
 import { API_URL } from "../../constants/api"
 import { PrimaryDarkOutlineButton } from "../../components/buttons"
-import { Colors } from "../../constants/theme"
-
-  return (
-   <>
-     <View style={styles.block}>
-       <Image
-         source={require("../../../assets/images/emptyprofile.png")}
-         style={styles.image}
-       />
-
-       <View style={styles.textContainer}>
-         <View style={styles.imageRow}>
-           <Image
-             source={require("../../../assets/images/nl.png")}
-             style={styles.nationImage}
-           />
-           <Image
-             source={require("../../../assets/images/hrlogo.png")}
-             style={styles.hrImage}
-           />
-         </View>
-         <ThemedText type={"text"} style={{fontWeight: "bold"}}>Broertje Depay</ThemedText>
-         <ThemedText type={"text"}>International Business</ThemedText>
-         <ThemedText type={"text"}>Hogeschool Rotterdam</ThemedText>
-       </View>
-     </View>
-   </>
-  )
-}
 
 function ProfileContent() {
   const { data } = useAccountQuery()
@@ -56,6 +27,53 @@ function ProfileContent() {
     },
   })
   const user = data.user
+  return (
+    <>
+      <View style={styles.block}>
+        <Image
+          source={require("../../../assets/images/emptyprofile.png")}
+          style={styles.image}
+          accessibleLabel="Profile avatar"
+        />
+
+        <View style={styles.textContainer}>
+          <View style={styles.imageRow}>
+            <Image
+              source={require("../../../assets/images/nl.png")}
+              style={styles.nationImage}
+              accessibleLabel="Netherlands flag"
+            />
+            <Image
+              source={require("../../../assets/images/hrlogo.png")}
+              style={styles.hrImage}
+              accessibleLabel="Hogeschool Rotterdam logo"
+            />
+          </View>
+          <ThemedText type={"text"} style={{ fontWeight: "bold" }}>
+            Broertje Depay
+          </ThemedText>
+          <ThemedText type={"text"}>International Business</ThemedText>
+          <ThemedText type={"text"}>Hogeschool Rotterdam</ThemedText>
+        </View>
+      </View>
+      <View style={styles.container}>
+        <PrimaryDarkOutlineButton
+          title={logout.isPending ? "Logging out…" : "Log Out"}
+          disabled={logout.isPending}
+          onPress={() => logout.mutate()}
+        />
+      </View>
+    </>
+  )
+}
+
+export default function ProfileScreen() {
+  return (
+    <Suspense fallback={<ActivityIndicator style={styles.loader} />}>
+      <ProfileContent />
+    </Suspense>
+  )
+}
 
 const styles = StyleSheet.create({
   block: {
@@ -95,31 +113,6 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 50,
   },
-});
-    <View style={styles.container}>
-      <View style={styles.info}>
-        <Text style={styles.name}>{user?.name}</Text>
-        <Text style={styles.email}>{user?.email}</Text>
-      </View>
-
-      <PrimaryDarkOutlineButton
-        title={logout.isPending ? "Logging out…" : "Log Out"}
-        disabled={logout.isPending}
-        onPress={() => logout.mutate()}
-      />
-    </View>
-  )
-}
-
-export default function ProfileScreen() {
-  return (
-    <Suspense fallback={<ActivityIndicator style={styles.loader} />}>
-      <ProfileContent />
-    </Suspense>
-  )
-}
-
-const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 24,
@@ -143,4 +136,3 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 })
-
