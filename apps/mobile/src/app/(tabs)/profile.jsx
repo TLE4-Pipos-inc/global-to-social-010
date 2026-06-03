@@ -1,4 +1,3 @@
-import { Colors } from "../../constants/theme"
 import { Image } from "expo-image"
 import { ThemedText } from "../../components/themed-text"
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native"
