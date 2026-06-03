@@ -11,7 +11,7 @@ const InputField = ({ label, ...props }) => {
     <View style={styles.container}>
       {label && <Text style={styles.label}>{label}</Text>}
       <TextInput
-        style={[styles.input, hasError && styles.inputError]}
+        style={[styles.input, isInvalid && styles.inputError]}
         value={field.state.value}
         onChangeText={field.handleChange}
         onBlur={field.handleBlur}
