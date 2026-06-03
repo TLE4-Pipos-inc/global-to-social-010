@@ -5,6 +5,8 @@ import { useEffect, useState } from "react"
 import "react-native-reanimated"
 import { API_URL } from "../constants/api"
 import { getAccessToken, setAccessToken } from "../lib/token"
+import { Montserrat_700Bold, } from "@expo-google-fonts/montserrat";
+import { useFonts } from "expo-font"
 
 const queryClient = new QueryClient()
 
@@ -13,6 +15,9 @@ export const unstable_settings = {
 }
 
 export default function RootLayout() {
+  const [fontsLoaded] = useFonts({
+    Montserrat_700Bold,
+  });
   const router = useRouter()
   const [ready, setReady] = useState(false)
 

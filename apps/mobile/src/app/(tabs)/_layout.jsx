@@ -4,6 +4,7 @@ import React from 'react';
 import { HapticTab } from "../../components/haptic-tab";
 import { IconSymbol } from '../../components/ui/icon-symbol';
 import { Colors } from '../../constants/theme';
+import { Montserrat_700Bold } from "@expo-google-fonts/montserrat"
 
 export default function TabLayout() {
   return (
@@ -20,7 +21,7 @@ export default function TabLayout() {
           },
         headerTitleStyle: {
           fontSize: 24,
-          fontFamily: "Montserrat-Bold"
+          fontFamily: "Montserrat_700Bold",
         },
       }}
     >
@@ -29,7 +30,7 @@ export default function TabLayout() {
         options={{
           title: "Map",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={24} name="map.fill" color={Colors.text} />
+            <IconSymbol size={24} name="map.fill" color={color} />
           ),
         }}
       />
@@ -39,7 +40,7 @@ export default function TabLayout() {
         options={{
           title: "Home",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={24} name="house.fill" color={Colors.text} />
+            <IconSymbol size={24} name="house.fill" color={color} />
           ),
         }}
       />
@@ -49,7 +50,7 @@ export default function TabLayout() {
         options={{
           title: "Profile",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={24} name="person.fill" color={Colors.text} />
+            <IconSymbol size={24} name="person.fill" color={color} />
           ),
         }}
       />
