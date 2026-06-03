@@ -1,21 +1,27 @@
 import { z } from "zod";
 
-export const CreateUserSchema = z.object({
-  name: z.string().min(1).max(100),
-  email: z.email(),
-  age: z.number().int().min(18).optional(),
-  role: z.enum(["admin", "member", "guest"]).default("member"),
+export const RegisterUserSchema = z.object({
+  firstName: z.string().trim().min(1).max(100),
+  email: z.email().trim().toLowerCase(),
+  password: z.string().min(8).max(128),
+  school: z.string().trim().max(120).optional(),
+  campus: z.string().trim().max(120).optional(),
 });
 
-export const UpdateUserSchema = CreateUserSchema.partial().omit({ role: true });
+export const LoginUserSchema = z.object({
+  email: z.email().trim().toLowerCase(),
+  password: z.string().min(1),
+});
 
-export const UserSchema = CreateUserSchema.extend({
+export const PublicUserSchema = z.object({
   id: z.uuidv4(),
-  createdAt: z.iso.datetime(),
-  updatedAt: z.iso.datetime(),
+  firstName: z.string(),
+  email: z.email(),
+  school: z.string().nullable().optional(),
+  campus: z.string().nullable().optional(),
+  createdAt: z.string(),
 });
 
-// Inferred types
-export type CreateUserInput = z.infer<typeof CreateUserSchema>;
-export type UpdateUserInput = z.infer<typeof UpdateUserSchema>;
-export type User = z.infer<typeof UserSchema>;
+export type RegisterUserInput = z.infer<typeof RegisterUserSchema>;
+export type LoginUserInput = z.infer<typeof LoginUserSchema>;
+export type PublicUser = z.infer<typeof PublicUserSchema>;

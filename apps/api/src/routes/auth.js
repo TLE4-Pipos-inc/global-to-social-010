@@ -2,6 +2,7 @@ import bcrypt from "bcrypt"
 import { eq } from "drizzle-orm"
 import express from "express"
 import { v4 as uuidv4 } from "uuid"
+import { LoginUserSchema, RegisterUserSchema } from "@pub-hopper/schemas"
 import { db } from "../db/client.js"
 import { users } from "../db/schema.js"
 import { requireAuth, signAccessToken } from "../middleware/auth.js"
@@ -17,12 +18,6 @@ function publicUser(user) {
     campus: user.campus,
     createdAt: user.createdAt,
   }
-}
-
-function normalizeEmail(email) {
-  return String(email ?? "")
-    .trim()
-    .toLowerCase()
 }
 
 function setAuthCookie(res, token) {
@@ -43,24 +38,16 @@ function isUniqueEmailError(error) {
 }
 
 router.post("/register", async (req, res) => {
-  const firstName = String(req.body.firstName ?? "").trim()
-  const email = normalizeEmail(req.body.email)
-  const password = String(req.body.password ?? "")
-  const school = req.body.school ? String(req.body.school).trim() : null
-  const campus = req.body.campus ? String(req.body.campus).trim() : null
+  const result = RegisterUserSchema.safeParse(req.body)
 
-  if (!firstName || !email || !password) {
-    return res
-      .status(400)
-      .json({ message: "firstName, email and password are required" })
+  if (!result.success) {
+    return res.status(400).json({
+      message: "Invalid registration data",
+      issues: result.error.issues,
+    })
   }
 
-  if (password.length < 8) {
-    return res
-      .status(400)
-      .json({ message: "Password must be at least 8 characters" })
-  }
-
+  const { firstName, email, password, school, campus } = result.data
   const saltRounds = Number(process.env.SALT_ROUNDS ?? 12)
   const passwordHash = await bcrypt.hash(password, saltRounds)
   const user = {
@@ -68,8 +55,8 @@ router.post("/register", async (req, res) => {
     firstName,
     email,
     password: passwordHash,
-    school,
-    campus,
+    school: school ?? null,
+    campus: campus ?? null,
   }
 
   try {
@@ -87,17 +74,21 @@ router.post("/register", async (req, res) => {
 
   return res.status(201).json({
     user: publicUser(user),
+    token,
   })
 })
 
 router.post("/login", async (req, res) => {
-  const email = normalizeEmail(req.body.email)
-  const password = String(req.body.password ?? "")
+  const result = LoginUserSchema.safeParse(req.body)
 
-  if (!email || !password) {
-    return res.status(400).json({ message: "email and password are required" })
+  if (!result.success) {
+    return res.status(400).json({
+      message: "Invalid login data",
+      issues: result.error.issues,
+    })
   }
 
+  const { email, password } = result.data
   const user = db.select().from(users).where(eq(users.email, email)).get()
 
   if (!user) {
@@ -115,6 +106,7 @@ router.post("/login", async (req, res) => {
 
   return res.json({
     user: publicUser(user),
+    token,
   })
 })
 
