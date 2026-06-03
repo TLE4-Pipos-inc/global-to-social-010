@@ -8,7 +8,8 @@ import { requireAuth } from "../middleware/auth.js"
 const router = express.Router()
 
 function normalizeName(value) {
-  return String(value ?? "").trim().toLowerCase()
+  if (typeof value !== "string") return null
+  return value.trim().toLowerCase()
 }
 
 function isUniqueInterestError(error) {

@@ -12,32 +12,61 @@ function parseStarterBody(body, partial = false) {
   const payload = {}
   const errors = []
 
-  if (!partial || body.interestsId !== undefined) {
-    payload.interestsId = body.interestsId
-      ? String(body.interestsId).trim()
-      : null
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return { payload, errors: ["body must be an object"] }
+  }
+
+  if (body.interestsId !== undefined) {
+    if (body.interestsId === null) {
+      payload.interestsId = null
+    } else if (typeof body.interestsId !== "string") {
+      errors.push("interestsId must be a non-empty string or null")
+    } else {
+      const interestsId = body.interestsId.trim()
+      if (!interestsId) {
+        errors.push("interestsId must be a non-empty string or null")
+      } else {
+        payload.interestsId = interestsId
+      }
+    }
   }
 
   if (!partial || body.category !== undefined) {
-    const category = String(body.category ?? "").trim()
-    if (!category) errors.push("category is required")
-    payload.category = category
+    if (typeof body.category !== "string") {
+      errors.push("category must be a non-empty string")
+    } else {
+      const category = body.category.trim()
+      if (!category) {
+        errors.push("category must be a non-empty string")
+      } else {
+        payload.category = category
+      }
+    }
   }
 
   if (!partial || body.prompt !== undefined) {
-    const prompt = String(body.prompt ?? "").trim()
-    if (!prompt) errors.push("prompt is required")
-    payload.prompt = prompt
+    if (typeof body.prompt !== "string") {
+      errors.push("prompt must be a non-empty string")
+    } else {
+      const prompt = body.prompt.trim()
+      if (!prompt) {
+        errors.push("prompt must be a non-empty string")
+      } else {
+        payload.prompt = prompt
+      }
+    }
   }
 
   if (!partial || body.triggerMinute !== undefined) {
-    const triggerMinute = Number(body.triggerMinute)
-    if (!allowedTriggerMinutes.has(triggerMinute)) {
+    if (typeof body.triggerMinute !== "number" || !Number.isFinite(body.triggerMinute)) {
+      errors.push("triggerMinute must be a number")
+    } else if (!allowedTriggerMinutes.has(body.triggerMinute)) {
       errors.push(
         "triggerMinute must be one of 0, 5, 10, 15, 20, 25, 30, 35, 40, 45"
       )
+    } else {
+      payload.triggerMinute = body.triggerMinute
     }
-    payload.triggerMinute = triggerMinute
   }
 
   return { payload, errors }
@@ -175,9 +204,10 @@ router.patch("/:id", requireAuth, (req, res) => {
       return res.status(400).json({ message: "interestsId does not exist" })
     }
 
+    console.error(error)
     return res
       .status(500)
-      .json({ message: "Could not update conversation starter", error })
+      .json({ message: "Could not update conversation starter" })
   }
 })
 
