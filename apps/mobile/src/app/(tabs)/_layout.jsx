@@ -10,11 +10,8 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors.tint,
-        headerShown: false,
         tabBarButton: HapticTab,
-
         headerShown: true,
-
         headerTitleStyle: {
           fontSize: 32,
           fontWeight: "700",
