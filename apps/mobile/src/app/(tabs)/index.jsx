@@ -41,21 +41,21 @@ export default function HomeScreen() {
         <Text style={styles.title}>How does it work</Text>
         <View style={{ gap: 10 }}>
           <View style={styles.box}>
-            <Text style={{ padding: 30, color: "#F1F1FFF" }} >Pick a theme</Text>
+            <Text style={{ padding: 30, color: "#F1F1FF" }} >Pick a theme</Text>
           </View>
           <View style={styles.box}>
-            <Text style={{ padding: 20, color: "#F1F1FFF" }}>
+            <Text style={{ padding: 20, color: "#F1F1FF" }}>
               Select group size and a time slot. We'll match you with students
               who share your interests.
             </Text>
           </View>
           <View style={styles.box}>
-            <Text style={{ padding: 30, color: "#F1F1FFF" }}>
+            <Text style={{ padding: 30, color: "#F1F1FF" }}>
               Visit different stops around Rotterdam together.
             </Text>
           </View>
           <View style={styles.box}>
-            <Text style={{ padding: 30, color: "#F1F1FFF" }}>
+            <Text style={{ padding: 30, color: "#F1F1FF" }}>
               Connect with other students along the way.
             </Text>
           </View>
@@ -86,9 +86,11 @@ const styles = StyleSheet.create({
     top: 10,
     gap: 8,
     height: 80,
+    minHeight: 80,
     backgroundColor: "#80bd56",
     borderRadius: 10,
   },
+
   title: {
     fontSize: 32,
     fontWeight: "bold",
