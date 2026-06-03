@@ -1,5 +1,6 @@
 import React from "react";
 import { Pressable, Text, StyleSheet, } from "react-native";
+import { Colors } from "./../constants/theme";
 
 
 export const PrimaryLightButton = ({ title, ...props }) => (
@@ -30,7 +31,8 @@ const styles = StyleSheet.create({
     lightFilled: {
         height: 72,
         borderRadius: 18,
-        backgroundColor: "#5D952B",
+        // backgroundColor: "#5D952B",
+        backgroundColor: Colors.lightGreenColor,
         justifyContent: "center",
         alignItems: "center",
     },
@@ -39,7 +41,7 @@ const styles = StyleSheet.create({
         height: 72,
         borderRadius: 18,
         borderWidth: 1,
-        borderColor: "#5D952B",
+        borderColor: Colors.lightGreenColor,
         justifyContent: "center",
         alignItems: "center",
         backgroundColor: "transparent",
@@ -48,7 +50,7 @@ const styles = StyleSheet.create({
     darkFilled: {
         height: 72,
         borderRadius: 18,
-        backgroundColor: "#054F09",
+        backgroundColor: Colors.darkGreenColor,
         justifyContent: "center",
         alignItems: "center",
     },
@@ -57,7 +59,7 @@ const styles = StyleSheet.create({
         height: 72,
         borderRadius: 18,
         borderWidth: 1,
-        borderColor: "#2D6A35",
+        borderColor: Colors.darkOutlineColor,
         justifyContent: "center",
         alignItems: "center",
         backgroundColor: "transparent",
@@ -72,12 +74,12 @@ const styles = StyleSheet.create({
     lightOutlineText: {
         fontSize: 22,
         fontWeight: "500",
-        color: "#5D952B",
+        color: Colors.lightGreenColor,
     },
 
     darkOutlineText: {
         fontSize: 22,
         fontWeight: "500",
-        color: "#2D6A35",
+        color: Colors.darkOutlineColor,
     },
 });

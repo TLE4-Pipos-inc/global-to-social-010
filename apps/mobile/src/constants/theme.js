@@ -7,6 +7,11 @@ export const Colors = {
   icon: '#687076',
   tabIconDefault: '#687076',
   tabIconSelected: '#0a7ea4',
+  lightGreenColor: "#5D952B",
+  darkGreenColor: "#054F09",
+  darkOutlineColor: "#2D6A35",
+  yellowColor: "#ffff00",
+  orangeColor: "#FFA500",
 };
 
 export const Fonts = Platform.select({
