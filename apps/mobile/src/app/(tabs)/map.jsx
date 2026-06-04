@@ -3,9 +3,17 @@ import { StyleSheet, Text, View } from 'react-native';
 import MapView, {Marker} from "react-native-maps";
 import {useEffect, useState} from "react";
 import * as Location from 'expo-location';
+import { API_URL } from "../../constants/api";
 
 export default function App() {
   const [location, setLocation] = useState(null);
+  const [venues, setVenues] = useState([])
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/partners/venues`)
+      .then(res => res.json())
+      .then(setVenues)
+  }, [])
 
   useEffect(() => {
     let subscription;
@@ -33,15 +41,16 @@ export default function App() {
   return (
     <View style={styles.container}>
       <MapView region={{ latitude: 51.9244, longitude: 4.4777, latitudeDelta: 0.1, longitudeDelta: 0.1, }} style={styles.map} showsUserLocation={true} >
-        {location && (
+        {venues.map((venue) => (
           <Marker
+            key={venue.id}
             coordinate={{
-              latitude: 51.9200601,
-              longitude: 4.4868003,
+              latitude: Number(venue.latitude),
+              longitude: Number(venue.longitude),
             }}
-            title="Markthal"
+            title={venue.name}
           />
-        )}
+        ))}
       </MapView>
       <StatusBar style="auto" />
     </View>
