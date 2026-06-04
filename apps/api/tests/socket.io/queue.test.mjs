@@ -5,7 +5,7 @@
  * No DB and no server are required — we test the PartyQueue directly.
  */
 import assert from "node:assert/strict"
-import { PartyQueue } from "../src/lib/matchmaking/queue.js"
+import { PartyQueue } from "../../src/lib/matchmaking/queue.js"
 
 const config = {
   MIN_GROUP_SIZE: 4,

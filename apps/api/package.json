@@ -11,7 +11,7 @@
     "db:push": "drizzle-kit push",
     "db:pull": "drizzle-kit pull",
     "db:studio": "drizzle-kit studio",
-    "party:socket": "node --env-file=.env tests/e2e-party.mjs"
+    "party:socket": "node --env-file=.env tests/socket.io/e2e-party.mjs"
   },
   "keywords": [],
   "author": "",
