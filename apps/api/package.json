@@ -10,12 +10,12 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:pull": "drizzle-kit pull",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "party:socket": "node --env-file=.env tests/e2e-party.mjs"
   },
   "keywords": [],
   "author": "",
   "dependencies": {
-    "zod": "catalog:",
     "@pub-hopper/schemas": "workspace:*",
     "bcrypt": "^6.0.0",
     "better-sqlite3": "^12.10.0",
@@ -24,9 +24,12 @@
     "drizzle-orm": "^0.45.2",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
-    "uuid": "^13.0.0"
+    "socket.io": "^4.8.3",
+    "uuid": "^13.0.0",
+    "zod": "catalog:"
   },
   "devDependencies": {
-    "drizzle-kit": "^0.31.10"
+    "drizzle-kit": "^0.31.10",
+    "socket.io-client": "^4.8.3"
   }
 }
