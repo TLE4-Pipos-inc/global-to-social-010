@@ -1,6 +1,3 @@
-import http from "node:http"
-import path from "node:path"
-import { fileURLToPath } from "node:url"
 import express from "express"
 import cors from "cors"
 import cookieParser from "cookie-parser"
@@ -20,7 +17,7 @@ app.use(express.json())
 app.use(cookieParser())
 app.use(
   cors({
-    origin: clientOrigin,
+    origin: "*",
     credentials: true, // required to allow cookies cross-origin
   })
 )

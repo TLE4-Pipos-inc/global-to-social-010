@@ -11,7 +11,6 @@ export function requireAuth(req, res, next) {
   }
   
   try {
-    console.log("Received token:", token)
     const payload = verifyAccess(token)
     res.locals.payload = payload
     return next()

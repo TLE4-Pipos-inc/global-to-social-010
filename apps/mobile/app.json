@@ -2,6 +2,7 @@
   "expo": {
     "name": "mobile",
     "slug": "mobile",
+    "scheme": "pub-hopper",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -38,7 +39,8 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      "expo-font"
     ]
   }
 }
