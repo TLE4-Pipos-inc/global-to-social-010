@@ -1,6 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View } from 'react-native';
-import MapView, {Marker} from "react-native-maps";
+import MapView, {Marker, Callout} from "react-native-maps";
 import {useEffect, useState} from "react";
 import * as Location from 'expo-location';
 import { API_URL } from "../../constants/api";
@@ -48,8 +48,14 @@ export default function App() {
               latitude: Number(venue.latitude),
               longitude: Number(venue.longitude),
             }}
-            title={venue.name}
-          />
+          >
+            <Callout>
+              <View style={{ padding: 10 }}>
+                <Text style={{ fontWeight: "bold" }}>{venue.name}</Text>
+                <Text>{venue.description}</Text>
+              </View>
+            </Callout>
+          </Marker>
         ))}
       </MapView>
       <StatusBar style="auto" />
