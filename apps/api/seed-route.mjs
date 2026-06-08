@@ -72,5 +72,6 @@ try {
   console.log("Route ID:", routeId);
 } catch (err) {
   console.error("Failed to seed (transaction rolled back):", err.message);
+  process.exitCode = 1;
 }
 
