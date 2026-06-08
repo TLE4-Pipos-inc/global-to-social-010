@@ -1,35 +1,17 @@
-import { Platform } from 'react-native';
-
 export const Colors = {
-  text: '#11181C',
-  background: '#fff',
-  tint: '#0a7ea4',
-  icon: '#687076',
-  tabIconDefault: '#687076',
-  tabIconSelected: '#0a7ea4',
+  text: "#11181C",
+  background: "#fff",
+  tint: "#0a7ea4",
+  icon: "#687076",
+  tabIconDefault: "#687076",
+  tabIconSelected: "#0a7ea4",
   lightGreenColor: "#548C2F",
   darkGreenColor: "#104911",
   yellowColor: "#FFD449",
   orangeColor: "#F9A620",
-};
+  offWhite: "#F1F1FF",
+}
 
-export const Fonts = Platform.select({
-  ios: {
-    sans: 'system-ui',
-    serif: 'ui-serif',
-    rounded: 'ui-rounded',
-    mono: 'ui-monospace',
-  },
-  default: {
-    sans: 'normal',
-    serif: 'serif',
-    rounded: 'normal',
-    mono: 'monospace',
-  },
-  web: {
-    sans: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-    serif: "Georgia, 'Times New Roman', serif",
-    rounded: "'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif",
-    mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
-  },
-});
+export const Fonts = {
+  bold: "Montserrat_700Bold",
+}

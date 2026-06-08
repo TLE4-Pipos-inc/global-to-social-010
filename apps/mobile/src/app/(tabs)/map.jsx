@@ -1,6 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 import MapView, {Marker} from "react-native-maps";
+import { ThemedView } from "@/components/themed-view";
 import {useEffect, useState} from "react";
 import * as Location from 'expo-location';
 
@@ -10,11 +11,10 @@ export default function App() {
   useEffect(() => {
     let subscription;
     async function getCurrentLocation() {
-
       let {status} = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         console.error('Permission to access location was denied');
-
+        return;
       }
 
       subscription = await Location.watchPositionAsync(
@@ -29,9 +29,10 @@ export default function App() {
       );
     }
     getCurrentLocation();
+    return () => subscription?.remove();
   }, []);
   return (
-    <View style={styles.container}>
+    <ThemedView style={styles.container}>
       <MapView region={{ latitude: 51.9244, longitude: 4.4777, latitudeDelta: 0.1, longitudeDelta: 0.1, }} style={styles.map} showsUserLocation={true} >
         {location && (
           <Marker
@@ -44,14 +45,13 @@ export default function App() {
         )}
       </MapView>
       <StatusBar style="auto" />
-    </View>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
   },
