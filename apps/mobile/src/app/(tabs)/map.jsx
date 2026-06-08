@@ -11,9 +11,28 @@ export default function App() {
   const [venues, setVenues] = useState([])
 
   useEffect(() => {
-    fetch(`${API_URL}/api/partners/venues`)
-      .then(res => res.json())
-      .then(setVenues)
+    async function loadVenues() {
+      try {
+        const response = await fetch(`${API_URL}/api/venues`, {
+          headers: {
+            "ngrok-skip-browser-warning": "true",
+          },
+        })
+        const contentType = response.headers.get("content-type") ?? ""
+        if (!response.ok || !contentType.includes("application/json")) {
+          const text = await response.text()
+          throw new Error(text.slice(0, 120) || "Could not load venues")
+        }
+
+        const json = await response.json()
+        setVenues(json.venues ?? [])
+      } catch (error) {
+        console.error("Failed to load venues", error)
+        setVenues([])
+      }
+    }
+
+    loadVenues()
   }, [])
 
   useEffect(() => {
