@@ -1,6 +1,6 @@
 /**
  * Standalone unit tests for the matchmaking queue.
- * Run with:  node tests/queue.test.mjs
+ * Run with:  node tests/socket.io/queue.test.mjs
  *
  * No DB and no server are required — we test the PartyQueue directly.
  */
