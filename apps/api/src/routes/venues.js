@@ -1,9 +1,9 @@
 import { eq } from "drizzle-orm"
 import express from "express"
 import { v4 as uuidv4 } from "uuid"
-import { db } from "../db/client.js"
-import { venues } from "../db/schema.js"
-import { requireAuth } from "../middleware/auth.js"
+import { db } from "@/db/client.js"
+import { venues } from "@/db/schema.js"
+import { requireAuth } from "@/middleware/auth.js"
 import {
   VenueCreateSchema,
   VenueParamsSchema,
@@ -45,11 +45,7 @@ router.get("/:id", (req, res) => {
   const params = parseParams(req, res)
   if (!params) return
 
-  const venue = db
-    .select()
-    .from(venues)
-    .where(eq(venues.id, params.id))
-    .get()
+  const venue = db.select().from(venues).where(eq(venues.id, params.id)).get()
 
   if (!venue) {
     return res.status(404).json({ message: "Venue not found" })
@@ -111,10 +107,7 @@ router.patch("/:id", requireAuth, (req, res) => {
   }
 
   try {
-    db.update(venues)
-      .set(parsed.data)
-      .where(eq(venues.id, params.id))
-      .run()
+    db.update(venues).set(parsed.data).where(eq(venues.id, params.id)).run()
   } catch (error) {
     console.error(error)
     return res.status(500).json({ message: "Could not update venue" })
