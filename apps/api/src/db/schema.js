@@ -19,6 +19,7 @@ export const users = sqliteTable("users", {
   school: text("school"),
   campus: text("campus"),
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  deletedAt: text("deleted_at"),
 });
 
 export const playerGroups = sqliteTable(

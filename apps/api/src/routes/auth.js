@@ -1,5 +1,5 @@
 import bcrypt from "bcrypt"
-import { eq } from "drizzle-orm"
+import { eq, sql } from "drizzle-orm"
 import express from "express"
 import { v4 as uuidv4 } from "uuid"
 import { LoginUserSchema, RegisterUserSchema } from "@pub-hopper/schemas"
@@ -9,7 +9,6 @@ import { requireAuth } from "@/middleware/auth.js"
 import {
   setAuthCookie,
   signAccess,
-  verifyAccess,
   verifyRefresh,
 } from "@/lib/jwt-helper.js"
 import z from "zod"
@@ -100,6 +99,10 @@ router.post("/login", async (req, res) => {
     return res.status(401).json({ message: "Invalid email or password" })
   }
 
+  if (user.deletedAt) {
+    return res.status(401).json({ message: "Invalid email or password" })
+  }
+
   const passwordMatches = await bcrypt.compare(password, user.password)
 
   if (!passwordMatches) {
@@ -148,6 +151,28 @@ router.post("/refresh", (req, res) => {
 router.post("/logout", (_req, res) => {
   res.clearCookie("access_token")
   return res.json({ message: "Logged out" })
+})
+
+router.delete("/me", requireAuth, (_req, res) => {
+  const { userId } = res.locals.payload
+
+  const user = db
+    .select({ deletedAt: users.deletedAt })
+    .from(users)
+    .where(eq(users.id, userId))
+    .get()
+
+  if (!user || user.deletedAt) {
+    return res.status(404).json({ message: "User not found" })
+  }
+
+  db.update(users)
+    .set({ deletedAt: sql`CURRENT_TIMESTAMP` })
+    .where(eq(users.id, userId))
+    .run()
+
+  res.clearCookie("access_token")
+  return res.json({ message: "Account deleted" })
 })
 
 router.get("/me", requireAuth, (req, res) => {

@@ -1,10 +1,10 @@
 import { Image } from "expo-image"
 import { ThemedText } from "@/components/themed-text"
-import { ActivityIndicator, StyleSheet, View } from "react-native"
+import { Alert, ActivityIndicator, StyleSheet, View } from "react-native"
 import { router } from "expo-router"
 import { Suspense } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { useAccountQuery } from "@/features/auth"
+import { useAccountQuery, useDeleteAccountMutation } from "@/features/auth"
 import { setAccessToken } from "@/lib/token"
 import { API_URL } from "@/constants/api"
 import { PrimaryDarkOutlineButton } from "@/components/buttons"
@@ -26,6 +26,24 @@ function ProfileContent() {
       router.replace("/(auth)/login")
     },
   })
+
+  const deleteAccount = useDeleteAccountMutation()
+
+  function handleDeletePress() {
+    Alert.alert(
+      "Delete account",
+      "Are you sure you want to delete your account? This cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => deleteAccount.mutate(),
+        },
+      ]
+    )
+  }
+
   return (
     <>
       <View style={styles.block}>
@@ -56,11 +74,18 @@ function ProfileContent() {
         </View>
       </View>
       <View style={styles.container}>
-        <PrimaryDarkOutlineButton
-          title={logout.isPending ? "Logging out…" : "Log Out"}
-          disabled={logout.isPending}
-          onPress={() => logout.mutate()}
-        />
+        <View style={styles.buttonsContainer}>
+          <PrimaryDarkOutlineButton
+            title={logout.isPending ? "Logging out…" : "Log Out"}
+            disabled={logout.isPending || deleteAccount.isPending}
+            onPress={() => logout.mutate()}
+          />
+          <PrimaryDarkOutlineButton
+            title={deleteAccount.isPending ? "Deleting account…" : "Delete account"}
+            disabled={logout.isPending || deleteAccount.isPending}
+            onPress={handleDeletePress}
+          />
+        </View>
       </View>
     </>
   )
@@ -117,7 +142,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 32,
     backgroundColor: Colors.background,
-    justifyContent: "space-between",
+    justifyContent: "flex-end",
+  },
+  buttonsContainer: {
+    gap: 12,
   },
   loader: {
     flex: 1,
