@@ -25,14 +25,15 @@ function isUniqueEmailError(error) {
 }
 
 router.post("/register", async (req, res) => {
+  console.log("test")
   const result = RegisterUserSchema.safeParse(req.body)
-
   if (!result.success) {
     return res.status(400).json({
       message: "Invalid registration data",
       errors: z.flattenError(result.error).fieldErrors,
     })
   }
+
 
   const { name, email, password, school, campus } = result.data
   const saltRounds = Number(process.env.SALT_ROUNDS ?? 12)

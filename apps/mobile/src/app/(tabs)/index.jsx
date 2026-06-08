@@ -29,19 +29,20 @@ export default function HomeScreen() {
             Join themed group routes around Rotterdam and connect with fellow
             international students at Hogeschool Rotterdam.
           </Text>
-          <View style={{top: 10}}>
-
-              <PrimaryLightButton title="start now"  onPress={() => router.push("/map")} />
-
+          <View style={{ top: 10 }}>
+            <PrimaryLightButton
+              title="Start Now"
+              onPress={() => router.push("/interest")}
+            />
           </View>
         </View>
       </View>
 
-      <View style={{padding: 30}}>
+      <View style={{ padding: 30 }}>
         <Text style={styles.title}>How does it work</Text>
         <View style={{ gap: 10 }}>
           <View style={styles.box}>
-            <Text style={{ padding: 30, color: "#F1F1FF" }} >Pick a theme</Text>
+            <Text style={{ padding: 30, color: "#F1F1FF" }}>Pick a theme</Text>
           </View>
           <View style={styles.box}>
             <Text style={{ padding: 20, color: "#F1F1FF" }}>
