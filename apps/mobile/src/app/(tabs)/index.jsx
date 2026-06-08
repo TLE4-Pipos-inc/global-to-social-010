@@ -1,20 +1,12 @@
-import { Image } from "expo-image"
-import { StyleSheet, View } from "react-native"
-
-import ParallaxScrollView from "../../components/parallax-scroll-view"
-import { ThemedText } from "../../components/themed-text"
+import { ScrollView, StyleSheet, View } from "react-native"
+import { ThemedText } from "@/components/themed-text"
 import { router } from "expo-router"
-import { PrimaryLightButton } from "../../components/buttons"
+import { PrimaryLightButton } from "@/components/buttons"
 
 export default function HomeScreen() {
   return (
-    <ParallaxScrollView>
-      <View
-        style={{
-          padding: 50,
-          backgroundColor: "#F9A620",
-        }}
-      >
+    <ScrollView style={styles.scroll}>
+      <View style={{ padding: 50, backgroundColor: "#F9A620" }}>
         <View style={{ gap: 20 }}>
           <ThemedText type="title">GlobalToSocial 010</ThemedText>
           <ThemedText>
@@ -38,8 +30,8 @@ export default function HomeScreen() {
           </View>
           <View style={styles.box}>
             <ThemedText style={styles.boxText}>
-              Select group size and a time slot. We'll match you with students
-              who share your interests.
+              Select group size and a time slot. We&apos;ll match you with
+              students who share your interests.
             </ThemedText>
           </View>
           <View style={styles.box}>
@@ -54,11 +46,14 @@ export default function HomeScreen() {
           </View>
         </View>
       </View>
-    </ParallaxScrollView>
+    </ScrollView>
   )
 }
 
 const styles = StyleSheet.create({
+  scroll: {
+    flex: 1,
+  },
   grid: {
     flexDirection: "column",
     gap: 10,

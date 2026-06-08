@@ -1,7 +1,7 @@
 import React from "react"
 import { TextInput, Text, View, StyleSheet } from "react-native"
-import { useFieldContext } from "../../lib/form-context"
-import { Colors } from "../../constants/theme"
+import { useFieldContext } from "@/lib/form-context"
+import { Colors } from "@/constants/theme"
 
 const InputField = ({ label, ...props }) => {
   const field = useFieldContext()
@@ -42,7 +42,7 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.darkOutlineColor,
+    borderColor: Colors.darkGreenColor,
     paddingHorizontal: 16,
     fontSize: 16,
     color: Colors.text,

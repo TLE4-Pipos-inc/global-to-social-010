@@ -1,6 +1,6 @@
 import { StyleSheet, Text } from "react-native"
 
-import { Colors } from "../constants/theme"
+import { Colors, Fonts } from "@/constants/theme"
 
 export function ThemedText({ style, type = "default", ...rest }) {
   return (
@@ -32,12 +32,12 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 32,
-    fontWeight: "bold",
+    fontFamily: Fonts.bold,
     lineHeight: 32,
   },
   subtitle: {
     fontSize: 20,
-    fontWeight: "bold",
+    fontFamily: Fonts.bold,
   },
   text: {
     fontSize: 16,

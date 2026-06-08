@@ -4,16 +4,16 @@ import {
   Platform,
   StyleSheet,
   View,
-} from "react-native";
-import { router } from "expo-router";
-import { useMutation } from "@tanstack/react-query";
-import { RegisterUserSchema } from "@pub-hopper/schemas";
-import { useAccountForm } from "../../features/auth/hooks/form";
-import { setAccessToken } from "../../lib/token";
-import { API_URL } from "../../constants/api";
-import { PrimaryDarkButton } from "../../components/buttons";
-import { ThemedText } from "../../components/themed-text";
-import { Colors } from "../../constants/theme";
+} from "react-native"
+import { router } from "expo-router"
+import { useMutation } from "@tanstack/react-query"
+import { RegisterUserSchema } from "@pub-hopper/schemas"
+import { useAccountForm } from "@/features/auth/hooks/form"
+import { setAccessToken } from "@/lib/token"
+import { API_URL } from "@/constants/api"
+import { PrimaryDarkButton } from "@/components/buttons"
+import { ThemedText } from "@/components/themed-text"
+import { Colors } from "@/constants/theme"
 
 export default function RegisterScreen() {
   const mutation = useMutation({
@@ -23,23 +23,23 @@ export default function RegisterScreen() {
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify(value),
-      });
-      const json = await response.json();
-      if (!response.ok) throw new Error(json.message || "Registration failed");
-      return json;
+      })
+      const json = await response.json()
+      if (!response.ok) throw new Error(json.message || "Registration failed")
+      return json
     },
     onSuccess: ({ token }) => {
-      setAccessToken(token);
-      router.replace("/(tabs)");
+      setAccessToken(token)
+      router.replace("/(tabs)")
     },
     onError: (err) => Alert.alert("Registration failed", err.message),
-  });
+  })
 
   const form = useAccountForm({
     defaultValues: { name: "", email: "", password: "" },
     validators: { onSubmit: RegisterUserSchema },
     onSubmit: async ({ value }) => mutation.mutate(value),
-  });
+  })
 
   return (
     <KeyboardAvoidingView
@@ -89,7 +89,7 @@ export default function RegisterScreen() {
         />
       </View>
     </KeyboardAvoidingView>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
@@ -106,4 +106,4 @@ const styles = StyleSheet.create({
   fields: {
     gap: 16,
   },
-});
+})

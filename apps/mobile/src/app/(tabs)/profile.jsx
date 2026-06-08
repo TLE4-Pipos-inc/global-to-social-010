@@ -1,14 +1,14 @@
 import { Image } from "expo-image"
-import { ThemedText } from "../../components/themed-text"
+import { ThemedText } from "@/components/themed-text"
 import { ActivityIndicator, StyleSheet, View } from "react-native"
 import { router } from "expo-router"
 import { Suspense } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { useAccountQuery } from "../../features/auth/hooks/query"
-import { setAccessToken } from "../../lib/token"
-import { API_URL } from "../../constants/api"
-import { PrimaryDarkOutlineButton } from "../../components/buttons"
-import { Colors } from "../../constants/theme"
+import { useAccountQuery } from "@/features/auth/hooks/query"
+import { setAccessToken } from "@/lib/token"
+import { API_URL } from "@/constants/api"
+import { PrimaryDarkOutlineButton } from "@/components/buttons"
+import { Colors } from "@/constants/theme"
 
 function ProfileContent() {
   const { data } = useAccountQuery()

@@ -10,11 +10,10 @@ export default function App() {
   useEffect(() => {
     let subscription;
     async function getCurrentLocation() {
-
       let {status} = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         console.error('Permission to access location was denied');
-
+        return;
       }
 
       subscription = await Location.watchPositionAsync(
@@ -29,6 +28,7 @@ export default function App() {
       );
     }
     getCurrentLocation();
+    return () => subscription?.remove();
   }, []);
   return (
     <View style={styles.container}>
