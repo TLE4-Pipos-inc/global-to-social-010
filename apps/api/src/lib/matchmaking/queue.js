@@ -135,6 +135,10 @@ export class PartyQueue extends EventEmitter {
       return { party: null, removed: false, dissolved: false }
     }
 
+    if (party.status === "matched") {
+      throw new Error("Cannot leave a party that has already been matched")
+    }
+
     party.members = party.members.filter((m) => m.userId !== userId)
     this.byUser.delete(userId)
 
@@ -170,6 +174,7 @@ export class PartyQueue extends EventEmitter {
   kickMember(leaderId, targetUserId) {
     const party = this.getPartyOfUser(leaderId)
     if (!party) throw new Error("You are not in a party")
+    if (party.status === "matched") throw new Error("Cannot kick from a party that has already been matched")
     if (party.leaderId !== leaderId) throw new Error("Only the leader can kick")
     if (leaderId === targetUserId) throw new Error("Leader cannot kick themselves")
     if (!party.members.some((m) => m.userId === targetUserId)) {
