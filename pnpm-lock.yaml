@@ -161,7 +161,7 @@ importers:
         version: 15.12.1(react-native@0.81.5(@babel/core@7.29.7)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
     devDependencies:
       '@types/react':
-        specifier: ~19.1.17
+        specifier: ~19.1.10
         version: 19.1.17
       eslint:
         specifier: ^9.39.4
