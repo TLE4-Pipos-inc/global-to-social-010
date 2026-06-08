@@ -5,6 +5,8 @@ import path from "path"
 import http from "http"
 import { fileURLToPath } from "url"
 import authRouter from "./routes/auth.js"
+import matchesRouter from "./routes/matches.js"
+import sessionsRouter from "./routes/sessions.js"
 import { attachSocketServer } from "./sockets/index.js"
 
 // ConnectDB();
@@ -27,6 +29,8 @@ app.use(
 
 // Routes
 app.use("/api/auth", authRouter)
+app.use("/api/sessions", sessionsRouter)
+app.use("/api/matches", matchesRouter)
 
 app.use("/websocket-test", express.static(publicDir))
 app.get("/websocket-test", (_req, res) => {
