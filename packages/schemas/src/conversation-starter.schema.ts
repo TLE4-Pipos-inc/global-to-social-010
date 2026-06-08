@@ -8,12 +8,12 @@ const triggerMinuteSchema = z
   })
 
 export const ConversationStarterQuerySchema = z.object({
-  interestsId: z.string().trim().min(1).optional(),
+  interestsId: z.string().trim().min(1).nullable().optional(),
   triggerMinute: z.coerce.number().pipe(triggerMinuteSchema).optional(),
 })
 
 export const ConversationStarterCreateSchema = z.object({
-  interestsId: z.string().trim().min(1).optional(),
+  interestsId: z.string().trim().min(1).nullable(),
   category: z.string().trim().min(1),
   prompt: z.string().trim().min(1),
   triggerMinute: z.coerce.number().pipe(triggerMinuteSchema),
