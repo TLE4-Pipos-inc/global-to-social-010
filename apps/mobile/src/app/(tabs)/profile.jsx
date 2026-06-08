@@ -1,17 +1,17 @@
 import { Image } from "expo-image"
-import { ThemedText } from "../../components/themed-text"
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native"
+import { ThemedText } from "@/components/themed-text"
+import { ActivityIndicator, StyleSheet, View } from "react-native"
 import { router } from "expo-router"
 import { Suspense } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { useAccountQuery } from "../../features/auth/hooks/query"
-import { setAccessToken } from "../../lib/token"
-import { API_URL } from "../../constants/api"
-import { PrimaryDarkOutlineButton } from "../../components/buttons"
-import { Colors } from "../../constants/theme"
+import { useAccountQuery } from "@/features/auth"
+import { setAccessToken } from "@/lib/token"
+import { API_URL } from "@/constants/api"
+import { PrimaryDarkOutlineButton } from "@/components/buttons"
+import { Colors } from "@/constants/theme"
 
 function ProfileContent() {
-  const { data } = useAccountQuery()
+  useAccountQuery()
   const queryClient = useQueryClient()
 
   const logout = useMutation({
@@ -26,7 +26,6 @@ function ProfileContent() {
       router.replace("/(auth)/login")
     },
   })
-  const user = data.user
   return (
     <>
       <View style={styles.block}>
@@ -119,18 +118,6 @@ const styles = StyleSheet.create({
     paddingVertical: 32,
     backgroundColor: Colors.background,
     justifyContent: "space-between",
-  },
-  info: {
-    gap: 6,
-  },
-  name: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: Colors.text,
-  },
-  email: {
-    fontSize: 16,
-    color: Colors.icon,
   },
   loader: {
     flex: 1,

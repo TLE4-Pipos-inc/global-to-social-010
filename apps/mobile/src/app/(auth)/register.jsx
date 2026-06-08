@@ -3,17 +3,17 @@ import {
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import { router } from "expo-router";
-import { useMutation } from "@tanstack/react-query";
-import { RegisterUserSchema } from "@pub-hopper/schemas";
-import { useAccountForm } from "../../features/auth/hooks/form";
-import { setAccessToken } from "../../lib/token";
-import { API_URL } from "../../constants/api";
-import { PrimaryDarkButton } from "../../components/buttons";
-import { Colors } from "../../constants/theme";
+} from "react-native"
+import { router } from "expo-router"
+import { useMutation } from "@tanstack/react-query"
+import { RegisterUserSchema } from "@pub-hopper/schemas"
+import { useAccountForm } from "@/features/auth"
+import { setAccessToken } from "@/lib/token"
+import { API_URL } from "@/constants/api"
+import { PrimaryDarkButton } from "@/components/buttons"
+import { ThemedText } from "@/components/themed-text"
+import { ThemedView } from "@/components/themed-view"
+import { Colors } from "@/constants/theme"
 
 export default function RegisterScreen() {
   const mutation = useMutation({
@@ -23,33 +23,33 @@ export default function RegisterScreen() {
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify(value),
-      });
-      const json = await response.json();
-      if (!response.ok) throw new Error(json.message || "Registration failed");
-      return json;
+      })
+      const json = await response.json()
+      if (!response.ok) throw new Error(json.message || "Registration failed")
+      return json
     },
     onSuccess: ({ token }) => {
-      setAccessToken(token);
-      router.replace("/(tabs)");
+      setAccessToken(token)
+      router.replace("/(tabs)")
     },
     onError: (err) => Alert.alert("Registration failed", err.message),
-  });
+  })
 
   const form = useAccountForm({
     defaultValues: { name: "", email: "", password: "" },
     validators: { onSubmit: RegisterUserSchema },
     onSubmit: async ({ value }) => mutation.mutate(value),
-  });
+  })
 
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
     >
-      <View style={styles.inner}>
-        <Text style={styles.title}>Create Account</Text>
+      <ThemedView style={styles.inner}>
+        <ThemedText type="title">Create Account</ThemedText>
 
-        <View style={styles.fields}>
+        <ThemedView style={styles.fields}>
           <form.AppField name="name">
             {(field) => (
               <field.InputField
@@ -80,16 +80,16 @@ export default function RegisterScreen() {
               />
             )}
           </form.AppField>
-        </View>
+        </ThemedView>
 
         <PrimaryDarkButton
           title={mutation.isPending ? "Creating account…" : "Create Account"}
           disabled={mutation.isPending}
           onPress={() => form.handleSubmit()}
         />
-      </View>
+      </ThemedView>
     </KeyboardAvoidingView>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
@@ -103,12 +103,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     gap: 16,
   },
-  title: {
-    fontSize: 32,
-    fontWeight: "700",
-    color: Colors.text,
-  },
   fields: {
     gap: 16,
   },
-});
+})

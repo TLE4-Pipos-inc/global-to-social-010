@@ -1,10 +1,10 @@
 import express from "express"
 import cors from "cors"
 import cookieParser from "cookie-parser"
-import authRouter from "./routes/auth.js"
-import conversationStartersRouter from "./routes/conversations-starters.js"
-import interestsRouter from "./routes/interests.js"
-import venuesRouter from "./routes/venues.js"
+import venuesRouter from "@/routes/venues.js"
+import authRouter from "@/routes/auth.js"
+import conversationStartersRouter from "@/routes/conversations_starters.js"
+import interestsRouter from "@/routes/interests.js"
 
 // ConnectDB();
 
