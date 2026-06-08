@@ -14,6 +14,7 @@
     "db:pull": "drizzle-kit pull",
     "db:studio": "drizzle-kit studio",
     "party:socket": "node --env-file=.env tests/socket.io/e2e-party.mjs"
+    "db:seed": "tsx --env-file=.env src/db/seed.js"
   },
   "keywords": [],
   "author": "",

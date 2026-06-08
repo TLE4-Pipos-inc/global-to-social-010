@@ -8,8 +8,9 @@ import matchesRouter from "@/routes/matches.js"
 import sessionsRouter from "@/routes/sessions.js"
 import { attachSocketServer } from "@/sockets/index.js"
 import authRouter from "@/routes/auth.js"
-import conversationStartersRouter from "@/routes/conversations_starters.js"
+import conversationStartersRouter from "@/routes/conversations-starters.js"
 import interestsRouter from "@/routes/interests.js"
+import venuesRouter from "@/routes/venues.js"
 
 // ConnectDB();
 
@@ -40,6 +41,7 @@ app.get("/websocket-test", (_req, res) => {
 })
 app.use("/api/conversation-starters", conversationStartersRouter)
 app.use("/api/interests", interestsRouter)
+app.use("/api/venues", venuesRouter)
 
 app.get("/api/status", (_req, res) => {
   res.json({ message: "API is running" })
