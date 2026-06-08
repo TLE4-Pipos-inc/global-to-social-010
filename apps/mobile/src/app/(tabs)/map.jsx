@@ -4,14 +4,14 @@ import MapView, {Marker, Callout} from "react-native-maps";
 import { ThemedView } from "@/components/themed-view";
 import {useEffect, useState} from "react";
 import * as Location from 'expo-location';
-import { API_URL } from "../../constants/api";
+import { API_URL } from "@/constants/api";
 
 export default function App() {
   const [location, setLocation] = useState(null);
   const [venues, setVenues] = useState([])
 
   useEffect(() => {
-    fetch(`${API_URL}/api/partners/venues`)
+    fetch(`${API_URL}/api/venues`)
       .then(res => res.json())
       .then(setVenues)
   }, [])

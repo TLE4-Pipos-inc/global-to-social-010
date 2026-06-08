@@ -30,7 +30,6 @@ app.get("/api/status", (_req, res) => {
   res.json({ message: "API is running" })
 })
 
-app.use("/api/partners", partnersRouter)
 
 app.listen(port, () => {
   console.log(`Server is listening on port ${port}`)
