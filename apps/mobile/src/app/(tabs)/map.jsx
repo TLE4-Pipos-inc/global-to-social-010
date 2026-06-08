@@ -1,5 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from "react-native"
 import MapView, {Marker, Callout} from "react-native-maps";
 import {useEffect, useState} from "react";
 import * as Location from 'expo-location';
@@ -20,8 +20,8 @@ export default function App() {
     async function getCurrentLocation() {
 
       let {status} = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        console.error('Permission to access location was denied');
+      if (status !== "granted") {
+        console.error("Permission to access location was denied");
 
       }
 
@@ -49,10 +49,12 @@ export default function App() {
               longitude: Number(venue.longitude),
             }}
           >
-            <Callout>
-              <View style={{ padding: 10 }}>
-                <Text style={{ fontWeight: "bold" }}>{venue.name}</Text>
-                <Text>{venue.description}</Text>
+            <Callout style={{ height: 100, width: 400 }}>
+              <View style={styles.popup}>
+                <ScrollView>
+                  <Text style={{ fontWeight: "bold" }}>{venue.name}</Text>
+                  <Text accessibilityLabel={venue.description} >{venue.description}</Text>
+                </ScrollView>
               </View>
             </Callout>
           </Marker>
@@ -66,12 +68,16 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
   },
   map: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
+  popup: {
+    padding: 15,
+    maxWidth: "80%",
+  }
 });
