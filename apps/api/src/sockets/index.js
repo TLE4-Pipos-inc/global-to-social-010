@@ -47,6 +47,8 @@ export function attachSocketServer(httpServer, opts = {}) {
 
   const queue = new PartyQueue()
   queue.start()
+  /** @type {Map<string, string[]>} sessionId -> partyIds waiting for release */
+  const sessionParties = new Map()
 
   // --- AUTH ---------------------------------------------------------------
   io.use((socket, next) => {
@@ -103,7 +105,7 @@ export function attachSocketServer(httpServer, opts = {}) {
       safe(socket, ack, () => handleUnqueue(io, socket, queue)),
     )
     socket.on(SOCKET_EVENTS.SESSION_READY, (payload, ack) =>
-      safe(socket, ack, () => handleSessionReady(io, socket, payload)),
+      safe(socket, ack, () => handleSessionReady(io, socket, queue, sessionParties, payload)),
     )
 
     socket.on("disconnect", () => {
@@ -135,6 +137,13 @@ export function attachSocketServer(httpServer, opts = {}) {
     }
 
     const room = result.session ? sessionRoom(result.session.id) : null
+    if (result.session) {
+      // Defer user release until session activates (all players ready).
+      sessionParties.set(result.session.id, match.parties.map((p) => p.id))
+    } else {
+      // No route configured — no session to wait for, release immediately.
+      for (const party of match.parties) queue.releaseParty(party.id)
+    }
     const payload = {
       matchScore: match.matchScore,
       group: result.group,
@@ -281,7 +290,7 @@ function handleUnqueue(io, socket, queue) {
   return { ok: true, party: data }
 }
 
-function handleSessionReady(io, socket, payload) {
+function handleSessionReady(io, socket, queue, sessionParties, payload) {
   const sessionId = String(payload?.sessionId ?? "")
   if (!sessionId) throw httpError("INVALID_SESSION", "sessionId is required")
 
@@ -311,6 +320,11 @@ function handleSessionReady(io, socket, payload) {
 
   if (readyUserIds.size === totalUserIds.size && totalUserIds.size > 0) {
     const activated = activateSession(sessionId)
+    if (activated) {
+      const partyIds = sessionParties.get(sessionId) ?? []
+      for (const partyId of partyIds) queue.releaseParty(partyId)
+      sessionParties.delete(sessionId)
+    }
     io.to(room).emit(SOCKET_EVENTS.SESSION_STARTED, {
       sessionId,
       startedAt: new Date().toISOString(),

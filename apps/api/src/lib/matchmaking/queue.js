@@ -254,6 +254,21 @@ export class PartyQueue extends EventEmitter {
     return { parties: set.size, players }
   }
 
+  /**
+   * Release all members of a matched party back into the pool so they can
+   * create or join a new party. Call this when the associated session
+   * activates or is aborted.
+   *
+   * @param {string} partyId
+   */
+  releaseParty(partyId) {
+    const party = this.parties.get(partyId)
+    if (!party) return
+    for (const m of party.members) this.byUser.delete(m.userId)
+    this.parties.delete(partyId)
+    this.byInvite.delete(party.inviteCode)
+  }
+
   // --- matchmaking core ---------------------------------------------------
 
   evaluateAll() {
@@ -277,11 +292,12 @@ export class PartyQueue extends EventEmitter {
       const group = tryFormGroup(parties, this.config)
       if (!group) break
 
-      // Remove matched parties from the bucket + user index.
+      // Remove matched parties from the bucket. byUser entries are kept
+      // pointing at the matched party (status "matched") so users cannot
+      // re-enroll until the session activates and releaseParty() is called.
       for (const party of group.parties) {
         set.delete(party.id)
         party.status = "matched"
-        for (const m of party.members) this.byUser.delete(m.userId)
       }
 
       this.emit("match", {
