@@ -683,6 +683,9 @@
         await checkGroupStatus()
       })
 
+      apiBaseInput.value = window.location.origin
+      socketUrlInput.value = window.location.origin
+
       writeLog("page loaded")
       setConnectionStatus("", "Disconnected")
     </script>

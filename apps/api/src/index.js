@@ -1,6 +1,9 @@
 import express from "express"
 import cors from "cors"
 import cookieParser from "cookie-parser"
+import path from "path"
+import http from "http"
+import { fileURLToPath } from "url"
 import authRouter from "./routes/auth.js"
 import { attachSocketServer } from "./sockets/index.js"
 

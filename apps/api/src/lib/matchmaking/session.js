@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from "uuid"
 import { db } from "../../db/client.js"
 import {
   gameSessions,
+  groupJoinMatches,
   groupMembers,
   playerGroups,
   routeStops,
@@ -97,8 +98,21 @@ export function createMatchedSession({ players, selectedTimeSlot, matchScore }) 
     }))
     tx.insert(groupMembers).values(memberRows).run()
 
+    // Clamp matchScore to 0-100 for storage (it arrives as a 0-1 float).
+    const storedScore = Math.round(Math.min(100, Math.max(0, matchScore * 100)))
+
     if (!route) {
-      // No route configured yet — return the group only.
+      // No route configured yet — write join-match records without a session id.
+      const joinMatchRows = players.map((player) => ({
+        id: uuidv4(),
+        userId: player.userId,
+        groupId,
+        sessionId: null,
+        matchScore: storedScore,
+        status: "pending",
+      }))
+      tx.insert(groupJoinMatches).values(joinMatchRows).run()
+
       return {
         group: {
           id: groupId,
@@ -153,6 +167,17 @@ export function createMatchedSession({ players, selectedTimeSlot, matchScore }) 
       tx.insert(sessionStops).values(sessionStopRows).run()
     }
 
+    // Write one groupJoinMatches row per player, linked to this session.
+    const joinMatchRows = players.map((player) => ({
+      id: uuidv4(),
+      userId: player.userId,
+      groupId,
+      sessionId,
+      matchScore: storedScore,
+      status: "pending",
+    }))
+    tx.insert(groupJoinMatches).values(joinMatchRows).run()
+
     return {
       group: {
         id: groupId,
@@ -205,4 +230,3 @@ function buildGroupName(players) {
   const first = players[0]?.name?.split(" ")[0] ?? "Hop"
   return `${first}'s Pub Hop`
 }
-

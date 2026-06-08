@@ -93,6 +93,9 @@ export const groupJoinMatches = sqliteTable(
     groupId: text("group_id")
       .notNull()
       .references(() => playerGroups.id, { onDelete: "cascade" }),
+    sessionId: text("session_id").references(() => gameSessions.id, {
+      onDelete: "set null",
+    }),
     matchScore: integer("match_score").notNull().default(0),
     status: text("status").notNull().default("pending"),
     matchedAt: text("matched_at").notNull().default(sql`CURRENT_TIMESTAMP`),
@@ -102,6 +105,7 @@ export const groupJoinMatches = sqliteTable(
     uniqueIndex("group_join_matches_user_id_group_id_unique").on(table.userId, table.groupId),
     index("idx_group_join_matches_user").on(table.userId),
     index("idx_group_join_matches_group").on(table.groupId),
+    index("idx_group_join_matches_session").on(table.sessionId),
   ],
 );
 
@@ -365,6 +369,10 @@ export const groupJoinMatchesRelations = relations(groupJoinMatches, ({ one }) =
     fields: [groupJoinMatches.groupId],
     references: [playerGroups.id],
   }),
+  session: one(gameSessions, {
+    fields: [groupJoinMatches.sessionId],
+    references: [gameSessions.id],
+  }),
 }));
 
 export const routeThemesRelations = relations(routeThemes, ({ many }) => ({
@@ -428,6 +436,7 @@ export const gameSessionsRelations = relations(gameSessions, ({ one, many }) => 
   }),
   sessionStops: many(sessionStops),
   collage: one(collages),
+  joinMatches: many(groupJoinMatches),
 }));
 
 export const sessionStopsRelations = relations(sessionStops, ({ one, many }) => ({

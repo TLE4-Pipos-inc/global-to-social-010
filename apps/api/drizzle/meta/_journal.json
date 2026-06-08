@@ -8,6 +8,20 @@
       "when": 1780482785795,
       "tag": "0000_bright_cannonball",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1780573437952,
+      "tag": "0001_add_session_id_to_group_join_matches",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1780906793640,
+      "tag": "0002_swift_zodiak",
+      "breakpoints": true
     }
   ]
 }
