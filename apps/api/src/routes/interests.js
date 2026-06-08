@@ -4,6 +4,10 @@ import { v4 as uuidv4 } from "uuid"
 import { db } from "../db/client.js"
 import { interests } from "../db/schema.js"
 import { requireAuth } from "../middleware/auth.js"
+import {
+  InterestCreateSchema,
+  InterestUpdateSchema,
+} from "@pub-hopper/schemas"
 
 const router = express.Router()
 
@@ -17,6 +21,16 @@ function isUniqueInterestError(error) {
     error?.code === "SQLITE_CONSTRAINT_UNIQUE" ||
     (error?.code === "SQLITE_CONSTRAINT" &&
       String(error?.message ?? "").includes("interests.name"))
+  )
+}
+
+function isForeignKeyError(error) {
+  return (
+    error?.code === "SQLITE_CONSTRAINT_FOREIGNKEY" ||
+    (error?.code === "SQLITE_CONSTRAINT" &&
+      String(error?.message ?? "")
+        .toLowerCase()
+        .includes("foreign key"))
   )
 }
 
@@ -40,7 +54,16 @@ router.get("/:id", (req, res) => {
 })
 
 router.post("/", requireAuth, (req, res) => {
-  const name = normalizeName(req.body?.name)
+  const parsed = InterestCreateSchema.safeParse(req.body)
+
+  if (!parsed.success) {
+    return res.status(400).json({
+      message: "Invalid interest data",
+      errors: parsed.error.flatten().fieldErrors,
+    })
+  }
+
+  const name = normalizeName(parsed.data.name)
 
   if (!name) {
     return res.status(400).json({ message: "name is required" })
@@ -74,7 +97,20 @@ router.patch("/:id", requireAuth, (req, res) => {
     return res.status(404).json({ message: "Interest not found" })
   }
 
-  const name = normalizeName(req.body?.name)
+  const parsed = InterestUpdateSchema.safeParse(req.body)
+
+  if (!parsed.success) {
+    return res.status(400).json({
+      message: "Invalid interest data",
+      errors: parsed.error.flatten().fieldErrors,
+    })
+  }
+
+  if (Object.keys(parsed.data).length === 0) {
+    return res.status(400).json({ message: "No fields provided" })
+  }
+
+  const name = normalizeName(parsed.data.name)
 
   if (!name) {
     return res.status(400).json({ message: "name is required" })
@@ -113,7 +149,16 @@ router.delete("/:id", requireAuth, (req, res) => {
     return res.status(404).json({ message: "Interest not found" })
   }
 
-  db.delete(interests).where(eq(interests.id, req.params.id)).run()
+  try {
+    db.delete(interests).where(eq(interests.id, req.params.id)).run()
+  } catch (error) {
+    if (isForeignKeyError(error)) {
+      return res.status(409).json({ message: "Interest is currently in use" })
+    }
+
+    console.error(error)
+    return res.status(500).json({ message: "Could not delete interest" })
+  }
 
   return res.status(204).send()
 })
