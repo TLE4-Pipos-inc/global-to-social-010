@@ -3,7 +3,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
-  Text,
   View,
 } from "react-native";
 import { router } from "expo-router";
@@ -13,6 +12,7 @@ import { useAccountForm } from "../../features/auth/hooks/form";
 import { setAccessToken } from "../../lib/token";
 import { API_URL } from "../../constants/api";
 import { PrimaryDarkButton } from "../../components/buttons";
+import { ThemedText } from "../../components/themed-text";
 import { Colors } from "../../constants/theme";
 
 export default function RegisterScreen() {
@@ -47,7 +47,7 @@ export default function RegisterScreen() {
       style={styles.container}
     >
       <View style={styles.inner}>
-        <Text style={styles.title}>Create Account</Text>
+        <ThemedText type="title">Create Account</ThemedText>
 
         <View style={styles.fields}>
           <form.AppField name="name">
@@ -102,11 +102,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: 24,
     gap: 16,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: "700",
-    color: Colors.text,
   },
   fields: {
     gap: 16,

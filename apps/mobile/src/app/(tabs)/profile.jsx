@@ -1,6 +1,6 @@
 import { Image } from "expo-image"
 import { ThemedText } from "../../components/themed-text"
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native"
+import { ActivityIndicator, StyleSheet, View } from "react-native"
 import { router } from "expo-router"
 import { Suspense } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
@@ -119,18 +119,6 @@ const styles = StyleSheet.create({
     paddingVertical: 32,
     backgroundColor: Colors.background,
     justifyContent: "space-between",
-  },
-  info: {
-    gap: 6,
-  },
-  name: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: Colors.text,
-  },
-  email: {
-    fontSize: 16,
-    color: Colors.icon,
   },
   loader: {
     flex: 1,

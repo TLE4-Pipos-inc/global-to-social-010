@@ -5,7 +5,7 @@ import { HapticTab } from "../../components/haptic-tab";
 import { IconSymbol } from '../../components/ui/icon-symbol';
 import { Colors } from '../../constants/theme';
 import { Montserrat_700Bold } from "@expo-google-fonts/montserrat"
-
+ 
 export default function TabLayout() {
   return (
     <Tabs

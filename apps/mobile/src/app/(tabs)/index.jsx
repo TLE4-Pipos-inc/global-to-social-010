@@ -1,18 +1,10 @@
 import { Image } from "expo-image"
-import { Platform, StyleSheet, View, Text } from "react-native"
+import { StyleSheet, View } from "react-native"
 
-import { HelloWave } from "../../components/hello-wave"
 import ParallaxScrollView from "../../components/parallax-scroll-view"
 import { ThemedText } from "../../components/themed-text"
-import { ThemedView } from "../../components/themed-view"
-import { Link, router } from "expo-router"
-import {
-  PrimaryDarkButton,
-  PrimaryDarkOutlineButton,
-  PrimaryLightButton,
-  PrimaryLightOutlineButton,
-} from "../../components/buttons"
-import { navigate } from "expo-router/build/global-state/routing"
+import { router } from "expo-router"
+import { PrimaryLightButton } from "../../components/buttons"
 
 export default function HomeScreen() {
   return (
@@ -24,40 +16,41 @@ export default function HomeScreen() {
         }}
       >
         <View style={{ gap: 20 }}>
-          <Text style={styles.title}>GlobalToSocial 010</Text>
-          <Text style={styles.text}>
+          <ThemedText type="title">GlobalToSocial 010</ThemedText>
+          <ThemedText>
             Join themed group routes around Rotterdam and connect with fellow
             international students at Hogeschool Rotterdam.
-          </Text>
-          <View style={{top: 10}}>
-
-              <PrimaryLightButton title="start now"  onPress={() => router.push("/map")} />
-
+          </ThemedText>
+          <View style={{ top: 10 }}>
+            <PrimaryLightButton
+              title="start now"
+              onPress={() => router.push("/map")}
+            />
           </View>
         </View>
       </View>
 
-      <View style={{padding: 30}}>
-        <Text style={styles.title}>How does it work</Text>
-        <View style={{ gap: 10 }}>
+      <View style={{ padding: 30 }}>
+        <ThemedText type="title">How does it work</ThemedText>
+        <View style={styles.grid}>
           <View style={styles.box}>
-            <Text style={{ padding: 30, color: "#F1F1FF" }} >Pick a theme</Text>
+            <ThemedText style={styles.boxText}>Pick a theme</ThemedText>
           </View>
           <View style={styles.box}>
-            <Text style={{ padding: 20, color: "#F1F1FF" }}>
+            <ThemedText style={styles.boxText}>
               Select group size and a time slot. We'll match you with students
               who share your interests.
-            </Text>
+            </ThemedText>
           </View>
           <View style={styles.box}>
-            <Text style={{ padding: 30, color: "#F1F1FF" }}>
+            <ThemedText style={styles.boxText}>
               Visit different stops around Rotterdam together.
-            </Text>
+            </ThemedText>
           </View>
           <View style={styles.box}>
-            <Text style={{ padding: 30, color: "#F1F1FF" }}>
+            <ThemedText style={styles.boxText}>
               Connect with other students along the way.
-            </Text>
+            </ThemedText>
           </View>
         </View>
       </View>
@@ -66,40 +59,19 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: "absolute",
+  grid: {
+    flexDirection: "column",
+    gap: 10,
+    marginTop: 10,
   },
   box: {
-    top: 10,
-    gap: 8,
-    height: 80,
-    minHeight: 80,
+    flex: 1,
     backgroundColor: "#80bd56",
     borderRadius: 10,
+    padding: 16,
+    justifyContent: "center",
   },
-
-  title: {
-    fontSize: 32,
-    fontWeight: "bold",
-    marginBottom: 16,
-  },
-  flex: {
-    flex: 1,
-  },
-  text: {
-    fontSize: 17,
+  boxText: {
+    color: "#F1F1FF",
   },
 })
