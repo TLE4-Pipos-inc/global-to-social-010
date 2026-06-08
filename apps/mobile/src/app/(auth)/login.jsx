@@ -3,12 +3,11 @@ import {
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
-  View,
 } from "react-native"
 import { router } from "expo-router"
 import { useMutation } from "@tanstack/react-query"
 import { LoginUserSchema } from "@pub-hopper/schemas"
-import { useAccountForm } from "@/features/auth/hooks/form"
+import { useAccountForm } from "@/features/auth"
 import { setAccessToken } from "@/lib/token"
 import { API_URL } from "@/constants/api"
 import {
@@ -16,6 +15,7 @@ import {
   PrimaryDarkOutlineButton,
 } from "@/components/buttons"
 import { ThemedText } from "@/components/themed-text"
+import { ThemedView } from "@/components/themed-view"
 import { Colors } from "@/constants/theme"
 
 export default function LoginScreen() {
@@ -49,10 +49,10 @@ export default function LoginScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
     >
-      <View style={styles.inner}>
+      <ThemedView style={styles.inner}>
         <ThemedText type="title">Log In</ThemedText>
 
-        <View style={styles.fields}>
+        <ThemedView style={styles.fields}>
           <form.AppField name="email">
             {(field) => (
               <field.InputField
@@ -73,7 +73,7 @@ export default function LoginScreen() {
               />
             )}
           </form.AppField>
-        </View>
+        </ThemedView>
 
         <PrimaryDarkButton
           title={mutation.isPending ? "Logging in…" : "Log In"}
@@ -85,7 +85,7 @@ export default function LoginScreen() {
           title="No account? Register now!"
           onPress={() => router.push("/(auth)/register")}
         />
-      </View>
+      </ThemedView>
     </KeyboardAvoidingView>
   )
 }

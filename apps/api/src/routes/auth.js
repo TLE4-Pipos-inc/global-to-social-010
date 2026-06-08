@@ -130,7 +130,7 @@ router.post("/login", async (req, res) => {
 })
 
 router.post("/refresh", (req, res) => {
-  const token = req.cookies?.refreshToken
+  const token = req.cookies?.access_token
   if (!token)
     return res.status(401).json({ message: "Refresh token is required" })
 

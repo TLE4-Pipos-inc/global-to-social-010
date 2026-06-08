@@ -1,7 +1,7 @@
 import { Tabs } from "expo-router"
 import { Home, Map, User } from "lucide-react-native"
 import { HapticTab } from "@/components/haptic-tab"
-import { Colors } from "@/constants/theme"
+import { Colors, Fonts } from "@/constants/theme"
 
 export default function TabLayout() {
   return (
@@ -9,7 +9,7 @@ export default function TabLayout() {
       style={{ backgroundColor: Colors.yellowColor }}
       screenOptions={{
         tabBarActiveTintColor: Colors.darkGreenColor,
-        tabBarInactiveTintColor: "#000000",
+        tabBarInactiveTintColor: Colors.text,
         tabBarButton: HapticTab,
         headerShown: true,
         headerStyle: { backgroundColor: Colors.yellowColor },
@@ -19,7 +19,7 @@ export default function TabLayout() {
         },
         headerTitleStyle: {
           fontSize: 24,
-          fontFamily: "Montserrat_700Bold",
+          fontFamily: Fonts.bold,
         },
       }}
     >

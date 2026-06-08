@@ -2,11 +2,12 @@ import { ScrollView, StyleSheet, View } from "react-native"
 import { ThemedText } from "@/components/themed-text"
 import { router } from "expo-router"
 import { PrimaryLightButton } from "@/components/buttons"
+import { Colors } from "@/constants/theme"
 
 export default function HomeScreen() {
   return (
     <ScrollView style={styles.scroll}>
-      <View style={{ padding: 50, backgroundColor: "#F9A620" }}>
+      <View style={{ padding: 50, backgroundColor: Colors.orangeColor }}>
         <View style={{ gap: 20 }}>
           <ThemedText type="title">GlobalToSocial 010</ThemedText>
           <ThemedText>
@@ -61,12 +62,12 @@ const styles = StyleSheet.create({
   },
   box: {
     flex: 1,
-    backgroundColor: "#80bd56",
+    backgroundColor: Colors.lightGreenColor,
     borderRadius: 10,
     padding: 16,
     justifyContent: "center",
   },
   boxText: {
-    color: "#F1F1FF",
+    color: Colors.offWhite,
   },
 })

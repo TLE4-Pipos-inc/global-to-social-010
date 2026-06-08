@@ -9,6 +9,7 @@ export const Colors = {
   darkGreenColor: "#104911",
   yellowColor: "#FFD449",
   orangeColor: "#F9A620",
+  offWhite: "#F1F1FF",
 }
 
 export const Fonts = {

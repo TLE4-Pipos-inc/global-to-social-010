@@ -4,14 +4,14 @@ import { ActivityIndicator, StyleSheet, View } from "react-native"
 import { router } from "expo-router"
 import { Suspense } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { useAccountQuery } from "@/features/auth/hooks/query"
+import { useAccountQuery } from "@/features/auth"
 import { setAccessToken } from "@/lib/token"
 import { API_URL } from "@/constants/api"
 import { PrimaryDarkOutlineButton } from "@/components/buttons"
 import { Colors } from "@/constants/theme"
 
 function ProfileContent() {
-  const { data } = useAccountQuery()
+  useAccountQuery()
   const queryClient = useQueryClient()
 
   const logout = useMutation({
@@ -26,7 +26,6 @@ function ProfileContent() {
       router.replace("/(auth)/login")
     },
   })
-  const user = data.user
   return (
     <>
       <View style={styles.block}>

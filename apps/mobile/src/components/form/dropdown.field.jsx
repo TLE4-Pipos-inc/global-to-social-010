@@ -25,6 +25,9 @@ const DropdownField = ({ label, options = [], ...props }) => {
       <Pressable
         style={[styles.trigger, isInvalid && styles.triggerError]}
         onPress={() => setOpen(true)}
+        accessibilityRole="button"
+        accessibilityLabel={label ?? "Dropdown"}
+        accessibilityState={{ expanded: open }}
         {...props}
       >
         <Text style={[styles.triggerText, !selected && styles.placeholder]}>
