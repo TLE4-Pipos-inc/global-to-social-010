@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "dc20a260-d88b-4625-883a-f053ae5225dc",
+  "id": "e82b6113-7f6d-422f-a91e-566e1b14e271",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "collage_photos": {
@@ -248,7 +248,7 @@
       "checkConstraints": {
         "conversation_starters_trigger_minute_check": {
           "name": "conversation_starters_trigger_minute_check",
-          "value": "\"conversation_starters\".\"trigger_minute\" IN (0, 5, 10, 15)"
+          "value": "\"conversation_starters\".\"trigger_minute\" IN (0, 5, 10, 15, 20, 25, 30, 35, 40, 45)"
         }
       }
     },
@@ -470,6 +470,13 @@
           "notNull": true,
           "autoincrement": false
         },
+        "session_id": {
+          "name": "session_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "match_score": {
           "name": "match_score",
           "type": "integer",
@@ -517,6 +524,13 @@
             "group_id"
           ],
           "isUnique": false
+        },
+        "idx_group_join_matches_session": {
+          "name": "idx_group_join_matches_session",
+          "columns": [
+            "session_id"
+          ],
+          "isUnique": false
         }
       },
       "foreignKeys": {
@@ -544,6 +558,19 @@
             "id"
           ],
           "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "group_join_matches_session_id_game_sessions_id_fk": {
+          "name": "group_join_matches_session_id_game_sessions_id_fk",
+          "tableFrom": "group_join_matches",
+          "tableTo": "game_sessions",
+          "columnsFrom": [
+            "session_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -681,6 +708,13 @@
           "notNull": true,
           "autoincrement": false
         },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "password": {
           "name": "password",
           "type": "text",
@@ -726,8 +760,30 @@
           "default": "CURRENT_TIMESTAMP"
         }
       },
-      "indexes": {},
-      "foreignKeys": {},
+      "indexes": {
+        "partners_user_id_unique": {
+          "name": "partners_user_id_unique",
+          "columns": [
+            "user_id"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "partners_user_id_users_id_fk": {
+          "name": "partners_user_id_users_id_fk",
+          "tableFrom": "partners",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}
@@ -937,7 +993,7 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": 20
+          "default": 45
         },
         "walk_label": {
           "name": "walk_label",
@@ -1009,7 +1065,7 @@
         },
         "route_stops_planned_duration_minutes_check": {
           "name": "route_stops_planned_duration_minutes_check",
-          "value": "\"route_stops\".\"planned_duration_minutes\" > 0"
+          "value": "\"route_stops\".\"planned_duration_minutes\" > 0 AND \"route_stops\".\"planned_duration_minutes\" <= 45"
         }
       }
     },
@@ -1350,6 +1406,14 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'user'"
         },
         "school": {
           "name": "school",

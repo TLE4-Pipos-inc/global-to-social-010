@@ -31,7 +31,7 @@ CREATE TABLE `conversation_starters` (
 	`prompt` text NOT NULL,
 	`trigger_minute` integer NOT NULL,
 	FOREIGN KEY (`interests_id`) REFERENCES `interests`(`id`) ON UPDATE no action ON DELETE cascade,
-	CONSTRAINT "conversation_starters_trigger_minute_check" CHECK("conversation_starters"."trigger_minute" IN (0, 5, 10, 15))
+	CONSTRAINT "conversation_starters_trigger_minute_check" CHECK("conversation_starters"."trigger_minute" IN (0, 5, 10, 15, 20, 25, 30, 35, 40, 45))
 );
 --> statement-breakpoint
 CREATE TABLE `game_sessions` (
@@ -64,17 +64,20 @@ CREATE TABLE `group_join_matches` (
 	`id` text PRIMARY KEY NOT NULL,
 	`user_id` text NOT NULL,
 	`group_id` text NOT NULL,
+	`session_id` text,
 	`match_score` integer DEFAULT 0 NOT NULL,
 	`status` text DEFAULT 'pending' NOT NULL,
 	`matched_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`group_id`) REFERENCES `player_groups`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`session_id`) REFERENCES `game_sessions`(`id`) ON UPDATE no action ON DELETE set null,
 	CONSTRAINT "group_join_matches_match_score_check" CHECK("group_join_matches"."match_score" BETWEEN 0 AND 100)
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `group_join_matches_user_id_group_id_unique` ON `group_join_matches` (`user_id`,`group_id`);--> statement-breakpoint
 CREATE INDEX `idx_group_join_matches_user` ON `group_join_matches` (`user_id`);--> statement-breakpoint
 CREATE INDEX `idx_group_join_matches_group` ON `group_join_matches` (`group_id`);--> statement-breakpoint
+CREATE INDEX `idx_group_join_matches_session` ON `group_join_matches` (`session_id`);--> statement-breakpoint
 CREATE TABLE `group_members` (
 	`id` text PRIMARY KEY NOT NULL,
 	`group_id` text NOT NULL,
@@ -94,14 +97,17 @@ CREATE TABLE `interests` (
 CREATE UNIQUE INDEX `interests_name_unique` ON `interests` (`name`);--> statement-breakpoint
 CREATE TABLE `partners` (
 	`id` text PRIMARY KEY NOT NULL,
+	`user_id` text,
 	`password` text NOT NULL,
 	`organization_name` text NOT NULL,
 	`contact_email` text,
 	`partnership_type` text NOT NULL,
 	`status` text DEFAULT 'prospect' NOT NULL,
-	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL
+	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
+	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE set null
 );
 --> statement-breakpoint
+CREATE UNIQUE INDEX `partners_user_id_unique` ON `partners` (`user_id`);--> statement-breakpoint
 CREATE TABLE `photos` (
 	`id` text PRIMARY KEY NOT NULL,
 	`session_stop_id` text NOT NULL,
@@ -132,12 +138,12 @@ CREATE TABLE `route_stops` (
 	`route_id` text NOT NULL,
 	`venue_id` text NOT NULL,
 	`route_order` integer NOT NULL,
-	`planned_duration_minutes` integer DEFAULT 20 NOT NULL,
+	`planned_duration_minutes` integer DEFAULT 45 NOT NULL,
 	`walk_label` text,
 	FOREIGN KEY (`route_id`) REFERENCES `routes`(`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`venue_id`) REFERENCES `venues`(`id`) ON UPDATE no action ON DELETE restrict,
 	CONSTRAINT "route_stops_route_order_check" CHECK("route_stops"."route_order" > 0),
-	CONSTRAINT "route_stops_planned_duration_minutes_check" CHECK("route_stops"."planned_duration_minutes" > 0)
+	CONSTRAINT "route_stops_planned_duration_minutes_check" CHECK("route_stops"."planned_duration_minutes" > 0 AND "route_stops"."planned_duration_minutes" <= 45)
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `route_stops_route_id_route_order_unique` ON `route_stops` (`route_id`,`route_order`);--> statement-breakpoint
@@ -192,6 +198,7 @@ CREATE TABLE `users` (
 	`name` text NOT NULL,
 	`email` text NOT NULL,
 	`password` text NOT NULL,
+	`role` text DEFAULT 'user' NOT NULL,
 	`school` text,
 	`campus` text,
 	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL
