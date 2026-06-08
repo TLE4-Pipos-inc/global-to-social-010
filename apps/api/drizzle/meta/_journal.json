@@ -8,6 +8,27 @@
       "when": 1780482785795,
       "tag": "0000_bright_cannonball",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1780489354525,
+      "tag": "0001_misty_bulldozer",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1780491041583,
+      "tag": "0002_regular_sharon_carter",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1780491963055,
+      "tag": "0003_swift_ultimates",
+      "breakpoints": true
     }
   ]
 }

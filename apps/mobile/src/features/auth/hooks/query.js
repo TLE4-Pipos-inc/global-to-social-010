@@ -1,5 +1,5 @@
 import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
-import { fetchWithAuth } from '../../../lib/api'
+import { fetchWithAuth } from '@/lib/api'
 
 async function fetchAccount() {
   const res = await fetchWithAuth('/api/auth/me')

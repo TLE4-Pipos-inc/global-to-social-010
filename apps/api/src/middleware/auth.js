@@ -1,4 +1,4 @@
-import { verifyAccess } from "../lib/jwt-helper.js"
+import { verifyAccess } from "@/lib/jwt-helper.js"
 
 export function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization

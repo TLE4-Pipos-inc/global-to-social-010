@@ -22,6 +22,8 @@ export const PublicUserSchema = z.object({
   createdAt: z.string(),
 });
 
+export const UserRoleSchema = z.enum(["user", "partner", "admin"]);
+
 export type RegisterUserInput = z.infer<typeof RegisterUserSchema>;
 export type LoginUserInput = z.infer<typeof LoginUserSchema>;
 export type PublicUser = z.infer<typeof PublicUserSchema>;
