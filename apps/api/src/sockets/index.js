@@ -324,12 +324,11 @@ function handleSessionReady(io, socket, queue, sessionParties, payload) {
       const partyIds = sessionParties.get(sessionId) ?? []
       for (const partyId of partyIds) queue.releaseParty(partyId)
       sessionParties.delete(sessionId)
+      io.to(room).emit(SOCKET_EVENTS.SESSION_STARTED, {
+        sessionId,
+        startedAt: new Date().toISOString(),
+      })
     }
-    io.to(room).emit(SOCKET_EVENTS.SESSION_STARTED, {
-      sessionId,
-      startedAt: new Date().toISOString(),
-      activated,
-    })
   }
 
   return { ok: true, ready: readyUserIds.size, total: totalUserIds.size }
