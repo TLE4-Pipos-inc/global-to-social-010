@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "93653c8c-5d20-47be-a968-538c4f2e9277",
-  "prevId": "07819f45-b509-40b3-bf14-88215c266173",
+  "id": "f9b07378-1e56-485a-a239-8eafacb7d90c",
+  "prevId": "93653c8c-5d20-47be-a968-538c4f2e9277",
   "tables": {
     "collage_photos": {
       "name": "collage_photos",
@@ -248,7 +248,7 @@
       "checkConstraints": {
         "conversation_starters_trigger_minute_check": {
           "name": "conversation_starters_trigger_minute_check",
-          "value": "\"conversation_starters\".\"trigger_minute\" IN (0, 5, 10, 15)"
+          "value": "\"conversation_starters\".\"trigger_minute\" IN (0, 5, 10, 15, 20, 25, 30, 35, 40, 45)"
         }
       }
     },
@@ -470,13 +470,6 @@
           "notNull": true,
           "autoincrement": false
         },
-        "session_id": {
-          "name": "session_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
         "match_score": {
           "name": "match_score",
           "type": "integer",
@@ -524,13 +517,6 @@
             "group_id"
           ],
           "isUnique": false
-        },
-        "idx_group_join_matches_session": {
-          "name": "idx_group_join_matches_session",
-          "columns": [
-            "session_id"
-          ],
-          "isUnique": false
         }
       },
       "foreignKeys": {
@@ -558,19 +544,6 @@
             "id"
           ],
           "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "group_join_matches_session_id_game_sessions_id_fk": {
-          "name": "group_join_matches_session_id_game_sessions_id_fk",
-          "tableFrom": "group_join_matches",
-          "tableTo": "game_sessions",
-          "columnsFrom": [
-            "session_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },

@@ -4,10 +4,12 @@ import cookieParser from "cookie-parser"
 import path from "path"
 import http from "http"
 import { fileURLToPath } from "url"
-import authRouter from "./routes/auth.js"
-import matchesRouter from "./routes/matches.js"
-import sessionsRouter from "./routes/sessions.js"
-import { attachSocketServer } from "./sockets/index.js"
+import matchesRouter from "@/routes/matches.js"
+import sessionsRouter from "@/routes/sessions.js"
+import { attachSocketServer } from "@/sockets/index.js"
+import authRouter from "@/routes/auth.js"
+import conversationStartersRouter from "@/routes/conversations_starters.js"
+import interestsRouter from "@/routes/interests.js"
 
 // ConnectDB();
 
@@ -36,6 +38,8 @@ app.use("/websocket-test", express.static(publicDir))
 app.get("/websocket-test", (_req, res) => {
   res.sendFile(path.join(publicDir, "index.html"))
 })
+app.use("/api/conversation-starters", conversationStartersRouter)
+app.use("/api/interests", interestsRouter)
 
 app.get("/api/status", (_req, res) => {
   res.json({ message: "API is running" })

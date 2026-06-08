@@ -1,6 +1,6 @@
 import { router } from 'expo-router'
-import { API_URL } from '../constants/api'
-import { getAccessToken, setAccessToken } from './token'
+import { API_URL } from '@/constants/api'
+import { getAccessToken, setAccessToken } from '@/lib/token'
 
 // TODO: check for react query's built in retry logic and error handling
 async function fetchWithAuth(path, init) {

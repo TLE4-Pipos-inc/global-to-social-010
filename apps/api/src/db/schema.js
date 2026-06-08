@@ -15,6 +15,7 @@ export const users = sqliteTable("users", {
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
+  role: text("role").notNull().default("user"),
   school: text("school"),
   campus: text("campus"),
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
@@ -145,13 +146,16 @@ export const venues = sqliteTable("venues", {
 
 export const partners = sqliteTable("partners", {
   id: text("id").primaryKey(),
+  userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
   password: text("password").notNull(),
   organizationName: text("organization_name").notNull(),
   contactEmail: text("contact_email"),
   partnershipType: text("partnership_type").notNull(),
   status: text("status").notNull().default("prospect"),
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
-});
+}, (table) => [
+  uniqueIndex("partners_user_id_unique").on(table.userId),
+]);
 
 export const venuePartnerships = sqliteTable(
   "venue_partnerships",
@@ -183,12 +187,12 @@ export const routeStops = sqliteTable(
       .notNull()
       .references(() => venues.id, { onDelete: "restrict" }),
     routeOrder: integer("route_order").notNull(),
-    plannedDurationMinutes: integer("planned_duration_minutes").notNull().default(20),
+    plannedDurationMinutes: integer("planned_duration_minutes").notNull().default(45),
     walkLabel: text("walk_label"),
   },
   (table) => [
     check("route_stops_route_order_check", sql`${table.routeOrder} > 0`),
-    check("route_stops_planned_duration_minutes_check", sql`${table.plannedDurationMinutes} > 0`),
+    check("route_stops_planned_duration_minutes_check", sql`${table.plannedDurationMinutes} > 0 AND ${table.plannedDurationMinutes} <= 45`),
     uniqueIndex("route_stops_route_id_route_order_unique").on(table.routeId, table.routeOrder),
     uniqueIndex("route_stops_route_id_venue_id_unique").on(table.routeId, table.venueId),
     index("idx_route_stops_route").on(table.routeId),
@@ -251,7 +255,7 @@ export const conversationStarters = sqliteTable(
     triggerMinute: integer("trigger_minute").notNull(),
   },
   (table) => [
-    check("conversation_starters_trigger_minute_check", sql`${table.triggerMinute} IN (0, 5, 10, 15)`),
+    check("conversation_starters_trigger_minute_check", sql`${table.triggerMinute} IN (0, 5, 10, 15, 20, 25, 30, 35, 40, 45)`),
   ],
 );
 
@@ -311,6 +315,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   groupMembers: many(groupMembers),
   interests: many(userInterests),
   groupJoinMatches: many(groupJoinMatches),
+  partnerProfiles: many(partners),
 }));
 
 export const playerGroupsRelations = relations(playerGroups, ({ many }) => ({
@@ -394,7 +399,11 @@ export const venuesRelations = relations(venues, ({ many }) => ({
   partnerships: many(venuePartnerships),
 }));
 
-export const partnersRelations = relations(partners, ({ many }) => ({
+export const partnersRelations = relations(partners, ({ one, many }) => ({
+  user: one(users, {
+    fields: [partners.userId],
+    references: [users.id],
+  }),
   venuePartnerships: many(venuePartnerships),
 }));
 
