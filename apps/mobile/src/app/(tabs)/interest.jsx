@@ -27,12 +27,12 @@ import { useQueryClient } from "@tanstack/react-query"
 import { useInterestQuery } from "@/features/intrests/hooks/query"
 
 function Interest() {
-  const { data } = useInterestQuery();
+  const { data } = useInterestQuery()
 
-  const interests = data?.interests || [];
+  const interests = data?.interests || []
 
-  console.log(data);
-  console.log(data?.interests);
+  console.log(data)
+  console.log(data?.interests)
   return (
     <ScrollView>
       <View>
@@ -51,7 +51,7 @@ function Interest() {
           </ThemedText>
         </View>
 
-        <View style={{ padding: 20 }}>
+        <View style={{}}>
           <View style={styles.box}>
             <ThemedText style={styles.boxTitle}>How matching works</ThemedText>
             <ThemedText style={styles.boxText}>
@@ -61,14 +61,16 @@ function Interest() {
           </View>
         </View>
 
-        <View>
+        <View style={styles.interestsContainer}>
           {interests.map((interest) => (
-            <Text key={interest.id}>{interest.name}</Text>
+            <Text style={styles.interest} key={interest.id}>
+              {interest.name}
+            </Text>
           ))}
         </View>
 
         <View>
-          <ThemedText style={styles.subtitle}>Languages</ThemedText>
+          <Text style={styles.language}>Languages</Text>
         </View>
 
         {/*<View style={styles.container}>*/}
@@ -122,11 +124,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
 
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-
   reactLogo: {
     height: 178,
     width: 290,
@@ -160,6 +157,14 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
 
+  language: {
+    top: 30,
+    fontSize: 32,
+    fontWeight: "bold",
+    marginBottom: 16,
+    alignSelf: "center",
+  },
+
   subtitle: {
     fontSize: 32,
     fontWeight: "bold",
@@ -180,15 +185,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "center",
-    alignItems: "center",
     gap: 15,
     marginTop: 24,
   },
 
-  interestPill: {
-    paddingHorizontal: 18,
+  interest: {
+    paddingHorizontal: 10,
     paddingVertical: 14,
-    borderRadius: 999,
+    borderRadius: 100,
     borderWidth: 1.5,
     borderColor: "#D1D1D1",
     backgroundColor: "#FFFFFF",
@@ -207,10 +211,6 @@ const styles = StyleSheet.create({
 
   interestTextSelected: {
     color: "#FFFFFF",
-  },
-
-  container: {
-    margin: 20,
   },
 
   dropdownButton: {
