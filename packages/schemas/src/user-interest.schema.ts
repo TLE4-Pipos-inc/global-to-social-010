@@ -1,22 +1,42 @@
 import { z } from "zod"
 
-export const UserInterestCreateSchema = z.object({
-  interestId: z.string().trim().min(1),
-})
+const UserInterestIdSchema = z.string().trim().min(1)
 
 export const UserInterestParamsSchema = z.object({
-  interestId: z.string().trim().min(1),
+  id: UserInterestIdSchema,
 })
 
-export const UserInterestsUpdateSchema = z.object({
-  interestIds: z
-    .array(z.string().trim().min(1))
-    .max(50)
-    .refine((ids) => new Set(ids).size === ids.length, {
-      message: "interestIds must be unique",
-    }),
+export const UserInterestCreateSchema = z
+  .union([
+    z.object({
+      interestId: UserInterestIdSchema,
+    }).strict(),
+    z.object({
+      interestIds: z.array(UserInterestIdSchema).min(1).max(5),
+    }).strict(),
+  ])
+  .transform((data) => ({
+    interestIds: "interestIds" in data ? data.interestIds : [data.interestId],
+  }))
+  .superRefine((data, ctx) => {
+    if (new Set(data.interestIds).size !== data.interestIds.length) {
+      ctx.addIssue({
+        code: "custom",
+        message: "interestIds must be unique",
+        path: ["interestIds"],
+      })
+    }
+  })
+
+export const UserInterestUpdateSchema = z.object({
+  interestId: UserInterestIdSchema,
 })
 
-export type UserInterestCreateInput = z.infer<typeof UserInterestCreateSchema>
+export const UserInterestQuerySchema = z.object({
+  interestId: UserInterestIdSchema.optional(),
+})
+
 export type UserInterestParams = z.infer<typeof UserInterestParamsSchema>
-export type UserInterestsUpdateInput = z.infer<typeof UserInterestsUpdateSchema>
+export type UserInterestCreate = z.infer<typeof UserInterestCreateSchema>
+export type UserInterestUpdate = z.infer<typeof UserInterestUpdateSchema>
+export type UserInterestQuery = z.infer<typeof UserInterestQuerySchema>
