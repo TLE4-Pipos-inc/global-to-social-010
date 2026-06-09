@@ -170,4 +170,22 @@ router.get("/me", requireAuth, (req, res) => {
   return res.json({ user })
 })
 
+router.delete("/me", requireAuth, (req, res) => {
+  const { userId } = res.locals.payload
+
+  const deleted = db
+    .delete(users)
+    .where(eq(users.id, userId))
+    .returning({ id: users.id })
+    .get()
+
+  if (!deleted) {
+    return res.status(404).json({ message: "User not found" })
+  }
+
+  res.clearCookie("access_token")
+  return res.json({ message: "Account deleted successfully" })
+})
+
+
 export default router
