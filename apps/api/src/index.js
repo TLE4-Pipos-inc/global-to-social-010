@@ -11,7 +11,8 @@ import authRouter from "@/routes/auth.js"
 import conversationStartersRouter from "@/routes/conversations-starters.js"
 import interestsRouter from "@/routes/interests.js"
 import venuesRouter from "@/routes/venues.js"
-
+import usersRouter from "@/routes/users.js"
+import userInterestsRouter from "@/routes/user-interests.js"
 // ConnectDB();
 
 const app = express()
@@ -34,6 +35,8 @@ app.use(
 app.use("/api/auth", authRouter)
 app.use("/api/sessions", sessionsRouter)
 app.use("/api/matches", matchesRouter)
+app.use("/api/users", usersRouter)
+app.use("/api/user-interests", userInterestsRouter)
 
 app.use("/websocket-test", express.static(publicDir))
 app.get("/websocket-test", (_req, res) => {
