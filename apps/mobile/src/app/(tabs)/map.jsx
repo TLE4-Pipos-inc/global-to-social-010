@@ -79,7 +79,13 @@ export default function App() {
       const response = await fetch(
         `https://router.project-osrm.org/route/v1/driving/${startLng},${startLat};${endLng},${endLat}?overview=full&geometries=geojson`
       );
+      if (!response.ok) {
+        throw new Error(`OSRM request failed: ${response.status}`);
+      }
       const data = await response.json();
+      if (!data?.routes?.length) {
+        throw new Error("No route returned by OSRM");
+      }
       const coordinates = data.routes[0].geometry.coordinates.map(
         (coord) => ({
           latitude: coord[1],
@@ -90,6 +96,8 @@ export default function App() {
       setSelectedVenue(venue);
     } catch (error) {
       console.error("Route error:", error);
+      setRoute([]);
+      setSelectedVenue(null);
     }
   }
 
