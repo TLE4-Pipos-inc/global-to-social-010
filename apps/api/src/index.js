@@ -47,6 +47,14 @@ app.get("/api/status", (_req, res) => {
   res.json({ message: "API is running" })
 })
 
+app.get("/api/docs", (_req, res) => {
+  res.sendFile(path.join(publicDir, "docs.html"))
+})
+
+app.get("/api/docs/content", (_req, res) => {
+  res.sendFile(path.resolve(__dirname, "../API.md"))
+})
+
 const server = http.createServer(app)
 attachSocketServer(server, { corsOrigin: clientOrigin })
 
