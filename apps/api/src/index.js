@@ -13,7 +13,6 @@ import interestsRouter from "@/routes/interests.js"
 import userInterestsRouter from "@/routes/user-interests.js"
 import venuesRouter from "@/routes/venues.js"
 import usersRouter from "@/routes/users.js"
-import userInterestsRouter from "@/routes/user-interests.js"
 // ConnectDB();
 
 const app = express()
