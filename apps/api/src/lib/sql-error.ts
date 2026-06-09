@@ -18,3 +18,16 @@ export function isForeignKeyError(error: unknown): boolean {
         .includes("foreign key"))
   )
 }
+
+export function isSqliteError(error: unknown): error is Error {
+  return error instanceof Error
+}
+
+export function isUniqueRouteStopError(error: unknown): boolean {
+  return (
+    isSqliteError(error) &&
+    error.message.includes("UNIQUE constraint failed") &&
+    (error.message.includes("route_stops.route_id, route_stops.route_order") ||
+      error.message.includes("route_stops.route_id, route_stops.venue_id"))
+  )
+}
