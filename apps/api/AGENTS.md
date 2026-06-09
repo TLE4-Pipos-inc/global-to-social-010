@@ -51,7 +51,7 @@ import { MyResourceSchema } from "@pub-hopper/schemas"
 router.post("/", async (req, res) => {
   const result = MyResourceSchema.safeParse(req.body)
   if (!result.success) {
-    return res.status(400).json({
+    return sendError(res, 400, {
       message: "Invalid input",
       errors: z.flattenError(result.error).fieldErrors,
     })

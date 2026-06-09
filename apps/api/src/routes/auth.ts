@@ -128,7 +128,7 @@ router.post("/refresh", (req, res) => {
       },
       message: "Token refreshed successfully",
     })
-  } catch (error){
+  } catch (error) {
     console.log("Invalid refresh token:", error)
     return sendError(res, 401, { message: "Invalid or expired refresh token" })
   }
@@ -157,6 +157,23 @@ router.get("/me", requireAuth, (req, res) => {
 router.post("/logout", (_req, res) => {
   res.clearCookie("access_token")
   return sendSuccess(res, 200, { message: "Logged out" })
+})
+
+router.delete("/me", requireAuth, (_req, res) => {
+  const userId = res.locals.userId
+
+  const deleted = db
+    .delete(users)
+    .where(eq(users.id, userId))
+    .returning({ id: users.id })
+    .get()
+
+  if (!deleted) {
+    return sendError(res, 404, { message: "User not found" })
+  }
+
+  res.clearCookie("access_token")
+  return sendSuccess(res, 200, { message: "Account deleted successfully" })
 })
 
 export default router

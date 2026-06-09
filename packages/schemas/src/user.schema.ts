@@ -16,11 +16,15 @@ export const UserRegisterSchema = UserSchema.extend({
   confirmPassword: z.string().min(1, "Confirm Password is required"),
 }).omit({ role: true })
 
-
-
 export const UserLoginSchema = z.object({
   email: z.email("Invalid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
+})
+
+export const UpdateUserSchema = UserSchema.partial().pick({
+  name: true,
+  school: true,
+  campus: true,
 })
 
 export const UserResponseSchema = UserSchema.extend(BaseSchema.shape).omit({
