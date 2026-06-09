@@ -10,10 +10,10 @@ export const UserInterestCreateSchema = z
   .union([
     z.object({
       interestId: UserInterestIdSchema,
-    }),
+    }).strict(),
     z.object({
       interestIds: z.array(UserInterestIdSchema).min(1).max(5),
-    }),
+    }).strict(),
   ])
   .transform((data) => ({
     interestIds: "interestIds" in data ? data.interestIds : [data.interestId],

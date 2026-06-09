@@ -58,8 +58,8 @@ function getUserInterest(userId, interestId) {
     .where(
       and(
         eq(userInterests.userId, userId),
-        eq(userInterests.interestId, interestId),
-      ),
+        eq(userInterests.interestId, interestId)
+      )
     )
     .get()
 }
@@ -171,11 +171,10 @@ router.post("/", requireAuth, (req, res) => {
 
   const createdUserInterests = getUserInterestsByIds(
     res.locals.payload.userId,
-    interestIds,
+    interestIds
   )
 
   return res.status(201).json({
-    userInterest: createdUserInterests[0],
     userInterests: createdUserInterests,
   })
 })
@@ -202,7 +201,7 @@ router.patch("/:id", requireAuth, (req, res) => {
   if (paramsResult.data.id === bodyResult.data.interestId) {
     const existing = getUserInterest(
       res.locals.payload.userId,
-      paramsResult.data.id,
+      paramsResult.data.id
     )
 
     if (!existing) {
@@ -219,8 +218,8 @@ router.patch("/:id", requireAuth, (req, res) => {
         .where(
           and(
             eq(userInterests.userId, res.locals.payload.userId),
-            eq(userInterests.interestId, paramsResult.data.id),
-          ),
+            eq(userInterests.interestId, paramsResult.data.id)
+          )
         )
         .run()
 
@@ -255,7 +254,7 @@ router.patch("/:id", requireAuth, (req, res) => {
   return res.json({
     userInterest: getUserInterest(
       res.locals.payload.userId,
-      bodyResult.data.interestId,
+      bodyResult.data.interestId
     ),
   })
 })
@@ -281,8 +280,8 @@ router.delete("/:id", requireAuth, (req, res) => {
         .where(
           and(
             eq(userInterests.userId, res.locals.payload.userId),
-            eq(userInterests.interestId, result.data.id),
-          ),
+            eq(userInterests.interestId, result.data.id)
+          )
         )
         .get()
 
@@ -304,8 +303,8 @@ router.delete("/:id", requireAuth, (req, res) => {
         .where(
           and(
             eq(userInterests.userId, res.locals.payload.userId),
-            eq(userInterests.interestId, result.data.id),
-          ),
+            eq(userInterests.interestId, result.data.id)
+          )
         )
         .run()
     })
