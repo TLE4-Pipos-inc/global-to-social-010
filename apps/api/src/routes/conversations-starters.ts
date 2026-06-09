@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm"
+import { and, eq, type SQL } from "drizzle-orm"
 import express from "express"
 import { v4 as uuidv4 } from "uuid"
 import { db } from "@/db/client.js"
@@ -9,30 +9,23 @@ import {
   ConversationStarterCreateSchema,
   ConversationStarterUpdateSchema,
 } from "@pub-hopper/schemas"
+import { isForeignKeyError } from "@/lib/sql-error"
+import z from "zod"
+import { sendError, sendSuccess } from "@/lib/response"
 
 const router = express.Router()
-
-function isForeignKeyError(error) {
-  return (
-    error?.code === "SQLITE_CONSTRAINT_FOREIGNKEY" ||
-    (error?.code === "SQLITE_CONSTRAINT" &&
-      String(error?.message ?? "")
-        .toLowerCase()
-        .includes("foreign key"))
-  )
-}
 
 router.get("/", (req, res) => {
   const parsed = ConversationStarterQuerySchema.safeParse(req.query)
 
   if (!parsed.success) {
-    return res.status(400).json({
+    return sendError(res, 400, {
       message: "Invalid query parameters",
-      errors: parsed.error.flatten().fieldErrors,
+      errors: z.flattenError(parsed.error).fieldErrors,
     })
   }
 
-  const filters = []
+  const filters: SQL[] = []
   if (parsed.data.interestsId !== undefined) {
     filters.push(eq(conversationStarters.interestsId, parsed.data.interestsId))
   }
@@ -47,10 +40,10 @@ router.get("/", (req, res) => {
     ? query.where(and(...filters)).all()
     : query.all()
 
-  return res.json({ conversationStarters: starters })
+  return sendSuccess(res, 200, { result: { conversationStarters: starters } })
 })
 
-router.get("/:id", (req, res) => {
+router.get<{ id: string }>("/:id", (req, res) => {
   const starter = db
     .select()
     .from(conversationStarters)
@@ -58,38 +51,41 @@ router.get("/:id", (req, res) => {
     .get()
 
   if (!starter) {
-    return res.status(404).json({ message: "Conversation starter not found" })
+    return sendError(res, 404, { message: "Conversation starter not found" })
   }
 
-  return res.json({ conversationStarter: starter })
+  return sendSuccess(res, 200, { result: starter })
 })
 
-router.post("/", requireAuth, (req, res) => {
+router.post("/", requireAuth, async (req, res) => {
   const parsed = ConversationStarterCreateSchema.safeParse(req.body)
 
   if (!parsed.success) {
-    return res.status(400).json({
+    return sendError(res, 400, {
       message: "Invalid conversation starter data",
-      errors: parsed.error.flatten().fieldErrors,
+      errors: z.flattenError(parsed.error).fieldErrors,
     })
   }
 
   const starter = { id: uuidv4(), ...parsed.data }
 
   try {
-    db.insert(conversationStarters).values(starter).run()
-    return res.status(201).json({ conversationStarter: starter })
+    const [result] = await db
+      .insert(conversationStarters)
+      .values(starter)
+      .returning()
+    return sendSuccess(res, 201, { result })
   } catch (error) {
     if (isForeignKeyError(error)) {
-      return res.status(400).json({ message: "interestsId does not exist" })
+      return sendError(res, 400, { message: "interestsId does not exist" })
     }
-    return res
-      .status(500)
-      .json({ message: "Could not create conversation starter" })
+    return sendError(res, 500, {
+      message: "Could not create conversation starter",
+    })
   }
 })
 
-router.patch("/:id", requireAuth, (req, res) => {
+router.patch<{ id: string }>("/:id", requireAuth, async (req, res) => {
   const existingStarter = db
     .select()
     .from(conversationStarters)
@@ -97,47 +93,44 @@ router.patch("/:id", requireAuth, (req, res) => {
     .get()
 
   if (!existingStarter) {
-    return res.status(404).json({ message: "Conversation starter not found" })
+    return sendError(res, 404, { message: "Conversation starter not found" })
   }
 
   const parsed = ConversationStarterUpdateSchema.safeParse(req.body)
 
   if (!parsed.success) {
-    return res.status(400).json({
+    return sendError(res, 400, {
       message: "Invalid conversation starter data",
-      errors: parsed.error.flatten().fieldErrors,
+      errors: z.flattenError(parsed.error).fieldErrors,
     })
   }
 
   if (Object.keys(parsed.data).length === 0) {
-    return res.status(400).json({ message: "No fields provided" })
+    return sendError(res, 400, { message: "No fields provided" })
   }
 
   try {
-    db.update(conversationStarters)
+    const [result] = await db
+      .update(conversationStarters)
       .set(parsed.data)
       .where(eq(conversationStarters.id, req.params.id))
-      .run()
+      .returning()
 
-    const updatedStarter = db
-      .select()
-      .from(conversationStarters)
-      .where(eq(conversationStarters.id, req.params.id))
-      .get()
-
-    return res.json({ conversationStarter: updatedStarter })
+    return sendSuccess(res, 200, {
+      result,
+    })
   } catch (error) {
     if (isForeignKeyError(error)) {
-      return res.status(400).json({ message: "interestsId does not exist" })
+      return sendError(res, 400, { message: "interestsId does not exist" })
     }
     console.error(error)
-    return res
-      .status(500)
-      .json({ message: "Could not update conversation starter" })
+    return sendError(res, 500, {
+      message: "Could not update conversation starter",
+    })
   }
 })
 
-router.delete("/:id", requireAuth, (req, res) => {
+router.delete<{ id: string }>("/:id", requireAuth, (req, res) => {
   const existingStarter = db
     .select()
     .from(conversationStarters)
@@ -145,14 +138,19 @@ router.delete("/:id", requireAuth, (req, res) => {
     .get()
 
   if (!existingStarter) {
-    return res.status(404).json({ message: "Conversation starter not found" })
+    return sendError(res, 404, { message: "Conversation starter not found" })
   }
 
-  db.delete(conversationStarters)
-    .where(eq(conversationStarters.id, req.params.id))
-    .run()
+  try {
+    db.delete(conversationStarters)
+      .where(eq(conversationStarters.id, req.params.id))
+      .run()
+  } catch (error) {
+    console.error(error)
+    return sendError(res, 500, { message: "Could not delete conversation starter" })
+  }
 
-  return res.status(204).send()
+  return sendSuccess(res, 204, { message: "Conversation starter deleted" })
 })
 
 export default router

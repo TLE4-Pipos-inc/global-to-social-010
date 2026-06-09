@@ -4,13 +4,13 @@ import cookieParser from "cookie-parser"
 import path from "path"
 import http from "http"
 import { fileURLToPath } from "url"
-import matchesRouter from "@/routes/matches.js"
-import sessionsRouter from "@/routes/sessions.js"
+import matchesRouter from "@/routes/matches"
+import sessionsRouter from "@/routes/sessions"
 import { attachSocketServer } from "@/sockets/index.js"
 import authRouter from "@/routes/auth.js"
-import conversationStartersRouter from "@/routes/conversations-starters.js"
-import interestsRouter from "@/routes/interests.js"
-import venuesRouter from "@/routes/venues.js"
+import conversationStartersRouter from "@/routes/conversations-starters"
+import interestsRouter from "@/routes/interests"
+import venuesRouter from "@/routes/venues"
 
 // ConnectDB();
 
@@ -25,8 +25,8 @@ app.use(express.json())
 app.use(cookieParser())
 app.use(
   cors({
-    origin: "*",
-    credentials: true, // required to allow cookies cross-origin
+    origin: clientOrigin,
+    credentials: true,
   })
 )
 

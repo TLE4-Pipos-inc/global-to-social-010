@@ -80,7 +80,7 @@ router.get("/protected", requireAuth, (req, res) => {
 })
 ```
 
-`requireAuth` accepts a `Bearer` token in the `Authorization` header or an `access_token` cookie. It writes the decoded JWT payload to `res.locals.payload`.
+`requireAuth` accepts a `Bearer` token in the `Authorization` header or an `access_token` cookie. It writes the decoded JWT payload to `res.locals`.
 
 ## Environment variables
 

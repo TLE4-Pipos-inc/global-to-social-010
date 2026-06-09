@@ -1,29 +1,38 @@
-import { z } from "zod";
+import { z } from "zod"
+import { BaseSchema } from "./base-schema"
 
-export const RegisterUserSchema = z.object({
-  name: z.string().trim().min(1).max(100),
-  email: z.email().trim().toLowerCase(),
-  password: z.string().min(8).max(128),
+export const UserRoleSchema = z.enum(["user", "partner", "admin"])
+
+export const UserSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  email: z.email("Invalid email address"),
+  role: UserRoleSchema,
+  password: z.string().min(8, "Password must be at least 8 characters"),
   school: z.string().trim().max(120).optional(),
   campus: z.string().trim().max(120).optional(),
-});
+})
 
-export const LoginUserSchema = z.object({
-  email: z.email().trim().toLowerCase(),
-  password: z.string().min(1),
-});
+export const UserRegisterSchema = UserSchema.extend({
+  confirmPassword: z.string().min(1, "Confirm Password is required"),
+}).omit({ role: true })
 
-export const PublicUserSchema = z.object({
-  id: z.uuidv4(),
-  name: z.string(),
-  email: z.email(),
-  school: z.string().nullable().optional(),
-  campus: z.string().nullable().optional(),
-  createdAt: z.string(),
-});
 
-export const UserRoleSchema = z.enum(["user", "partner", "admin"]);
 
-export type RegisterUserInput = z.infer<typeof RegisterUserSchema>;
-export type LoginUserInput = z.infer<typeof LoginUserSchema>;
-export type PublicUser = z.infer<typeof PublicUserSchema>;
+export const UserLoginSchema = z.object({
+  email: z.email("Invalid email address"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+})
+
+export const UserResponseSchema = UserSchema.extend(BaseSchema.shape).omit({
+  password: true,
+})
+
+export const LoginResponseSchema = UserResponseSchema.extend({
+  token: z.string(),
+})
+
+export type User = z.infer<typeof UserSchema>
+export type UserRegister = z.infer<typeof UserRegisterSchema>
+export type UserLogin = z.infer<typeof UserLoginSchema>
+
+export type LoginResponse = z.infer<typeof LoginResponseSchema>
