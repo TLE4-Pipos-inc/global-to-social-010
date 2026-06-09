@@ -13,6 +13,7 @@ import interestsRouter from "@/routes/interests.js"
 import userInterestsRouter from "@/routes/user-interests.js"
 import venuesRouter from "@/routes/venues.js"
 import usersRouter from "@/routes/users.js"
+import themaRouteRouter from "@/routes/thema-route.js"
 // ConnectDB();
 
 const app = express()
@@ -46,6 +47,7 @@ app.use("/api/conversation-starters", conversationStartersRouter)
 app.use("/api/interests", interestsRouter)
 app.use("/api/user-interests", userInterestsRouter)
 app.use("/api/venues", venuesRouter)
+app.use("/api/thema-route", themaRouteRouter)
 
 app.get("/api/status", (_req, res) => {
   res.json({ message: "API is running" })
