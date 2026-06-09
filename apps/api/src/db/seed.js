@@ -73,13 +73,17 @@ const venueSeedData = [
     vibe: "warm, social, nightlife",
   },
   {
-    name: "010 Cowork Lounge",
-    venueType: "coworking",
-    address: "Wijnhaven 99, Rotterdam",
-    description: "Light coworking space for alcohol-free social routes.",
-    latitude: 51.91783,
-    longitude: 4.48993,
-    suggestedOrder: "daytime stop",
+    name: "De Witte Aap",
+    venueType: "bar",
+    address: "Witte de Withstraat 78, 3012 BS Rotterdam",
+    description:
+      "De Witte Aap is the beating heart of Witte De Withstraat, the Rotterdam art area. The doors here open seven days a week at three in the afternoon and only close again in the late hours. In 2009, De Witte Aap was named best bar in the world by Lonely Planet. You have to go here if you are in Rotterdam!\n" +
+      " \n" +
+      "\n" +
+      "Whether you fancy a nice cup of coffee or more like to drink one of our many beers on our heated terrace, our bartenders are happy to assist you! Cheers!",
+    latitude: 51.91530813337005,
+    longitude: 4.476292131956939,
+    suggestedOrder: "nighttime stop",
     vibe: "focused, open, low pressure",
   },
   {
