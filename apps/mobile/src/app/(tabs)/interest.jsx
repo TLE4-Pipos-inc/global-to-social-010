@@ -27,14 +27,12 @@ import { useQueryClient } from "@tanstack/react-query"
 import { useInterestQuery } from "@/features/intrests/hooks/query"
 
 function Interest() {
-  const [interests, setInterest] = useState()
-  const { data } = useInterestQuery()
+  const { data } = useInterestQuery();
 
-  const interest = data?.interests ?? []
-  setInterest(interest)
+  const interests = data?.interests || [];
 
-  console.log(interest[0]?.id)
-  console.log(interest[0]?.name)
+  console.log(data);
+  console.log(data?.interests);
   return (
     <ScrollView>
       <View>
@@ -65,7 +63,7 @@ function Interest() {
 
         <View>
           {interests.map((interest) => (
-            <Text key={interest.id}>{interest[0]?.name}</Text>
+            <Text key={interest.id}>{interest.name}</Text>
           ))}
         </View>
 
