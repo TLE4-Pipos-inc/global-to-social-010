@@ -1,5 +1,6 @@
 import { Image } from "expo-image"
 import { ThemedText } from "@/components/themed-text"
+import { ThemedView } from "@/components/themed-view"
 import { ActivityIndicator, StyleSheet, View } from "react-native"
 import { router, useFocusEffect } from "expo-router"
 import { Suspense, useCallback } from "react"
@@ -40,15 +41,15 @@ function ProfileContent() {
 
   return (
     <>
-      <View style={styles.block}>
+      <ThemedView style={styles.block}>
         <Image
           source={require("../../../assets/images/emptyprofile.png")}
           style={styles.image}
           accessibleLabel="Profile avatar"
         />
 
-        <View style={styles.textContainer}>
-          <View style={styles.imageRow}>
+        <ThemedView style={styles.textContainer}>
+          <ThemedView style={styles.imageRow}>
             <Image
               source={require("../../../assets/images/nl.png")}
               style={styles.nationImage}
@@ -60,7 +61,7 @@ function ProfileContent() {
               style={styles.hrImage}
               accessibleLabel="Hogeschool Rotterdam logo"
             />
-          </View>
+          </ThemedView>
 
           <ThemedText type="text" style={{ fontWeight: "bold" }}>
             {user.name || "No name"}
@@ -78,16 +79,16 @@ function ProfileContent() {
             title="settings"
             onPress={() => router.push("/settings")}
           />
-        </View>
-      </View>
+        </ThemedView>
+      </ThemedView>
 
-      <View style={styles.container}>
+      <ThemedView style={styles.container}>
         <PrimaryDarkOutlineButton
           title={logout.isPending ? "Logging out…" : "Log Out"}
           disabled={logout.isPending}
           onPress={() => logout.mutate()}
         />
-      </View>
+      </ThemedView>
     </>
   )
 }
