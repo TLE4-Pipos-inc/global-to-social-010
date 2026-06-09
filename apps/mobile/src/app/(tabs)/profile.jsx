@@ -41,15 +41,15 @@ function ProfileContent() {
 
   return (
     <>
-      <ThemedView style={styles.block}>
+      <View style={styles.block}>
         <Image
           source={require("../../../assets/images/emptyprofile.png")}
           style={styles.image}
           accessibleLabel="Profile avatar"
         />
 
-        <ThemedView style={styles.textContainer}>
-          <ThemedView style={styles.imageRow}>
+        <View style={styles.textContainer}>
+          <View style={styles.imageRow}>
             <Image
               source={require("../../../assets/images/nl.png")}
               style={styles.nationImage}
@@ -61,7 +61,7 @@ function ProfileContent() {
               style={styles.hrImage}
               accessibleLabel="Hogeschool Rotterdam logo"
             />
-          </ThemedView>
+          </View>
 
           <ThemedText type="text" style={{ fontWeight: "bold" }}>
             {user.name || "No name"}
@@ -77,10 +77,10 @@ function ProfileContent() {
 
           <PrimaryLightButton
             title="settings"
-            onPress={() => router.push("/settings")}
+            onPress={() => router.push("/(tabs)/settings")}
           />
-        </ThemedView>
-      </ThemedView>
+        </View>
+      </View>
 
       <ThemedView style={styles.container}>
         <PrimaryDarkOutlineButton
