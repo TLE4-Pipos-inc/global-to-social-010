@@ -49,13 +49,12 @@ function Settings() {
         method: "POST",
         credentials: "include",
       }),
-    onSettled: () => {
+    onSuccess: () => {
       setAccessToken(null)
       queryClient.removeQueries({ queryKey: ["account"] })
       router.replace("/(auth)/login")
     },
   })
-
   const deleteAccount = () => {
     console.log("Delete account pressed")
   }
@@ -76,12 +75,6 @@ function Settings() {
 
       setIsSaving(true)
 
-      console.log("Sending update:", {
-        name,
-        school: selectedSchool,
-        campus: selectedCampus,
-      })
-
       const res = await fetchWithAuth("/api/users/me", {
         method: "PATCH",
         body: JSON.stringify({
@@ -93,13 +86,15 @@ function Settings() {
 
       if (!res.ok) {
         const errorText = await res.text()
-        new Error("Could not save profile")
+        throw new Error("Could not save profile")
       }
 
       const result = await res.json()
 
       router.replace("/profile")
     } catch (error) {
+      console.error("Failed to save profile:", error)
+      // TODO: Show error alert to user
     } finally {
       setIsSaving(false)
     }
