@@ -8,11 +8,11 @@ import matchesRouter from "@/routes/matches"
 import sessionsRouter from "@/routes/sessions"
 import { attachSocketServer } from "@/sockets/index.js"
 import authRouter from "@/routes/auth.js"
-import usersRouter from "@/routes/users"
-import userInterestsRouter from "@/routes/user-interests"
-import conversationStartersRouter from "@/routes/conversations-starters"
-import interestsRouter from "@/routes/interests"
-import venuesRouter from "@/routes/venues"
+import conversationStartersRouter from "@/routes/conversations-starters.js"
+import interestsRouter from "@/routes/interests.js"
+import userInterestsRouter from "@/routes/user-interests.js"
+import venuesRouter from "@/routes/venues.js"
+import usersRouter from "@/routes/users.js"
 // ConnectDB();
 
 const app = express()
