@@ -6,13 +6,14 @@ import http from "http"
 import { fileURLToPath } from "url"
 import matchesRouter from "@/routes/matches"
 import sessionsRouter from "@/routes/sessions"
-import { attachSocketServer } from "@/sockets/index.js"
-import authRouter from "@/routes/auth.js"
-import conversationStartersRouter from "@/routes/conversations-starters.js"
-import interestsRouter from "@/routes/interests.js"
-import userInterestsRouter from "@/routes/user-interests.js"
-import venuesRouter from "@/routes/venues.js"
-import usersRouter from "@/routes/users.js"
+import { attachSocketServer } from "@/sockets/index"
+import authRouter from "@/routes/auth"
+import conversationStartersRouter from "@/routes/conversations-starters"
+import interestsRouter from "@/routes/interests"
+import userInterestsRouter from "@/routes/user-interests"
+import venuesRouter from "@/routes/venues"
+import usersRouter from "@/routes/users"
+import themaRouteRouter from "@/routes/thema-route"
 // ConnectDB();
 
 const app = express()
@@ -45,6 +46,7 @@ app.use("/api/conversation-starters", conversationStartersRouter)
 app.use("/api/interests", interestsRouter)
 app.use("/api/user-interests", userInterestsRouter)
 app.use("/api/venues", venuesRouter)
+app.use("/api/thema-route", themaRouteRouter)
 
 app.get("/api/status", (_req, res) => {
   res.json({ message: "API is running" })
