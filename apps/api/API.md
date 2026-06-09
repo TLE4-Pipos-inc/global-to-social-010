@@ -191,6 +191,23 @@ Return the authenticated user's profile.
 
 ---
 
+#### `DELETE /api/auth/me`
+
+Permanently delete the authenticated user's account and clear auth cookies.
+
+**Auth required:** yes
+
+**Request body:** none
+
+**Response `200`**
+```json
+{ "message": "Account deleted successfully" }
+```
+
+**Errors:** `401` unauthenticated · `404` user not found
+
+---
+
 ### Interests
 
 Base path: `/api/interests`
@@ -670,7 +687,7 @@ Authenticate by passing the JWT access token when connecting:
 ```js
 import { io } from "socket.io-client"
 
-const socket = io("http://localhost:3000", {
+const socket = io("http://localhost:8000", {
   auth: { token: "<access_jwt>" },
   transports: ["websocket"],
 })
@@ -682,6 +699,8 @@ The server also accepts the token from:
 - `access_token` cookie
 
 On successful authentication `socket.data` contains `{ userId, email }`.
+
+On reconnect, if the user is still in a party, the server automatically emits `party:updated` with the current party state so the client can restore its UI without any extra call.
 
 **Rooms**
 
@@ -718,9 +737,11 @@ Create a new party. The caller becomes the leader.
   "party": {
     "id": "uuid",
     "inviteCode": "ABCD12",
-    "leader": "userId",
-    "members": [...],
-    "status": "idle"
+    "leaderId": "userId",
+    "status": "idle",
+    "selectedTimeSlot": null,
+    "enqueuedAt": null,
+    "members": [{ "userId": "uuid", "name": "Alice", "school": "EUR", "campus": "Woudestein" }]
   }
 }
 ```
@@ -772,15 +793,22 @@ Get current party status and queue statistics.
 
 **Payload:** none
 
-**Ack**
+**Ack** — when not in a party:
+```json
+{ "ok": true, "inParty": false }
+```
+
+When in a party:
 ```json
 {
   "ok": true,
   "inParty": true,
   "party": { "..." : "..." },
-  "bucket": { "totalInBucket": 3, "readyCount": 1 }
+  "bucket": { "parties": 2, "players": 4 }
 }
 ```
+
+`bucket` is `null` if the party has not yet queued for a time slot.
 
 ---
 
@@ -798,7 +826,7 @@ Queue the party for matchmaking at a given time slot.
 {
   "ok": true,
   "party": { "..." : "..." },
-  "bucket": { "selectedTimeSlot": "...", "totalInBucket": 2 }
+  "bucket": { "parties": 1, "players": 2 }
 }
 ```
 
@@ -847,11 +875,11 @@ Fired to the party room whenever party membership or status changes.
 {
   "id": "uuid",
   "inviteCode": "ABCD12",
-  "leader": "userId",
-  "members": [...],
-  "selectedTimeSlot": "2026-06-10T19:00",
+  "leaderId": "userId",
   "status": "queued",
-  "createdAt": "..."
+  "selectedTimeSlot": "2026-06-10T19:00",
+  "enqueuedAt": 1749500000000,
+  "members": [{ "userId": "uuid", "name": "Alice", "school": "EUR", "campus": "Woudestein" }]
 }
 ```
 
@@ -859,24 +887,32 @@ Fired to the party room whenever party membership or status changes.
 
 #### `party:dissolved`
 
-Fired to each member when a party is dissolved.
+Two scenarios:
 
+**Kicked** — sent only to the kicked user's personal `user:<id>` room:
 ```json
-{ "partyId": "uuid", "reason": "leader left" }
+{ "partyId": "uuid", "reason": "kicked" }
+```
+
+**Dissolved** — sent to the entire party room when the last member leaves:
+```json
+{ "partyId": "uuid" }
 ```
 
 ---
 
 #### `queue:update`
 
-Fired to the party room with live queue statistics, or to the session room with readiness counts.
+Two shapes depending on context.
 
+**Party queued** — fired to the party room when the party joins the matchmaking queue:
 ```json
-{
-  "selectedTimeSlot": "2026-06-10T19:00",
-  "totalInBucket": 4,
-  "readyCount": 2
-}
+{ "selectedTimeSlot": "2026-06-10T19:00", "parties": 2, "players": 4 }
+```
+
+**Session readiness** — fired to the session room each time a player sends `session:ready`:
+```json
+{ "sessionId": "uuid", "ready": 3, "total": 4 }
 ```
 
 ---
