@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm"
+import { and, count, eq } from "drizzle-orm"
 import express from "express"
 import {
   UserInterestCreateSchema,
@@ -12,6 +12,9 @@ import { requireAuth } from "@/middleware/auth.js"
 import z from "zod"
 
 const router = express.Router()
+
+const minUserInterests = 3
+const maxUserInterests = 5
 
 function isForeignKeyError(error) {
   return (
@@ -47,6 +50,16 @@ function getUserInterest(userId, interestId) {
       ),
     )
     .get()
+}
+
+function countUserInterests(userId) {
+  const result = db
+    .select({ value: count() })
+    .from(userInterests)
+    .where(eq(userInterests.userId, userId))
+    .get()
+
+  return result?.value ?? 0
 }
 
 router.get("/", requireAuth, (req, res) => {
@@ -105,6 +118,12 @@ router.post("/", requireAuth, (req, res) => {
     return res.status(400).json({
       message: "Invalid user interest data",
       errors: z.flattenError(result.error).fieldErrors,
+    })
+  }
+
+  if (countUserInterests(res.locals.payload.userId) >= maxUserInterests) {
+    return res.status(400).json({
+      message: `A user can select a maximum of ${maxUserInterests} interests`,
     })
   }
 
@@ -218,6 +237,12 @@ router.delete("/:id", requireAuth, (req, res) => {
 
   if (!existing) {
     return res.status(404).json({ message: "User interest not found" })
+  }
+
+  if (countUserInterests(res.locals.payload.userId) <= minUserInterests) {
+    return res.status(400).json({
+      message: `A user must keep at least ${minUserInterests} interests`,
+    })
   }
 
   db.delete(userInterests)
