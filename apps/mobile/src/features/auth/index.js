@@ -1,2 +1,2 @@
 export { useAccountForm, withAccountForm } from "./hooks/form"
-export { useAccountQuery, accountQueryOptions } from "./hooks/query"
+export { useAccountQuery, accountQueryOptions, useLogoutMutation, useUpdateUserMutation } from "./hooks/query"
