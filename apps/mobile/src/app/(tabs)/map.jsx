@@ -1,14 +1,17 @@
 import { StatusBar } from 'expo-status-bar';
-import { ScrollView, StyleSheet, Text, View } from "react-native"
-import MapView, {Marker, Callout} from "react-native-maps";
+import { ScrollView, StyleSheet } from "react-native"
+import MapView, { Marker, Callout, Polyline } from "react-native-maps";
 import { ThemedView } from "@/components/themed-view";
-import {useEffect, useState} from "react";
+import { ThemedText} from "@/components/themed-text"
+import { useEffect, useState } from "react";
 import * as Location from 'expo-location';
 import { API_URL } from "@/constants/api";
 
 export default function App() {
   const [location, setLocation] = useState(null);
-  const [venues, setVenues] = useState([])
+  const [venues, setVenues] = useState([]);
+  const [route, setRoute] = useState([]);
+  const [selectedVenue, setSelectedVenue] = useState(null);
 
   useEffect(() => {
     async function loadVenues() {
@@ -17,30 +20,33 @@ export default function App() {
           headers: {
             "ngrok-skip-browser-warning": "true",
           },
-        })
-        const contentType = response.headers.get("content-type") ?? ""
+        });
+
+        const contentType = response.headers.get("content-type") ?? "";
         if (!response.ok || !contentType.includes("application/json")) {
-          const text = await response.text()
-          throw new Error(text.slice(0, 120) || "Could not load venues")
+          const text = await response.text();
+          new Error(text.slice(0, 120) || "Could not load venues");
         }
 
-        const json = await response.json()
-        setVenues(json.venues ?? [])
+        const json = await response.json();
+        setVenues(json.venues ?? []);
       } catch (error) {
-        console.error("Failed to load venues", error)
-        setVenues([])
+        console.error("Failed to load venues", error);
+        setVenues([]);
       }
     }
 
-    loadVenues()
-  }, [])
+    loadVenues();
+  }, []);
 
   useEffect(() => {
     let subscription;
     async function getCurrentLocation() {
-      let {status} = await Location.requestForegroundPermissionsAsync();
+      let { status } = await Location.requestForegroundPermissionsAsync();
+
       if (status !== "granted") {
         console.error("Permission to access location was denied");
+        return;
       }
 
       subscription = await Location.watchPositionAsync(
@@ -57,9 +63,63 @@ export default function App() {
     getCurrentLocation();
     return () => subscription?.remove();
   }, []);
+
+  async function getRoute(venue) {
+    if (!location) return;
+
+    const startLat = location.coords.latitude;
+    const startLng = location.coords.longitude;
+
+    const endLat = Number(venue.latitude);
+    const endLng = Number(venue.longitude);
+
+    // OSRM (Open Source Routing Machine) free api for routes
+    try {
+      const response = await fetch(
+        `https://router.project-osrm.org/route/v1/driving/${startLng},${startLat};${endLng},${endLat}?overview=full&geometries=geojson`
+      );
+      const data = await response.json();
+      const coordinates = data.routes[0].geometry.coordinates.map(
+        (coord) => ({
+          latitude: coord[1],
+          longitude: coord[0],
+        })
+      );
+      setRoute(coordinates);
+      setSelectedVenue(venue);
+    } catch (error) {
+      console.error("Route error:", error);
+    }
+  }
+
   return (
     <ThemedView style={styles.container}>
-      <MapView region={{ latitude: 51.9244, longitude: 4.4777, latitudeDelta: 0.1, longitudeDelta: 0.1, }} style={styles.map} showsUserLocation={true} >
+      <MapView
+        style={styles.map}
+        showsUserLocation={true}
+        region={
+          location
+            ? {
+              latitude: location.coords.latitude,
+              longitude: location.coords.longitude,
+              latitudeDelta: 0.02,
+              longitudeDelta: 0.02,
+            }
+            : {
+              latitude: 51.9244,
+              longitude: 4.4777,
+              latitudeDelta: 0.1,
+              longitudeDelta: 0.1,
+            }
+        }
+      >
+        {route.length > 0 && (
+          <Polyline
+            coordinates={route}
+            strokeWidth={5}
+            strokeColor="blue"
+          />
+        )}
         {venues.map((venue) => (
           <Marker
             key={venue.id}
@@ -67,14 +127,17 @@ export default function App() {
               latitude: Number(venue.latitude),
               longitude: Number(venue.longitude),
             }}
+            onPress={() => getRoute(venue)}
           >
             <Callout style={{ height: 100, width: 400 }}>
-              <View style={styles.popup}>
+              <ThemedView style={styles.popup}>
                 <ScrollView>
-                  <Text style={{ fontWeight: "bold" }}>{venue.name}</Text>
-                  <Text accessibilityLabel={venue.description} >{venue.description}</Text>
+                  <ThemedText style={{ fontWeight: "bold" }}>
+                    {venue.name}
+                  </ThemedText>
+                  <ThemedText>{venue.description}</ThemedText>
                 </ScrollView>
-              </View>
+              </ThemedView>
             </Callout>
           </Marker>
         ))}
@@ -98,5 +161,5 @@ const styles = StyleSheet.create({
   popup: {
     padding: 15,
     maxWidth: "80%",
-  }
+  },
 });
