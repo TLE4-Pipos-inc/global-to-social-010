@@ -25,11 +25,12 @@ export default function App() {
         const contentType = response.headers.get("content-type") ?? "";
         if (!response.ok || !contentType.includes("application/json")) {
           const text = await response.text();
-          new Error(text.slice(0, 120) || "Could not load venues");
+          throw new Error(text.slice(0, 120) || "Could not load venues");
         }
 
         const json = await response.json();
-        setVenues(json.venues ?? []);
+        const venueList = Array.isArray(json) ? json : (json.venues ?? []);
+        setVenues(venueList);
       } catch (error) {
         console.error("Failed to load venues", error);
         setVenues([]);
