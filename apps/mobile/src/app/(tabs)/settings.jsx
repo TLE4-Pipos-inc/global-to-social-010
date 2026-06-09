@@ -63,17 +63,14 @@ function Settings() {
   const saveUserInfo = async () => {
     try {
       if (!name) {
-        console.log("Name is required")
         return
       }
 
       if (!selectedSchool) {
-        console.log("School is required")
         return
       }
 
       if (!selectedCampus) {
-        console.log("Campus is required")
         return
       }
 
@@ -96,16 +93,13 @@ function Settings() {
 
       if (!res.ok) {
         const errorText = await res.text()
-        console.log("Backend error:", errorText)
         new Error("Could not save profile")
       }
 
       const result = await res.json()
-      console.log("User updated:", result.user)
 
       router.replace("/profile")
     } catch (error) {
-      console.log("Could not save user:", error.message)
     } finally {
       setIsSaving(false)
     }
