@@ -2,12 +2,9 @@ import { Image } from "expo-image"
 import { ThemedText } from "@/components/themed-text"
 import { ThemedView } from "@/components/themed-view"
 import { ActivityIndicator, StyleSheet, View } from "react-native"
-import { router, useFocusEffect } from "expo-router"
-import { Suspense, useCallback } from "react"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { useAccountQuery } from "@/features/auth"
-import { setAccessToken } from "@/lib/token"
-import { API_URL } from "@/constants/api"
+import { router } from "expo-router"
+import { Suspense } from "react"
+import { useAccountQuery, useLogoutMutation } from "@/features/auth"
 import {
   PrimaryDarkOutlineButton,
   PrimaryLightButton,
@@ -15,29 +12,10 @@ import {
 import { Colors } from "@/constants/theme"
 
 function ProfileContent() {
-  const { data, refetch } = useAccountQuery()
-  const queryClient = useQueryClient()
+  const accountQuery = useAccountQuery()
+  const logout = useLogoutMutation()
 
-  const user = data.user
-
-  useFocusEffect(
-    useCallback(() => {
-      refetch()
-    }, [refetch])
-  )
-
-  const logout = useMutation({
-    mutationFn: () =>
-      fetch(`${API_URL}/api/auth/logout`, {
-        method: "POST",
-        credentials: "include",
-      }),
-    onSettled: () => {
-      setAccessToken(null)
-      queryClient.removeQueries({ queryKey: ["account"] })
-      router.replace("/(auth)/login")
-    },
-  })
+  const user = accountQuery.data.result.user
 
   return (
     <>
@@ -86,7 +64,11 @@ function ProfileContent() {
         <PrimaryDarkOutlineButton
           title={logout.isPending ? "Logging out…" : "Log Out"}
           disabled={logout.isPending}
-          onPress={() => logout.mutate()}
+          onPress={() =>
+            logout.mutate(undefined, {
+              onSettled: () => router.replace("/(auth)/login"),
+            })
+          }
         />
       </ThemedView>
     </>

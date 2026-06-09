@@ -1,6 +1,6 @@
 import { and, eq, inArray } from "drizzle-orm"
 import express from "express"
-import { db } from "../db/client.js"
+import { db } from "@/db/client.js"
 import {
   gameSessions,
   groupMembers,
@@ -10,15 +10,16 @@ import {
   sessionStops,
   users,
   venues,
-} from "../db/schema.js"
-import { activateSession } from "../lib/matchmaking/session.js"
-import { requireAuth } from "../middleware/auth.js"
+} from "@/db/schema.js"
+import { activateSession } from "@/lib/matchmaking/session.js"
+import { requireAuth } from "@/middleware/auth.js"
+import { sendError, sendSuccess } from "@/lib/response"
 
 const router = express.Router()
 
 // GET /api/sessions/me — current setup/active session for the authenticated user
-router.get("/me", requireAuth, (req, res) => {
-  const userId = res.locals.payload.userId
+router.get("/me", requireAuth, (_req, res) => {
+  const userId = res.locals.userId
 
   const session = db
     .select({
@@ -36,23 +37,22 @@ router.get("/me", requireAuth, (req, res) => {
       groupMembers,
       and(
         eq(groupMembers.groupId, gameSessions.groupId),
-        eq(groupMembers.userId, userId),
-      ),
+        eq(groupMembers.userId, userId)
+      )
     )
     .where(inArray(gameSessions.status, ["setup", "active"]))
     .get()
 
   if (!session) {
-    return res.status(404).json({ message: "No active session found" })
+    return sendError(res, 404, { message: "No active session found" })
   }
 
-  return res.json({ session })
+  return sendSuccess(res, 200, { result: session })
 })
 
 // GET /api/sessions/:id — full session detail; caller must be a group member
-router.get("/:id", requireAuth, (req, res) => {
-  const userId = res.locals.payload.userId
-  const { id } = req.params
+router.get<{ id: string }>("/:id", requireAuth, (req, res) => {
+  const userId = res.locals.userId
 
   const session = db
     .select({
@@ -67,11 +67,11 @@ router.get("/:id", requireAuth, (req, res) => {
       completedAt: gameSessions.completedAt,
     })
     .from(gameSessions)
-    .where(eq(gameSessions.id, id))
+    .where(eq(gameSessions.id, req.params.id))
     .get()
 
   if (!session) {
-    return res.status(404).json({ message: "Session not found" })
+    return sendError(res, 404, { message: "Session not found" })
   }
 
   const membership = db
@@ -80,13 +80,15 @@ router.get("/:id", requireAuth, (req, res) => {
     .where(
       and(
         eq(groupMembers.groupId, session.groupId),
-        eq(groupMembers.userId, userId),
-      ),
+        eq(groupMembers.userId, userId)
+      )
     )
     .get()
 
   if (!membership) {
-    return res.status(403).json({ message: "You are not a member of this session" })
+    return sendError(res, 403, {
+      message: "You are not a member of this session",
+    })
   }
 
   const group = db
@@ -150,34 +152,38 @@ router.get("/:id", requireAuth, (req, res) => {
     .from(sessionStops)
     .innerJoin(routeStops, eq(routeStops.id, sessionStops.routeStopId))
     .innerJoin(venues, eq(venues.id, routeStops.venueId))
-    .where(eq(sessionStops.sessionId, id))
+    .where(eq(sessionStops.sessionId, req.params.id))
     .orderBy(routeStops.routeOrder)
     .all()
 
-  return res.json({ session, group, members, route, stops })
+  return sendSuccess(res, 200, {
+    result: { session, group, members, route, stops },
+  })
 })
 
 // POST /api/sessions/:id/activate — HTTP fallback for session:ready
 // Activates the session immediately (bypasses socket readiness tracking).
 // Only a group member may call this.
-router.post("/:id/activate", requireAuth, (req, res) => {
-  const userId = res.locals.payload.userId
-  const { id } = req.params
+router.post<{ id: string }>("/:id/activate", requireAuth, (req, res) => {
+  const userId = res.locals.userId
 
   const session = db
-    .select({ id: gameSessions.id, groupId: gameSessions.groupId, status: gameSessions.status })
+    .select({
+      id: gameSessions.id,
+      groupId: gameSessions.groupId,
+      status: gameSessions.status,
+    })
     .from(gameSessions)
-    .where(eq(gameSessions.id, id))
+    .where(eq(gameSessions.id, req.params.id))
     .get()
 
   if (!session) {
-    return res.status(404).json({ message: "Session not found" })
+    return sendError(res, 404, { message: "Session not found" })
   }
 
   if (session.status !== "setup") {
-    return res.status(409).json({
+    return sendError(res, 409, {
       message: `Session is already ${session.status}`,
-      status: session.status,
     })
   }
 
@@ -187,21 +193,26 @@ router.post("/:id/activate", requireAuth, (req, res) => {
     .where(
       and(
         eq(groupMembers.groupId, session.groupId),
-        eq(groupMembers.userId, userId),
-      ),
+        eq(groupMembers.userId, userId)
+      )
     )
     .get()
 
   if (!membership) {
-    return res.status(403).json({ message: "You are not a member of this session" })
+    return sendError(res, 403, {
+      message: "You are not a member of this session",
+    })
   }
 
-  const activated = activateSession(id)
+  const activated = activateSession(req.params.id)
   if (!activated) {
-    return res.status(409).json({ message: "Session could not be activated" })
+    return sendError(res, 409, { message: "Session could not be activated" })
   }
 
-  return res.json({ message: "Session activated", sessionId: id })
+  return sendSuccess(res, 200, {
+    result: { sessionId: req.params.id },
+    message: "Session activated",
+  })
 })
 
 export default router

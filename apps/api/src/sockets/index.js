@@ -1,11 +1,11 @@
 import { Server } from "socket.io"
-import { verifyAccess } from "../lib/jwt-helper.js"
-import { PartyQueue, serializeParty } from "../lib/matchmaking/queue.js"
+import { verifyAccess } from "@/lib/jwt-helper"
+import { PartyQueue, serializeParty } from "@/lib/matchmaking/queue.js"
 import {
   activateSession,
   createMatchedSession,
   loadPlayerProfile,
-} from "../lib/matchmaking/session.js"
+} from "@/lib/matchmaking/session"
 
 /**
  * Event catalog. Mirror this object in the client.

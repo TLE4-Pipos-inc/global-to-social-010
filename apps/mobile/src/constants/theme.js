@@ -10,6 +10,7 @@ export const Colors = {
   yellowColor: "#FFD449",
   orangeColor: "#F9A620",
   offWhite: "#F1F1FF",
+  dangerColor: "#D64545",
 }
 
 export const Fonts = {
