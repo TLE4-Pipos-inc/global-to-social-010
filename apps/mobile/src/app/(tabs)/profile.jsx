@@ -1,18 +1,30 @@
 import { Image } from "expo-image"
-import { ThemedText } from "../../components/themed-text"
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native"
-import { router } from "expo-router"
-import { Suspense } from "react"
+import { ThemedText } from "@/components/themed-text"
+import { ThemedView } from "@/components/themed-view"
+import { ActivityIndicator, StyleSheet, View } from "react-native"
+import { router, useFocusEffect } from "expo-router"
+import { Suspense, useCallback } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { useAccountQuery } from "../../features/auth/hooks/query"
-import { setAccessToken } from "../../lib/token"
-import { API_URL } from "../../constants/api"
-import { PrimaryDarkOutlineButton } from "../../components/buttons"
-import { Colors } from "../../constants/theme"
+import { useAccountQuery } from "@/features/auth"
+import { setAccessToken } from "@/lib/token"
+import { API_URL } from "@/constants/api"
+import {
+  PrimaryDarkOutlineButton,
+  PrimaryLightButton,
+} from "@/components/buttons"
+import { Colors } from "@/constants/theme"
 
 function ProfileContent() {
-  const { data } = useAccountQuery()
+  const { data, refetch } = useAccountQuery()
   const queryClient = useQueryClient()
+
+  const user = data.user
+
+  useFocusEffect(
+    useCallback(() => {
+      refetch()
+    }, [refetch])
+  )
 
   const logout = useMutation({
     mutationFn: () =>
@@ -26,7 +38,7 @@ function ProfileContent() {
       router.replace("/(auth)/login")
     },
   })
-  const user = data.user
+
   return (
     <>
       <View style={styles.block}>
@@ -43,26 +55,40 @@ function ProfileContent() {
               style={styles.nationImage}
               accessibleLabel="Netherlands flag"
             />
+
             <Image
               source={require("../../../assets/images/hrlogo.png")}
               style={styles.hrImage}
               accessibleLabel="Hogeschool Rotterdam logo"
             />
           </View>
-          <ThemedText type={"text"} style={{ fontWeight: "bold" }}>
-            Broertje Depay
+
+          <ThemedText type="text" style={{ fontWeight: "bold" }}>
+            {user.name || "No name"}
           </ThemedText>
-          <ThemedText type={"text"}>International Business</ThemedText>
-          <ThemedText type={"text"}>Hogeschool Rotterdam</ThemedText>
+
+          <ThemedText type="text">
+            {user.campus || "No campus selected"}
+          </ThemedText>
+
+          <ThemedText type="text">
+            {user.school || "No school selected"}
+          </ThemedText>
+
+          <PrimaryLightButton
+            title="settings"
+            onPress={() => router.push("/(tabs)/settings")}
+          />
         </View>
       </View>
-      <View style={styles.container}>
+
+      <ThemedView style={styles.container}>
         <PrimaryDarkOutlineButton
           title={logout.isPending ? "Logging out…" : "Log Out"}
           disabled={logout.isPending}
           onPress={() => logout.mutate()}
         />
-      </View>
+      </ThemedView>
     </>
   )
 }
@@ -83,6 +109,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.orangeColor,
     paddingLeft: 20,
   },
+
   imageRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -113,6 +140,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 50,
   },
+
   container: {
     flex: 1,
     paddingHorizontal: 24,
@@ -120,18 +148,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
     justifyContent: "space-between",
   },
-  info: {
-    gap: 6,
-  },
-  name: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: Colors.text,
-  },
-  email: {
-    fontSize: 16,
-    color: Colors.icon,
-  },
+
   loader: {
     flex: 1,
   },

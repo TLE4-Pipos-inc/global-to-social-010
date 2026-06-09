@@ -1,10 +1,7 @@
 import { Tabs } from "expo-router"
-import React from "react"
-
-import { HapticTab } from "../../components/haptic-tab"
-import { IconSymbol } from "../../components/ui/icon-symbol"
-import { Colors } from "../../constants/theme"
-import { Montserrat_700Bold } from "@expo-google-fonts/montserrat"
+import { Home, Map, User } from "lucide-react-native"
+import { HapticTab } from "@/components/haptic-tab"
+import { Colors, Fonts } from "@/constants/theme"
 
 export default function TabLayout() {
   return (
@@ -12,17 +9,17 @@ export default function TabLayout() {
       style={{ backgroundColor: Colors.yellowColor }}
       screenOptions={{
         tabBarActiveTintColor: Colors.darkGreenColor,
-        tabBarInactiveTintColor: "#000000",
+        tabBarInactiveTintColor: Colors.text,
         tabBarButton: HapticTab,
         headerShown: true,
         headerStyle: { backgroundColor: Colors.yellowColor },
         tabBarStyle: {
-          backgroundColor: Colors.yellowColor, // bottom tab color
+          backgroundColor: Colors.yellowColor,
           borderTopWidth: 0,
         },
         headerTitleStyle: {
           fontSize: 24,
-          fontFamily: "Montserrat_700Bold",
+          fontFamily: Fonts.bold,
         },
       }}
     >
@@ -30,9 +27,7 @@ export default function TabLayout() {
         name="map"
         options={{
           title: "Map",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={24} name="map.fill" color={color} />
-          ),
+          tabBarIcon: ({ color }) => <Map size={24} color={color} />,
         }}
       />
 
@@ -40,9 +35,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: "Home",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={24} name="house.fill" color={color} />
-          ),
+          tabBarIcon: ({ color }) => <Home size={24} color={color} />,
         }}
       />
 
@@ -50,9 +43,14 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: "Profile",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={24} name="person.fill" color={color} />
-          ),
+          tabBarIcon: ({ color }) => <User size={24} color={color} />,
+        }}
+      />
+
+      <Tabs.Screen
+        name="settings"
+        options={{
+          href: null,
         }}
       />
 

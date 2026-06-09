@@ -1,0 +1,9 @@
+node_modules
+apps/*/node_modules
+packages/*/node_modules
+apps/api/dist
+packages/*/dist
+apps/api/database.db
+apps/api/.env
+apps/*/dist
+.git

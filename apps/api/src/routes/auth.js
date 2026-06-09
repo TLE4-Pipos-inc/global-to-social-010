@@ -3,15 +3,15 @@ import { eq } from "drizzle-orm"
 import express from "express"
 import { v4 as uuidv4 } from "uuid"
 import { LoginUserSchema, RegisterUserSchema } from "@pub-hopper/schemas"
-import { db } from "../db/client.js"
-import { users } from "../db/schema.js"
-import { requireAuth } from "../middleware/auth.js"
+import { db } from "@/db/client.js"
+import { users } from "@/db/schema.js"
+import { requireAuth } from "@/middleware/auth.js"
 import {
   setAuthCookie,
   signAccess,
   verifyAccess,
   verifyRefresh,
-} from "../lib/jwt-helper.js"
+} from "@/lib/jwt-helper.js"
 import z from "zod"
 
 const router = express.Router()
@@ -131,7 +131,7 @@ router.post("/login", async (req, res) => {
 })
 
 router.post("/refresh", (req, res) => {
-  const token = req.cookies?.refreshToken
+  const token = req.cookies?.access_token
   if (!token)
     return res.status(401).json({ message: "Refresh token is required" })
 
@@ -170,5 +170,23 @@ router.get("/me", requireAuth, (req, res) => {
 
   return res.json({ user })
 })
+
+router.delete("/me", requireAuth, (req, res) => {
+  const { userId } = res.locals.payload
+
+  const deleted = db
+    .delete(users)
+    .where(eq(users.id, userId))
+    .returning({ id: users.id })
+    .get()
+
+  if (!deleted) {
+    return res.status(404).json({ message: "User not found" })
+  }
+
+  res.clearCookie("access_token")
+  return res.json({ message: "Account deleted successfully" })
+})
+
 
 export default router
