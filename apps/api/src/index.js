@@ -10,9 +10,9 @@ import { attachSocketServer } from "@/sockets/index.js"
 import authRouter from "@/routes/auth.js"
 import conversationStartersRouter from "@/routes/conversations-starters.js"
 import interestsRouter from "@/routes/interests.js"
+import userInterestsRouter from "@/routes/user-interests.js"
 import venuesRouter from "@/routes/venues.js"
 import usersRouter from "@/routes/users.js"
-import userInterestsRouter from "@/routes/user-interests.js"
 // ConnectDB();
 
 const app = express()
@@ -44,6 +44,7 @@ app.get("/websocket-test", (_req, res) => {
 })
 app.use("/api/conversation-starters", conversationStartersRouter)
 app.use("/api/interests", interestsRouter)
+app.use("/api/user-interests", userInterestsRouter)
 app.use("/api/venues", venuesRouter)
 
 app.get("/api/status", (_req, res) => {
