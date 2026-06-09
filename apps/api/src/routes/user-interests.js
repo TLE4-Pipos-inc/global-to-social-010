@@ -1,4 +1,4 @@
-import { and, count, eq } from "drizzle-orm"
+import { and, count, eq, inArray } from "drizzle-orm"
 import express from "express"
 import {
   UserInterestCreateSchema,

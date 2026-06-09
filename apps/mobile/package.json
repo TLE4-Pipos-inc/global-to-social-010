@@ -42,7 +42,7 @@
   },
   "private": true,
   "devDependencies": {
-    "@types/react": "~19.1.17",
+    "@types/react": "~19.1.10",
     "eslint": "^9.39.4",
     "eslint-config-expo": "^56.0.4"
   }
