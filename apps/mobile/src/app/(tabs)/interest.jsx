@@ -8,100 +8,35 @@ import {
   TouchableOpacity,
   FlatList,
   Modal,
+  ScrollView,
+  ActivityIndicator,
 } from "react-native"
 
-import { HelloWave } from "../../components/hello-wave"
-import ParallaxScrollView from "../../components/parallax-scroll-view"
-import { ThemedText } from "../../components/themed-text"
-import { ThemedView } from "../../components/themed-view"
+import { ThemedView } from "@/components/themed-view"
+import { ThemedText } from "@/components/themed-text"
 import { Link, router } from "expo-router"
 import {
   PrimaryDarkButton,
   PrimaryDarkOutlineButton,
   PrimaryLightButton,
   PrimaryLightOutlineButton,
-} from "../../components/buttons"
-import { useState } from "react"
+} from "@/components/buttons"
+import { Suspense, useState } from "react"
+import { useAccountQuery } from "@/features/auth"
+import { useQueryClient } from "@tanstack/react-query"
+import { useInterestQuery } from "@/features/intrests/hooks/query"
 
-const dummyInterests = [
-  { id: 1, name: "Gaming" },
-  { id: 2, name: "Music" },
-  { id: 3, name: "Sports" },
-  { id: 4, name: "Languages" },
-  { id: 5, name: "Food" },
-  { id: 6, name: "Travel" },
-  { id: 7, name: "culture" },
-  { id: 8, name: "Nightlife" },
-  { id: 9, name: "Quiet chats" },
-]
+function Interest() {
+  const [interests, setInterest] = useState()
+  const { data } = useInterestQuery()
 
-const dummyLanguages = [
-  "English",
-  "Dutch",
-  "Spanish",
-  "French",
-  "German",
-  "Chinese",
-  "Japanese",
-  "Korean",
-]
+  const interest = data?.interests ?? []
+  setInterest(interest)
 
-export default function Interest() {
-  const [selectedInterests, setSelectedInterests] = useState([])
-  const [isVisible, setIsVisible] = useState(false)
-  const [selectedLanguage, setSelectedLanguage] = useState(null)
-
-  // async function createPost() {
-  //   try {
-  //     const response = await fetch('https://prg06-node-express.antwan.eu/spots/', {
-  //       method: 'POST',
-  //       headers: {
-  //         Accept: 'application/json',
-  //         'Content-Type': 'application/json',
-  //       },
-  //       body: JSON.stringify({
-  //         title: formData.name,
-  //         description: formData.description,
-  //         review: review,
-  //       }),
-  //     });
-  //
-  //     if (!response.ok) {
-  //       const text = await response.text();
-  //       console.error('Create failed', response.status, text);
-  //       Alert.alert('Fout', 'Opslaan mislukt');
-  //       return;
-  //     }
-  //
-  //     const data = await response.json();
-  //     console.log('Created', data);
-  //     navigation.popToTop('Home');
-  //
-  //   } catch (error) {
-  //     console.error('Er is een fout opgetreden:', error);
-  //     Alert.alert('Fout', 'Netwerkfout tijdens opslaan');
-  //   }
-  // }
-
-  const toggleInterest = (interest) => {
-    setSelectedInterests((current) => {
-      const alreadySelected = current.some((item) => item.id === interest.id)
-
-      if (alreadySelected) {
-        return current.filter((item) => item.id !== interest.id)
-      }
-
-      return [...current, interest]
-    })
-  }
-
-  const handleLanguageSelect = (language) => {
-    setSelectedLanguage(language)
-    setIsVisible(false)
-  }
-
+  console.log(interest[0]?.id)
+  console.log(interest[0]?.name)
   return (
-    <ParallaxScrollView>
+    <ScrollView>
       <View>
         <View
           style={{
@@ -113,89 +48,55 @@ export default function Interest() {
           }}
         >
           <Text style={styles.title}>match by interest</Text>
-          <Text style={styles.text}>
+          <ThemedText style={styles.text}>
             Pick what you're into — we'll find compatible students
-          </Text>
-        </View>
-
-        <View>
-          <View style={styles.interestsContainer}>
-            {dummyInterests.map((interest) => {
-              const isSelected = selectedInterests.some(
-                (item) => item.id === interest.id
-              )
-
-              return (
-                <Pressable
-                  key={interest.id}
-                  onPress={() => toggleInterest(interest)}
-                  style={[
-                    styles.interestPill,
-                    isSelected && styles.interestPillSelected,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.interestText,
-                      isSelected && styles.interestTextSelected,
-                    ]}
-                  >
-                    {interest.name}
-                  </Text>
-                </Pressable>
-              )
-            })}
-          </View>
+          </ThemedText>
         </View>
 
         <View style={{ padding: 20 }}>
           <View style={styles.box}>
-            <Text style={styles.boxTitle}>How matching works</Text>
-            <Text style={styles.boxText}>
+            <ThemedText style={styles.boxTitle}>How matching works</ThemedText>
+            <ThemedText style={styles.boxText}>
               We compare your interests with other groups at the same time slot
               to find the best match.
-            </Text>
+            </ThemedText>
           </View>
         </View>
 
         <View>
-          <Text style={styles.subtitle}>Languages</Text>
+          {interests.map((interest) => (
+            <Text key={interest.id}>{interest[0]?.name}</Text>
+          ))}
         </View>
 
-        <View style={styles.container}>
-          <TouchableOpacity
-            style={styles.dropdownButton}
-            onPress={() => setIsVisible(true)}
-          >
-            <Text style={styles.dropdownButtonText}>
-              {selectedLanguage || "Select a language"}
-            </Text>
-            <Text style={styles.arrow}>⌄</Text>
-          </TouchableOpacity>
-
-          <Modal visible={isVisible} transparent animationType="slide">
-            <View style={styles.modalBackground}>
-              <View style={styles.modalContent}>
-                <FlatList
-                  data={dummyLanguages}
-                  keyExtractor={(item) => item}
-                  renderItem={({ item }) => (
-                    <TouchableOpacity
-                      style={styles.option}
-                      onPress={() => handleLanguageSelect(item)}
-                    >
-                      <Text style={styles.optionText}>{item}</Text>
-                    </TouchableOpacity>
-                  )}
-                />
-
-                <TouchableOpacity onPress={() => setIsVisible(false)}>
-                  <Text style={styles.closeText}>Close</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </Modal>
+        <View>
+          <ThemedText style={styles.subtitle}>Languages</ThemedText>
         </View>
+
+        {/*<View style={styles.container}>*/}
+        {/*  <Modal visible={isVisible} transparent animationType="slide">*/}
+        {/*    <View style={styles.modalBackground}>*/}
+        {/*      <View style={styles.modalContent}>*/}
+        {/*        <FlatList*/}
+        {/*          data={dummyLanguages}*/}
+        {/*          keyExtractor={(item) => item}*/}
+        {/*          renderItem={({ item }) => (*/}
+        {/*            <TouchableOpacity*/}
+        {/*              style={styles.option}*/}
+        {/*              onPress={() => handleLanguageSelect(item)}*/}
+        {/*            >*/}
+        {/*              <ThemedText style={styles.optionText}>{item}</ThemedText>*/}
+        {/*            </TouchableOpacity>*/}
+        {/*          )}*/}
+        {/*        />*/}
+
+        {/*        <TouchableOpacity onPress={() => setIsVisible(false)}>*/}
+        {/*          <ThemedText style={styles.closeText}>Close</ThemedText>*/}
+        {/*        </TouchableOpacity>*/}
+        {/*      </View>*/}
+        {/*    </View>*/}
+        {/*  </Modal>*/}
+        {/*</View>*/}
 
         <View style={styles.button}>
           <PrimaryLightButton
@@ -204,7 +105,15 @@ export default function Interest() {
           />
         </View>
       </View>
-    </ParallaxScrollView>
+    </ScrollView>
+  )
+}
+
+export default function InterestScreen() {
+  return (
+    <Suspense fallback={<ActivityIndicator style={styles.loader} />}>
+      <Interest />
+    </Suspense>
   )
 }
 
