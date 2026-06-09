@@ -8,10 +8,11 @@ import matchesRouter from "@/routes/matches"
 import sessionsRouter from "@/routes/sessions"
 import { attachSocketServer } from "@/sockets/index.js"
 import authRouter from "@/routes/auth.js"
+import usersRouter from "@/routes/users"
+import userInterestsRouter from "@/routes/user-interests"
 import conversationStartersRouter from "@/routes/conversations-starters"
 import interestsRouter from "@/routes/interests"
 import venuesRouter from "@/routes/venues"
-
 // ConnectDB();
 
 const app = express()
@@ -34,6 +35,7 @@ app.use(
 app.use("/api/auth", authRouter)
 app.use("/api/sessions", sessionsRouter)
 app.use("/api/matches", matchesRouter)
+app.use("/api/users", usersRouter)
 
 app.use("/websocket-test", express.static(publicDir))
 app.get("/websocket-test", (_req, res) => {
@@ -41,10 +43,19 @@ app.get("/websocket-test", (_req, res) => {
 })
 app.use("/api/conversation-starters", conversationStartersRouter)
 app.use("/api/interests", interestsRouter)
+app.use("/api/user-interests", userInterestsRouter)
 app.use("/api/venues", venuesRouter)
 
 app.get("/api/status", (_req, res) => {
   res.json({ message: "API is running" })
+})
+
+app.get("/api/docs", (_req, res) => {
+  res.sendFile(path.join(publicDir, "docs.html"))
+})
+
+app.get("/api/docs/content", (_req, res) => {
+  res.sendFile(path.resolve(__dirname, "../API.md"))
 })
 
 const server = http.createServer(app)
