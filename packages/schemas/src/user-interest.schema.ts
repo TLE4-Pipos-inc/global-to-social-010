@@ -1,19 +1,39 @@
 import { z } from "zod"
 
+const UserInterestIdSchema = z.string().trim().min(1)
+
 export const UserInterestParamsSchema = z.object({
-  id: z.string().trim().min(1),
+  id: UserInterestIdSchema,
 })
 
-export const UserInterestCreateSchema = z.object({
-  interestId: z.string().trim().min(1),
-})
+export const UserInterestCreateSchema = z
+  .union([
+    z.object({
+      interestId: UserInterestIdSchema,
+    }),
+    z.object({
+      interestIds: z.array(UserInterestIdSchema).min(1).max(5),
+    }),
+  ])
+  .transform((data) => ({
+    interestIds: "interestIds" in data ? data.interestIds : [data.interestId],
+  }))
+  .superRefine((data, ctx) => {
+    if (new Set(data.interestIds).size !== data.interestIds.length) {
+      ctx.addIssue({
+        code: "custom",
+        message: "interestIds must be unique",
+        path: ["interestIds"],
+      })
+    }
+  })
 
 export const UserInterestUpdateSchema = z.object({
-  interestId: z.string().trim().min(1),
+  interestId: UserInterestIdSchema,
 })
 
 export const UserInterestQuerySchema = z.object({
-  interestId: z.string().trim().min(1).optional(),
+  interestId: UserInterestIdSchema.optional(),
 })
 
 export type UserInterestParams = z.infer<typeof UserInterestParamsSchema>

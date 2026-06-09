@@ -64,6 +64,10 @@ function getUserInterest(userId, interestId) {
     .get()
 }
 
+function getUserInterestsByIds(userId, interestIds) {
+  return interestIds.map((interestId) => getUserInterest(userId, interestId))
+}
+
 router.get("/", requireAuth, (req, res) => {
   const result = UserInterestQuerySchema.safeParse(req.query)
 
@@ -123,6 +127,8 @@ router.post("/", requireAuth, (req, res) => {
     })
   }
 
+  const { interestIds } = result.data
+
   try {
     db.transaction((tx) => {
       const currentCount = tx
@@ -131,16 +137,18 @@ router.post("/", requireAuth, (req, res) => {
         .where(eq(userInterests.userId, res.locals.payload.userId))
         .get()
 
-      if ((currentCount?.value ?? 0) >= maxUserInterests) {
+      if ((currentCount?.value ?? 0) + interestIds.length > maxUserInterests) {
         throw new MaxUserInterestsError()
       }
 
-      tx.insert(userInterests)
-        .values({
-          userId: res.locals.payload.userId,
-          interestId: result.data.interestId,
-        })
-        .run()
+      for (const interestId of interestIds) {
+        tx.insert(userInterests)
+          .values({
+            userId: res.locals.payload.userId,
+            interestId,
+          })
+          .run()
+      }
     })
   } catch (error) {
     if (error instanceof MaxUserInterestsError) {
@@ -161,11 +169,14 @@ router.post("/", requireAuth, (req, res) => {
     return res.status(500).json({ message: "Could not create user interest" })
   }
 
+  const createdUserInterests = getUserInterestsByIds(
+    res.locals.payload.userId,
+    interestIds,
+  )
+
   return res.status(201).json({
-    userInterest: getUserInterest(
-      res.locals.payload.userId,
-      result.data.interestId,
-    ),
+    userInterest: createdUserInterests[0],
+    userInterests: createdUserInterests,
   })
 })
 
