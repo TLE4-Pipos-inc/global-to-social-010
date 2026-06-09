@@ -1,6 +1,6 @@
-import { router } from 'expo-router'
-import { API_URL } from '@/constants/api'
-import { getAccessToken, setAccessToken } from '@/lib/token'
+import { router } from "expo-router"
+import { API_URL } from "@/constants/api"
+import { getAccessToken, setAccessToken } from "@/lib/token"
 
 // TODO: check for react query's built in retry logic and error handling
 async function fetchWithAuth(path, init) {
@@ -8,8 +8,9 @@ async function fetchWithAuth(path, init) {
 
   let response = await fetch(url, {
     ...init,
-    credentials: 'include',
+    credentials: "include",
     headers: {
+      "Content-Type": "application/json",
       ...init?.headers,
       Authorization: `Bearer ${getAccessToken()}`,
     },
@@ -17,8 +18,8 @@ async function fetchWithAuth(path, init) {
 
   if (response.status === 401) {
     const refreshed = await fetch(`${API_URL}/api/auth/refresh`, {
-      method: 'POST',
-      credentials: 'include',
+      method: "POST",
+      credentials: "include",
     })
 
     if (refreshed.ok) {
@@ -27,7 +28,7 @@ async function fetchWithAuth(path, init) {
 
       response = await fetch(url, {
         ...init,
-        credentials: 'include',
+        credentials: "include",
         headers: {
           ...init?.headers,
           Authorization: `Bearer ${token}`,
@@ -35,7 +36,7 @@ async function fetchWithAuth(path, init) {
       })
     } else {
       setAccessToken(null)
-      router.replace('/(auth)/login')
+      router.replace("/(auth)/login")
     }
   }
 
