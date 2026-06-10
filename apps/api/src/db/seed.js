@@ -49,17 +49,6 @@ const interestSeedData = [
 
 const venueSeedData = [
   {
-    name: "Blaak Coffee Corner",
-    venueType: "cafe",
-    address: "Blaak 16, Rotterdam",
-    description:
-      "Calm coffee spot near Blaak for first meetups and quiet chats.",
-    latitude: 51.92015,
-    longitude: 4.48941,
-    suggestedOrder: "start",
-    vibe: "relaxed coffee and study energy",
-  },
-  {
     name: "Markthal Social Table",
     venueType: "restaurant",
     address: "Dominee Jan Scharpstraat 298, Rotterdam",
@@ -90,16 +79,6 @@ const venueSeedData = [
     suggestedOrder: "daytime stop",
     vibe: "focused, open, low pressure",
   },
-  {
-    name: "Maas Event Loft",
-    venueType: "event",
-    address: "Boompjes 60, Rotterdam",
-    description: "Flexible event location for themed student meetups.",
-    latitude: 51.91479,
-    longitude: 4.48713,
-    suggestedOrder: "final stop",
-    vibe: "group activities and events",
-  },
 ]
 
 const routeThemeSeedData = [
@@ -128,7 +107,7 @@ const routeVenueSeedData = [
       "Busy Rotterdam bar on Witte de Withstraat with a strong international student crowd.",
     latitude: 51.91529,
     longitude: 4.4763,
-    suggestedOrder: "1",
+    suggestedOrder: 1,
     vibe: "lively, social, late-night",
   },
   {
@@ -139,18 +118,18 @@ const routeVenueSeedData = [
       "Large bar and restaurant space with enough room for groups and casual drinks.",
     latitude: 51.915334364860946,
     longitude: 4.47632249385537,
-    suggestedOrder: "2",
+    suggestedOrder: 2,
     vibe: "spacious, energetic, social",
   },
   {
     name: "BAEK Rotterdam",
     venueType: "bar",
-    address: "Witte de Withstraat 73A, Rotterdam",
+    address: "Blaak 329, 3011 GB Rotterdam",
     description:
       "Compact cocktail-style bar for small group conversations and evening energy.",
     latitude: 51.91893767185632,
     longitude: 4.48474079596383,
-    suggestedOrder: "3",
+    suggestedOrder: 3,
     vibe: "cocktails, intimate, upbeat",
   },
   {
@@ -161,7 +140,7 @@ const routeVenueSeedData = [
       "Playful Rotterdam bar with a casual beer-hall feel and a strong group atmosphere.",
     latitude: 51.92420987044394,
     longitude: 4.489485193669806,
-    suggestedOrder: "4",
+    suggestedOrder: 4,
     vibe: "playful, beer, group-friendly",
   },
   {
@@ -172,7 +151,7 @@ const routeVenueSeedData = [
       "Classic central Rotterdam bar with terrace energy and accessible social seating.",
     latitude: 51.92326917341973,
     longitude: 4.485147630436374,
-    suggestedOrder: "5",
+    suggestedOrder: 5,
     vibe: "classic, casual, terrace",
   },
   {
@@ -183,18 +162,18 @@ const routeVenueSeedData = [
       "Specialty coffee spot near Blaak and Oude Haven, good for relaxed daytime meetups.",
     latitude: 51.91598091346657,
     longitude: 4.4857842386063105,
-    suggestedOrder: "1",
+    suggestedOrder: 1,
     vibe: "specialty coffee, calm, creative",
   },
   {
     name: "CoffEY",
     venueType: "cafe",
-    address: "Rotterdam Blaak area, Rotterdam",
+    address: "Boompjes 258, 3011 XZ Rotterdam",
     description:
       "Modern coffee spot near Blaak for relaxed daytime meetups and easy conversations.",
     latitude: 51.914213952225246,
     longitude: 4.486513680227359,
-    suggestedOrder: "2",
+    suggestedOrder: 2,
     vibe: "modern coffee, relaxed, social",
   },
   {
@@ -216,18 +195,18 @@ const routeVenueSeedData = [
       "Small central coffee bar close to the Markthal and Blaak for quick relaxed stops.",
     latitude: 51.92229446144416,
     longitude: 4.488017789134435,
-    suggestedOrder: "4",
+    suggestedOrder: 4,
     vibe: "small, central, friendly",
   },
   {
     name: "Cafecito Meent",
     venueType: "cafe",
-    address: "Meent, Rotterdam",
+    address: "Meent 52, 3011 JM Rotterdam",
     description:
       "Specialty coffee and ceremonial matcha spot on Meent for relaxed daytime meetups.",
     latitude: 51.9229362877991,
     longitude: 4.484230159104578,
-    suggestedOrder: "5",
+    suggestedOrder: 5,
     vibe: "specialty coffee, matcha, relaxed",
   },
 ]
@@ -271,7 +250,7 @@ const routeStopSeedData = [
   {
     routeName: "Witte de With Bar Route",
     venueName: "BAEK Rotterdam",
-    venueAddress: "Witte de Withstraat 73A, Rotterdam",
+    venueAddress: "Blaak 329, 3011 GB Rotterdam",
     routeOrder: 3,
     plannedDurationMinutes: 35,
     walkLabel: "Short walk back through Witte de Withstraat",
@@ -294,17 +273,25 @@ const routeStopSeedData = [
   },
   {
     routeName: "Rotterdam Coffee Route",
-    venueName: "Hopper Coffee",
-    venueAddress: "Schiedamse Vest 146, Rotterdam",
+    venueName: "Harvest Coffee Brewers",
+    venueAddress: "Glashaven 107, Rotterdam",
     routeOrder: 1,
     plannedDurationMinutes: 35,
-    walkLabel: "Start near Schiedamse Vest",
+    walkLabel: "Start near Glashaven and Oude Haven",
+  },
+  {
+    routeName: "Rotterdam Coffee Route",
+    venueName: "CoffEY",
+    venueAddress: "Boompjes 258, 3011 XZ Rotterdam",
+    routeOrder: 2,
+    plannedDurationMinutes: 35,
+    walkLabel: "Short walk around the Blaak area",
   },
   {
     routeName: "Rotterdam Coffee Route",
     venueName: "Heilige Boontjes",
     venueAddress: "Eendrachtsplein 3, Rotterdam",
-    routeOrder: 2,
+    routeOrder: 3,
     plannedDurationMinutes: 35,
     walkLabel: "7 min walk toward Eendrachtsplein",
   },
@@ -312,25 +299,17 @@ const routeStopSeedData = [
     routeName: "Rotterdam Coffee Route",
     venueName: "Nine Bar",
     venueAddress: "Botersloot 44A, Rotterdam",
-    routeOrder: 3,
+    routeOrder: 4,
     plannedDurationMinutes: 30,
     walkLabel: "12 min walk toward Markthal and Blaak",
   },
   {
     routeName: "Rotterdam Coffee Route",
-    venueName: "Man Met Bril Koffie",
-    venueAddress: "Vijverhofstraat 70, Rotterdam",
-    routeOrder: 4,
-    plannedDurationMinutes: 45,
-    walkLabel: "15 min walk or short metro ride toward Noord",
-  },
-  {
-    routeName: "Rotterdam Coffee Route",
-    venueName: "Urban Espresso Bar",
-    venueAddress: "Nieuwe Binnenweg 263, Rotterdam",
+    venueName: "Cafecito Meent",
+    venueAddress: "Meent 52, 3011 JM Rotterdam",
     routeOrder: 5,
     plannedDurationMinutes: 40,
-    walkLabel: "Final coffee stop toward Nieuwe Binnenweg",
+    walkLabel: "Final coffee stop around Meent",
   },
 ]
 
