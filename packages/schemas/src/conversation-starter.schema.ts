@@ -6,7 +6,7 @@ const triggerMinuteMessage =
 const triggerMinuteRefine = (v: number) =>
   (triggerMinuteValues as readonly number[]).includes(v)
 
-const triggerMinuteSchema = z
+export const triggerMinuteSchema = z
   .number()
   .refine(triggerMinuteRefine, { message: triggerMinuteMessage })
 
@@ -17,19 +17,18 @@ const triggerMinuteCoercedSchema = z.coerce
 export const ConversationStarterSchema = z.object({
   id: z.uuidv4(),
   interestsId: z.uuidv4().nullable(),
-  category: z.string().trim().min(1),
+  interestName: z.string().nullable(),
   prompt: z.string().trim().min(1),
   triggerMinute: triggerMinuteSchema,
 })
 
 export const ConversationStarterQuerySchema = z.object({
-  interestsId: z.uuidv4().optional(),
+  interestsId: z.union([z.uuidv4(), z.literal("null")]).optional(),
   triggerMinute: triggerMinuteCoercedSchema.optional(),
 })
 
 export const ConversationStarterCreateSchema = z.object({
   interestsId: z.uuidv4().nullable().optional(),
-  category: z.string().trim().min(1),
   prompt: z.string().trim().min(1),
   triggerMinute: triggerMinuteCoercedSchema,
 })

@@ -501,7 +501,7 @@
         const entry = document.createElement("div")
         entry.className = "starter-entry"
         entry.innerHTML = `
-          <div class="meta">${stamp} &middot; minute ${triggerMinute} &middot; stop ${stopId?.slice(0, 8)}… &middot; ${starter.category}</div>
+          <div class="meta">${stamp} &middot; minute ${triggerMinute} &middot; stop ${stopId?.slice(0, 8)}… &middot; ${starter.interestName ?? "General"}</div>
           <div class="prompt">${starter.prompt}</div>
         `
         starterLogEl.prepend(entry)

@@ -18,6 +18,8 @@
   - [User Interests](#user-interests)
   - [Venues](#venues)
   - [Thema Routes](#thema-routes)
+  - [Routes](#routes)
+  - [Route Stops](#route-stops)
   - [Conversation Starters](#conversation-starters)
   - [Matches](#matches)
   - [Sessions](#sessions)
@@ -25,6 +27,7 @@
   - [Connection](#connection)
   - [Client → Server](#client--server-events)
   - [Server → Client](#server--client-events)
+- [WebSocket Quickstart — Mobile Integration](#websocket-quickstart--mobile-integration)
 - [Error Responses](#error-responses)
 - [Environment Variables](#environment-variables)
 
@@ -676,6 +679,241 @@ Delete a thema route.
 
 ---
 
+### Routes
+
+Base path: `/api/routes`
+
+A route is a concrete pub-hop path through a city. It optionally belongs to a thema route (`themeId`) and is composed of ordered [route stops](#route-stops).
+
+> **Response envelope:** Route and route-stop endpoints wrap their payload in a `result` field: `{ "result": <data>, "message": <optional string> }`. List endpoints place the collection under a named key inside `result` (e.g. `result.routes`).
+
+---
+
+#### `GET /api/routes`
+
+List all routes. No auth required.
+
+**Query parameters**
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `themeId` | string | Filter by thema route id |
+| `active` | boolean | Filter by active status (`true` or `false`) |
+
+**Response `200`**
+```json
+{
+  "result": {
+    "routes": [
+      {
+        "id": "uuid",
+        "themeId": "uuid",
+        "name": "Rotterdam Nights",
+        "area": "City Centre",
+        "city": "Rotterdam",
+        "routeType": "social",
+        "active": true
+      }
+    ]
+  }
+}
+```
+
+**Errors:** `400` invalid query params
+
+---
+
+#### `GET /api/routes/:id`
+
+Fetch a single route by ID. No auth required.
+
+**Response `200`**
+```json
+{ "result": { "id": "uuid", "themeId": "uuid", "name": "Rotterdam Nights", "area": "City Centre", "city": "Rotterdam", "routeType": "social", "active": true } }
+```
+
+**Errors:** `404` not found
+
+---
+
+#### `POST /api/routes`
+
+Create a route.
+
+**Auth required:** yes
+
+**Request body**
+```json
+{
+  "themeId": "uuid-or-null",
+  "name": "Rotterdam Nights",
+  "area": "City Centre",
+  "city": "Rotterdam",
+  "routeType": "social",
+  "active": true
+}
+```
+
+| Field | Type | Required | Rules |
+|-------|------|----------|-------|
+| `themeId` | string (uuid) \| null | no | must reference an existing thema route if provided |
+| `name` | string | yes | trimmed, 1–120 chars |
+| `area` | string | yes | trimmed, 1–120 chars |
+| `city` | string | no | trimmed, 1–120 chars (defaults to `Rotterdam`) |
+| `routeType` | string | no | trimmed, 1–80 chars (defaults to `social`) |
+| `active` | boolean | no | defaults to `true` |
+
+**Response `201`**
+```json
+{ "result": { "id": "uuid", "..." : "..." } }
+```
+
+**Errors:** `400` validation failure or `themeId` does not exist · `401` unauthenticated · `500` server error
+
+---
+
+#### `PATCH /api/routes/:id`
+
+Update a route. All fields optional, but at least one must be provided.
+
+**Auth required:** yes
+
+**Response `200`**
+```json
+{ "result": { "id": "uuid", "..." : "..." } }
+```
+
+**Errors:** `400` no fields provided, validation failure, or `themeId` does not exist · `401` unauthenticated · `404` not found · `500` server error
+
+---
+
+#### `DELETE /api/routes/:id`
+
+Delete a route.
+
+**Auth required:** yes
+
+**Response `204`** — no body
+
+**Errors:** `401` unauthenticated · `404` not found · `409` route is currently used by a game session (or otherwise referenced) · `500` server error
+
+---
+
+### Route Stops
+
+Base path: `/api/route-stops`
+
+A route stop links a [venue](#venues) to a [route](#routes) at a given position (`routeOrder`). Within one route, both the `routeOrder` and the `venueId` must be unique.
+
+---
+
+#### `GET /api/route-stops`
+
+List all route stops. No auth required.
+
+**Query parameters**
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `routeId` | string | Filter by route |
+| `venueId` | string | Filter by venue |
+
+**Response `200`**
+```json
+{
+  "result": {
+    "routeStops": [
+      {
+        "id": "uuid",
+        "routeId": "uuid",
+        "venueId": "uuid",
+        "routeOrder": 1,
+        "plannedDurationMinutes": 45,
+        "walkLabel": "5 min walk"
+      }
+    ]
+  }
+}
+```
+
+**Errors:** `400` invalid query params
+
+---
+
+#### `GET /api/route-stops/:id`
+
+Fetch a single route stop by ID. No auth required.
+
+**Response `200`**
+```json
+{ "result": { "id": "uuid", "routeId": "uuid", "venueId": "uuid", "routeOrder": 1, "plannedDurationMinutes": 45, "walkLabel": "5 min walk" } }
+```
+
+**Errors:** `404` not found
+
+---
+
+#### `POST /api/route-stops`
+
+Create a route stop.
+
+**Auth required:** yes
+
+**Request body**
+```json
+{
+  "routeId": "uuid",
+  "venueId": "uuid",
+  "routeOrder": 1,
+  "plannedDurationMinutes": 45,
+  "walkLabel": "5 min walk"
+}
+```
+
+| Field | Type | Required | Rules |
+|-------|------|----------|-------|
+| `routeId` | string (uuid) | yes | must reference an existing route |
+| `venueId` | string (uuid) | yes | must reference an existing venue |
+| `routeOrder` | number | yes | positive integer; unique within the route |
+| `plannedDurationMinutes` | number | no | positive integer, max `45` (defaults to `45`) |
+| `walkLabel` | string | no | trimmed, 1–120 chars |
+
+**Response `201`**
+```json
+{ "result": { "id": "uuid", "..." : "..." } }
+```
+
+**Errors:** `400` validation failure or `routeId`/`venueId` does not exist · `401` unauthenticated · `409` `routeOrder` or `venueId` already exists for this route · `500` server error
+
+---
+
+#### `PATCH /api/route-stops/:id`
+
+Update a route stop. All fields optional, but at least one must be provided.
+
+**Auth required:** yes
+
+**Response `200`**
+```json
+{ "result": { "id": "uuid", "..." : "..." } }
+```
+
+**Errors:** `400` no fields provided, validation failure, or `routeId`/`venueId` does not exist · `401` unauthenticated · `404` not found · `409` `routeOrder` or `venueId` already exists for this route · `500` server error
+
+---
+
+#### `DELETE /api/route-stops/:id`
+
+Delete a route stop.
+
+**Auth required:** yes
+
+**Response `204`** — no body
+
+**Errors:** `401` unauthenticated · `404` not found · `409` route stop is currently used by a session · `500` server error
+
+---
+
 ### Conversation Starters
 
 Base path: `/api/conversation-starters`
@@ -700,7 +938,7 @@ List conversation starters, optionally filtered. No auth required.
     {
       "id": "uuid",
       "interestsId": "uuid",
-      "category": "icebreaker",
+      "interestName": "icebreaker",
       "prompt": "What would your perfect Saturday look like?",
       "triggerMinute": 10
     }
@@ -735,7 +973,6 @@ Create a conversation starter.
 ```json
 {
   "interestsId": "uuid-or-null",
-  "category": "icebreaker",
   "prompt": "What would your perfect Saturday look like?",
   "triggerMinute": 10
 }
@@ -744,9 +981,10 @@ Create a conversation starter.
 | Field | Type | Required | Rules |
 |-------|------|----------|-------|
 | `interestsId` | string (uuid) | no | must be a valid interest id if provided |
-| `category` | string | yes | trimmed, min 1 |
 | `prompt` | string | yes | trimmed, min 1 |
 | `triggerMinute` | number | yes | one of `0 5 10 15 20 25 30 35 40 45` |
+
+`GET` responses also include `interestName` (the linked interest's `name`, or `null` if `interestsId` is `null`).
 
 **Response `201`**
 ```json
@@ -982,11 +1220,11 @@ On reconnect, if the user is still in a party, the server automatically emits `p
 
 ### Client → Server Events
 
-All events use the acknowledgement pattern. The callback receives `{ ok, ... }` on success, or `{ ok: false, message }` on failure.
+All events use the acknowledgement pattern. The callback receives `{ ok: true, ... }` on success, or `{ ok: false, error: { code, message } }` on failure. On failure the server **also** emits an [`error:matchmaking`](#errormatchmaking) event to the calling socket with the same `{ code, message }`.
 
 ```js
 socket.emit("party:create", {}, (ack) => {
-  if (!ack.ok) console.error(ack.message)
+  if (!ack.ok) console.error(ack.error.code, ack.error.message)
 })
 ```
 
@@ -1131,6 +1369,46 @@ Once `ready === total`, the server fires `session:started` to the session room.
 
 ---
 
+#### `stop:start`
+
+Start the timer for a stop in an active session. The caller must be a member of the session and the stop's timer must currently be `not_started`. Starting a stop launches the [conversation starter](#conversationstarter) stream for that stop (a starter at minute 0, then one every 5 minutes up to the stop's `plannedDurationMinutes`).
+
+**Payload**
+```json
+{ "sessionId": "uuid", "stopId": "uuid" }
+```
+
+**Ack**
+```json
+{ "ok": true, "stopId": "uuid", "sessionId": "uuid" }
+```
+
+On success the server broadcasts [`stop:timer:started`](#stoptimerstarted) to the session room.
+
+**Error codes:** `INVALID_STOP`, `INVALID_SESSION`, `STOP_NOT_FOUND`, `INVALID_STATE` (timer not `not_started`), `NOT_MEMBER`, `START_FAILED`
+
+---
+
+#### `stop:finish`
+
+Finish the timer for a stop. The caller must be a session member and the stop's timer must currently be `running`. Finishing the stop stops its conversation starter stream.
+
+**Payload**
+```json
+{ "sessionId": "uuid", "stopId": "uuid" }
+```
+
+**Ack**
+```json
+{ "ok": true, "stopId": "uuid", "sessionId": "uuid" }
+```
+
+On success the server broadcasts [`stop:timer:finished`](#stoptimerfinished) to the session room.
+
+**Error codes:** `INVALID_STOP`, `INVALID_SESSION`, `STOP_NOT_FOUND`, `INVALID_STATE` (timer not `running`), `NOT_MEMBER`, `FINISH_FAILED`
+
+---
+
 ### Server → Client Events
 
 ---
@@ -1215,13 +1493,244 @@ Fired to the session room once all players have sent `session:ready`.
 
 ---
 
+#### `stop:timer:started`
+
+Fired to the session room when a player starts a stop's timer via [`stop:start`](#stopstart).
+
+```json
+{ "stopId": "uuid", "sessionId": "uuid" }
+```
+
+---
+
+#### `stop:timer:finished`
+
+Fired to the session room when a player finishes a stop's timer via [`stop:finish`](#stopfinish).
+
+```json
+{ "stopId": "uuid", "sessionId": "uuid" }
+```
+
+---
+
+#### `conversation:starter`
+
+Pushed to the session room while a stop timer is running — once immediately when the stop starts (`triggerMinute: 0`), then every 5 minutes until the stop's `plannedDurationMinutes` is reached. Starters are chosen to favour interests shared by 2+ group members and are never repeated within the same session.
+
+```json
+{
+  "starter": {
+    "id": "uuid",
+    "interestsId": "uuid-or-null",
+    "prompt": "What would your perfect Saturday look like?",
+    "triggerMinute": 0
+  },
+  "triggerMinute": 0,
+  "stopId": "uuid"
+}
+```
+
+---
+
 #### `error:matchmaking`
 
-Fired to the socket when a socket event handler encounters an error.
+Fired to the calling socket when a socket event handler encounters an error. Mirrors the `error` object returned in the failing event's ack.
 
 ```json
 { "code": "PARTY_NOT_FOUND", "message": "No active party found" }
 ```
+
+---
+
+## WebSocket Quickstart — Mobile Integration
+
+This guide walks through wiring the realtime party + session system into a mobile app (React Native / Expo, but the steps apply to any Socket.IO client). The server speaks **Socket.IO** — use a Socket.IO client, *not* a bare `WebSocket`.
+
+The lifecycle you are implementing looks like this:
+
+```
+login (REST)  ─►  connect socket  ─►  create / join party  ─►  queue for a time slot
+      ▲                                                                │
+      │                                                          match:found
+   access_token                                                       │
+                                              session:ready  ◄─────────┘
+                                                    │
+                                             session:started  ─►  stop:start / stop:finish
+                                                                         │
+                                                                conversation:starter (×N)
+```
+
+---
+
+### Step 1 — Install the client
+
+```bash
+npm install socket.io-client
+```
+
+> Use a Socket.IO client version compatible with the server's Socket.IO v4 protocol. `socket.io-client@4.x` works for React Native, Expo, and plain JS.
+
+---
+
+### Step 2 — Authenticate over REST first
+
+The socket connection needs a JWT access token. Obtain one by calling `POST /api/auth/login` (or `/register`). On mobile there is no cookie jar you can rely on, so **read the `token` field from the JSON response and keep it** (e.g. in `expo-secure-store`).
+
+```js
+const res = await fetch("https://your-api.example.com/api/auth/login", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ email, password }),
+})
+const { token } = await res.json() // <-- access JWT
+await SecureStore.setItemAsync("access_token", token)
+```
+
+---
+
+### Step 3 — Connect the socket with the token
+
+Pass the token via `auth.token` in the handshake. Force the WebSocket transport on mobile (long-polling fallback is flaky on React Native).
+
+```js
+import { io } from "socket.io-client"
+
+const socket = io("https://your-api.example.com", {
+  auth: { token },          // sent on every (re)connection
+  transports: ["websocket"],
+  autoConnect: true,
+})
+
+socket.on("connect", () => console.log("connected", socket.id))
+socket.on("connect_error", (err) => console.warn("auth/connect failed:", err.message))
+```
+
+If the token is missing, invalid, or expired the server rejects the handshake and fires `connect_error` with a message such as `"Invalid or expired token"`. When that happens, refresh the token (`POST /api/auth/refresh`) or send the user back to login, update `socket.auth.token`, and call `socket.connect()` again.
+
+---
+
+### Step 4 — Register your event listeners *before* emitting
+
+Attach all server → client listeners once, right after creating the socket, so no broadcast is missed:
+
+```js
+socket.on("party:updated", (party) => updatePartyUI(party))
+socket.on("party:dissolved", ({ partyId, reason }) => leavePartyUI(reason))
+socket.on("queue:update", (data) => updateQueueUI(data))
+socket.on("match:found", (match) => showMatchScreen(match))
+socket.on("session:started", ({ sessionId, startedAt }) => startSessionUI(sessionId))
+socket.on("stop:timer:started", ({ stopId }) => markStopRunning(stopId))
+socket.on("stop:timer:finished", ({ stopId }) => markStopDone(stopId))
+socket.on("conversation:starter", ({ starter, triggerMinute }) => showStarter(starter, triggerMinute))
+socket.on("error:matchmaking", ({ code, message }) => toast(`${code}: ${message}`))
+```
+
+---
+
+### Step 5 — Create or join a party
+
+Every client → server event takes an **acknowledgement callback**. Always check `ack.ok`:
+
+```js
+// Leader creates a party
+socket.emit("party:create", {}, (ack) => {
+  if (!ack.ok) return toast(ack.error.message)
+  showInviteCode(ack.party.inviteCode) // share this code with friends
+})
+
+// Friends join with the code
+socket.emit("party:join", { inviteCode: "ABCD12" }, (ack) => {
+  if (!ack.ok) return toast(ack.error.message)
+  updatePartyUI(ack.party)
+})
+```
+
+All members in the party room also receive a `party:updated` broadcast, so you can drive your UI purely from that event and treat the ack as a success/failure check.
+
+---
+
+### Step 6 — Queue for matchmaking
+
+The leader picks a time slot and queues. The server matches parties in the same time-slot bucket automatically.
+
+```js
+socket.emit("party:queue", { selectedTimeSlot: "2026-06-10T19:00" }, (ack) => {
+  if (!ack.ok) return toast(ack.error.message)
+  showQueueScreen(ack.bucket) // { parties, players } waiting in this slot
+})
+```
+
+While queued you'll receive `queue:update` events as the bucket fills, and eventually `match:found` once a group is formed. Call `party:unqueue` to back out.
+
+---
+
+### Step 7 — Handle the match and signal readiness
+
+When `match:found` arrives, the server has already joined your sockets to the `session:<id>` room. Show the match (`matchScore`, `route`, `stops`, `members`), then have **each** player confirm readiness:
+
+```js
+socket.on("match:found", (match) => {
+  showLobby(match)
+  // when the user taps "I'm ready":
+  socket.emit("session:ready", { sessionId: match.session.id }, (ack) => {
+    if (!ack.ok) return toast(ack.error.message)
+    updateReadyCount(ack.ready, ack.total)
+  })
+})
+```
+
+`queue:update` (this time carrying `{ sessionId, ready, total }`) fires each time someone readies up. Once everyone is ready the server emits `session:started`.
+
+---
+
+### Step 8 — Run the session (stop timers + conversation starters)
+
+During an active session, drive each stop with `stop:start` / `stop:finish`. While a stop's timer runs, the server pushes `conversation:starter` events to the whole group.
+
+```js
+// arrive at a stop and start its timer
+socket.emit("stop:start", { sessionId, stopId }, (ack) => {
+  if (!ack.ok) return toast(ack.error.message)
+})
+
+// the group receives icebreakers automatically while the timer runs
+socket.on("conversation:starter", ({ starter, triggerMinute }) => {
+  showStarterCard(starter.prompt, triggerMinute)
+})
+
+// leave the stop / move on
+socket.emit("stop:finish", { sessionId, stopId }, (ack) => {
+  if (!ack.ok) return toast(ack.error.message)
+})
+```
+
+> You can also fetch the full session state over REST at any time with [`GET /api/sessions/:id`](#get-apisessionsid) — useful for cold-starting a screen or recovering after the app was backgrounded.
+
+---
+
+### Step 9 — Reconnection & lifecycle
+
+- **Automatic state restore.** On reconnect, if the user is still in a party the server immediately re-emits `party:updated`, so your party UI heals itself. Keep your `party:updated` listener attached across reconnects.
+- **Backgrounding.** Mobile OSes suspend sockets when the app is backgrounded. Listen for app-state changes and call `socket.connect()` on resume; Socket.IO replays the handshake (and your `auth.token`) automatically.
+- **Token expiry mid-session.** Access tokens last 1 hour. If a reconnect fails with `connect_error`, refresh the token, set `socket.auth = { token: newToken }`, and reconnect.
+- **Cleanup.** When the user logs out or the screen unmounts, remove listeners and disconnect to avoid leaks:
+
+```js
+socket.off()         // remove all listeners
+socket.disconnect()
+```
+
+---
+
+### Event cheat-sheet
+
+| You emit (client → server) | You listen for (server → client) |
+|----------------------------|----------------------------------|
+| `party:create`, `party:join`, `party:leave`, `party:kick`, `party:status` | `party:updated`, `party:dissolved` |
+| `party:queue`, `party:unqueue` | `queue:update`, `match:found` |
+| `session:ready` | `session:started` |
+| `stop:start`, `stop:finish` | `stop:timer:started`, `stop:timer:finished`, `conversation:starter` |
+| _(any failing emit)_ | `error:matchmaking` |
 
 ---
 

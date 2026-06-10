@@ -1,8 +1,8 @@
-import { and, eq, type SQL } from "drizzle-orm"
+import { and, eq, getTableColumns, isNull, type SQL } from "drizzle-orm"
 import express from "express"
 import { v4 as uuidv4 } from "uuid"
 import { db } from "@/db/client.js"
-import { conversationStarters } from "@/db/schema.js"
+import { conversationStarters, interests } from "@/db/schema.js"
 import { requireAuth } from "@/middleware/auth.js"
 import {
   ConversationStarterQuerySchema,
@@ -27,7 +27,11 @@ router.get("/", (req, res) => {
 
   const filters: SQL[] = []
   if (parsed.data.interestsId !== undefined) {
-    filters.push(eq(conversationStarters.interestsId, parsed.data.interestsId))
+    filters.push(
+      parsed.data.interestsId === "null"
+        ? isNull(conversationStarters.interestsId)
+        : eq(conversationStarters.interestsId, parsed.data.interestsId)
+    )
   }
   if (parsed.data.triggerMinute !== undefined) {
     filters.push(
@@ -35,7 +39,10 @@ router.get("/", (req, res) => {
     )
   }
 
-  const query = db.select().from(conversationStarters)
+  const query = db
+    .select({ ...getTableColumns(conversationStarters), interestName: interests.name })
+    .from(conversationStarters)
+    .leftJoin(interests, eq(conversationStarters.interestsId, interests.id))
   const starters = filters.length
     ? query.where(and(...filters)).all()
     : query.all()
@@ -45,8 +52,9 @@ router.get("/", (req, res) => {
 
 router.get<{ id: string }>("/:id", (req, res) => {
   const starter = db
-    .select()
+    .select({ ...getTableColumns(conversationStarters), interestName: interests.name })
     .from(conversationStarters)
+    .leftJoin(interests, eq(conversationStarters.interestsId, interests.id))
     .where(eq(conversationStarters.id, req.params.id))
     .get()
 
