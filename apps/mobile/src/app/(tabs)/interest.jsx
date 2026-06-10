@@ -30,9 +30,6 @@ function Interest() {
   const { data } = useInterestQuery()
 
   const interests = data?.interests || []
-
-  console.log(data)
-  console.log(data?.interests)
   return (
     <ScrollView>
       <View>
@@ -101,7 +98,7 @@ function Interest() {
         <View style={styles.button}>
           <PrimaryLightButton
             title="Next"
-            onPress={() => router.push("/map")}
+            onPress={() => router.push("/matching")}
           />
         </View>
       </View>
