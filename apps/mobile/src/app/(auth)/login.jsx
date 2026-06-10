@@ -26,8 +26,8 @@ export default function LoginScreen() {
       if (!response.ok) throw new Error(json.message || "Login failed")
       return json
     },
-    onSuccess: ({ token }) => {
-      setAccessToken(token)
+    onSuccess: ({ result }) => {
+      setAccessToken(result.token)
       router.replace("/(tabs)")
     },
     onError: (err) => Alert.alert("Login failed", err.message),

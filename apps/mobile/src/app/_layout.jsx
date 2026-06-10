@@ -6,6 +6,7 @@ import { API_URL } from "@/constants/api"
 import { getAccessToken, setAccessToken } from "@/lib/token"
 import { Montserrat_700Bold } from "@expo-google-fonts/montserrat"
 import { useFonts } from "expo-font"
+import { SocketProvider } from "@/features/matchmaking/socket-context"
 
 const queryClient = new QueryClient()
 
@@ -29,8 +30,8 @@ export default function RootLayout() {
             credentials: "include",
           })
           if (res.ok) {
-            const { token } = await res.json()
-            setAccessToken(token)
+            const { result } = await res.json()
+            setAccessToken(result.token)
           }
         } catch {}
       }
@@ -48,15 +49,17 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="modal"
-          options={{ presentation: "modal", title: "Modal" }}
-        />
-      </Stack>
-      <StatusBar style="dark" />
+      <SocketProvider>
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="modal"
+            options={{ presentation: "modal", title: "Modal" }}
+          />
+        </Stack>
+        <StatusBar style="dark" />
+      </SocketProvider>
     </QueryClientProvider>
   )
 }

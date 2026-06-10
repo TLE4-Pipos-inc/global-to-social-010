@@ -1,80 +1,79 @@
-import { useEffect } from "react";
-import { ActivityIndicator, StyleSheet } from "react-native";
-import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
-import { getSocket } from "@/lib/socket";
-import { useSocketInit } from "@/lib/use-socket-init";
+import { Suspense, useEffect } from "react"
+import { ActivityIndicator, Alert, StyleSheet, View } from "react-native"
+import { ThemedText } from "@/components/themed-text"
+import { ThemedView } from "@/components/themed-view"
+import { Colors } from "@/constants/theme"
+import { useMatchmaking } from "@/features/matchmaking/socket-context"
+import { PartyView } from "@/features/matchmaking/components/party-view"
+import { SearchingView } from "@/features/matchmaking/components/searching-view"
+import { LobbyView } from "@/features/matchmaking/components/lobby-view"
+import { SessionView } from "@/features/matchmaking/components/session-view"
 
-export default function Matching({ navigation }) {
-  useSocketInit();
+function derivePhase({ match, party, sessionStarted }) {
+  if (match && sessionStarted) return "session"
+  if (match) return "lobby"
+  if (party?.status === "queued") return "searching"
+  return "party"
+}
+
+export default function Matching() {
+  const mm = useMatchmaking()
+  const { status, match, party, sessionStarted, lastError, clearError } = mm
+
+  // Surface socket / matchmaking errors as a toast, then clear them.
   useEffect(() => {
-    const socket = getSocket();
+    if (!lastError) return
+    Alert.alert("Matchmaking", lastError.message ?? "Something went wrong")
+    clearError()
+  }, [lastError, clearError])
 
-    if (!socket) {
-      console.warn("Socket not initialized");
-      return;
-    }
-
-    // 🎯 main event: match found
-    const onMatchFound = (match) => {
-      console.log("Match found:", match);
-
-      // go to next screen (lobby / session ready)
-      navigation.replace("MatchLobby", { match });
-    };
-
-    // ⚠️ error handler
-    const onError = ({ code, message }) => {
-      console.warn("Matchmaking error:", code, message);
-      // optionally navigate back or show toast
-    };
-
-    // 📡 optional: queue updates (progress UI later)
-    const onQueueUpdate = (data) => {
-      console.log("Queue update:", data);
-    };
-
-    socket.on("match:found", onMatchFound);
-    socket.on("error:matchmaking", onError);
-    socket.on("queue:update", onQueueUpdate);
-
-    return () => {
-      socket.off("match:found", onMatchFound);
-      socket.off("error:matchmaking", onError);
-      socket.off("queue:update", onQueueUpdate);
-    };
-  }, []);
+  const phase = derivePhase({ match, party, sessionStarted })
 
   return (
     <ThemedView style={styles.container}>
-      <ActivityIndicator size="large" color="#007AFF" style={styles.loader} />
-      <ThemedText style={styles.title}>
-        Searching for matches...
-      </ThemedText>
-      <ThemedText style={styles.subtitle}>
-        This may take a few seconds.
-      </ThemedText>
+      <ConnectionBanner status={status} />
+      <Suspense
+        fallback={<ActivityIndicator size="large" color={Colors.lightGreenColor} style={styles.loader} />}
+      >
+        {phase === "party" && <PartyView />}
+        {phase === "searching" && <SearchingView />}
+        {phase === "lobby" && <LobbyView />}
+        {phase === "session" && <SessionView />}
+      </Suspense>
     </ThemedView>
-  );
+  )
+}
+
+function ConnectionBanner({ status }) {
+  if (status === "connected") return null
+  const label =
+    status === "connecting"
+      ? "Connecting…"
+      : status === "error"
+        ? "Connection error — retrying…"
+        : "Offline"
+  return (
+    <View style={styles.banner}>
+      <ThemedText style={styles.bannerText}>{label}</ThemedText>
+    </View>
+  )
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 100,
-    alignItems: "center",
-    gap: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-  },
-  subtitle: {
-    textAlign: "center",
-    opacity: 0.7,
   },
   loader: {
-    transform: [{ scale: 1.5 }],
-    paddingBottom: 20,
+    marginTop: 60,
   },
-});
+  banner: {
+    backgroundColor: Colors.orangeColor,
+    paddingVertical: 6,
+    alignItems: "center",
+  },
+  bannerText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+})
