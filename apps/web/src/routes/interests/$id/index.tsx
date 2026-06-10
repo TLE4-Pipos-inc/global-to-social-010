@@ -30,7 +30,7 @@ function RouteComponent() {
             disabled={deleteInterest.isPending}
             onClick={() => {
               deleteInterest.mutate(undefined, {
-                onSettled: () => {
+                onSuccess: () => {
                   navigate({ to: "/interests" })
                 },
               })
