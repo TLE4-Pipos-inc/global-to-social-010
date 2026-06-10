@@ -126,8 +126,8 @@ const routeVenueSeedData = [
     address: "Witte de Withstraat 78, Rotterdam",
     description:
       "Busy Rotterdam bar on Witte de Withstraat with a strong international student crowd.",
-    latitude: 51.91687,
-    longitude: 4.47578,
+    latitude: 51.91529,
+    longitude: 4.4763,
     suggestedOrder: "1",
     vibe: "lively, social, late-night",
   },
@@ -137,8 +137,8 @@ const routeVenueSeedData = [
     address: "Witte de Withstraat 63, Rotterdam",
     description:
       "Large bar and restaurant space with enough room for groups and casual drinks.",
-    latitude: 51.91682,
-    longitude: 4.47678,
+    latitude: 51.915334364860946,
+    longitude: 4.47632249385537,
     suggestedOrder: "2",
     vibe: "spacious, energetic, social",
   },
@@ -148,8 +148,8 @@ const routeVenueSeedData = [
     address: "Witte de Withstraat 73A, Rotterdam",
     description:
       "Compact cocktail-style bar for small group conversations and evening energy.",
-    latitude: 51.91676,
-    longitude: 4.47617,
+    latitude: 51.91893767185632,
+    longitude: 4.48474079596383,
     suggestedOrder: "3",
     vibe: "cocktails, intimate, upbeat",
   },
@@ -159,8 +159,8 @@ const routeVenueSeedData = [
     address: "Goudsesingel 284, Rotterdam",
     description:
       "Playful Rotterdam bar with a casual beer-hall feel and a strong group atmosphere.",
-    latitude: 51.92332,
-    longitude: 4.48684,
+    latitude: 51.92420987044394,
+    longitude: 4.489485193669806,
     suggestedOrder: "4",
     vibe: "playful, beer, group-friendly",
   },
@@ -170,32 +170,32 @@ const routeVenueSeedData = [
     address: "Meent 44, Rotterdam",
     description:
       "Classic central Rotterdam bar with terrace energy and accessible social seating.",
-    latitude: 51.92249,
-    longitude: 4.48265,
+    latitude: 51.92326917341973,
+    longitude: 4.485147630436374,
     suggestedOrder: "5",
     vibe: "classic, casual, terrace",
   },
   {
-    name: "Hopper Coffee",
+    name: "Harvest Coffee Brewers",
     venueType: "cafe",
-    address: "Schiedamse Vest 146, Rotterdam",
+    address: "Glashaven 107, Rotterdam",
     description:
-      "Known Rotterdam coffee spot with a calm setting for daytime student meetups.",
-    latitude: 51.91606,
-    longitude: 4.47846,
+      "Specialty coffee spot near Blaak and Oude Haven, good for relaxed daytime meetups.",
+    latitude: 51.91598091346657,
+    longitude: 4.4857842386063105,
     suggestedOrder: "1",
     vibe: "specialty coffee, calm, creative",
   },
   {
-    name: "Man Met Bril Koffie",
+    name: "CoffEY",
     venueType: "cafe",
-    address: "Vijverhofstraat 70, Rotterdam",
+    address: "Rotterdam Blaak area, Rotterdam",
     description:
-      "Coffee roaster cafe in Rotterdam Noord with an easygoing local atmosphere.",
-    latitude: 51.92934,
-    longitude: 4.4772,
+      "Modern coffee spot near Blaak for relaxed daytime meetups and easy conversations.",
+    latitude: 51.914213952225246,
+    longitude: 4.486513680227359,
     suggestedOrder: "2",
-    vibe: "local, coffee-focused, relaxed",
+    vibe: "modern coffee, relaxed, social",
   },
   {
     name: "Heilige Boontjes",
@@ -203,8 +203,8 @@ const routeVenueSeedData = [
     address: "Eendrachtsplein 3, Rotterdam",
     description:
       "Social coffee cafe in a former police station with a strong Rotterdam identity.",
-    latitude: 51.91784,
-    longitude: 4.47369,
+    latitude: 51.917261066838776,
+    longitude: 4.472750454387031,
     suggestedOrder: "3",
     vibe: "social impact, warm, easy chats",
   },
@@ -214,21 +214,21 @@ const routeVenueSeedData = [
     address: "Botersloot 44A, Rotterdam",
     description:
       "Small central coffee bar close to the Markthal and Blaak for quick relaxed stops.",
-    latitude: 51.92154,
-    longitude: 4.48815,
+    latitude: 51.92229446144416,
+    longitude: 4.488017789134435,
     suggestedOrder: "4",
     vibe: "small, central, friendly",
   },
   {
-    name: "Urban Espresso Bar",
+    name: "Cafecito Meent",
     venueType: "cafe",
-    address: "Nieuwe Binnenweg 263, Rotterdam",
+    address: "Meent, Rotterdam",
     description:
-      "Accessible cafe for coffee, light bites, and relaxed conversations with new people.",
-    latitude: 51.91451,
-    longitude: 4.45796,
+      "Specialty coffee and ceremonial matcha spot on Meent for relaxed daytime meetups.",
+    latitude: 51.9229362877991,
+    longitude: 4.484230159104578,
     suggestedOrder: "5",
-    vibe: "easygoing, daytime, comfortable",
+    vibe: "specialty coffee, matcha, relaxed",
   },
 ]
 
@@ -852,7 +852,9 @@ function seedRoutes() {
     const themeId = themeIdsByName.get(route.themeName)
 
     if (!themeId) {
-      console.warn(`Skipped route "${route.name}": missing theme ${route.themeName}`)
+      console.warn(
+        `Skipped route "${route.name}": missing theme ${route.themeName}`
+      )
       continue
     }
 
@@ -892,7 +894,9 @@ function buildUniqueIdMap(records, getKey, label) {
     idsByKey.set(key, ids)
   }
 
-  const duplicateKeys = [...idsByKey.entries()].filter(([, ids]) => ids.length > 1)
+  const duplicateKeys = [...idsByKey.entries()].filter(
+    ([, ids]) => ids.length > 1
+  )
 
   if (duplicateKeys.length > 0) {
     const details = duplicateKeys
@@ -933,12 +937,16 @@ function seedRouteStops() {
     )
 
     if (!routeId) {
-      console.warn(`Skipped route stop ${stop.routeName} #${stop.routeOrder}: missing route`)
+      console.warn(
+        `Skipped route stop ${stop.routeName} #${stop.routeOrder}: missing route`
+      )
       continue
     }
 
     if (!venueId) {
-      console.warn(`Skipped route stop ${stop.routeName} #${stop.routeOrder}: missing venue ${stop.venueName}`)
+      console.warn(
+        `Skipped route stop ${stop.routeName} #${stop.routeOrder}: missing venue ${stop.venueName}`
+      )
       continue
     }
 
