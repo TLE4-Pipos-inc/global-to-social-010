@@ -63,17 +63,10 @@ function RouteComponent() {
       </p>
       <div className="flex gap-4 pt-4">
         <p>
-          <strong>Created At:</strong>{" "}
+          <strong>Meber Since:</strong>{" "}
           {new Date(accountQuery.data.result.createdAt).toLocaleDateString()}
         </p>
-        <p>
-          <strong>Updated At:</strong>{" "}
-          {new Date(accountQuery.data.result.updatedAt).toLocaleDateString()}
-        </p>
       </div>
-      <p>
-        <strong>Id:</strong> {accountQuery.data.result.id}
-      </p>
     </main>
   )
 }

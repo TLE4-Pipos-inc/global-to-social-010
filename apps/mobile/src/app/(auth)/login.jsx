@@ -1,9 +1,4 @@
-import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-} from "react-native"
+import { Alert, KeyboardAvoidingView, Platform, StyleSheet } from "react-native"
 import { router } from "expo-router"
 import { useMutation } from "@tanstack/react-query"
 import { LoginUserSchema } from "@pub-hopper/schemas"
@@ -31,8 +26,8 @@ export default function LoginScreen() {
       if (!response.ok) throw new Error(json.message || "Login failed")
       return json
     },
-    onSuccess: ({ result }) => {
-      setAccessToken(result.token)
+    onSuccess: ({ token }) => {
+      setAccessToken(token)
       router.replace("/(tabs)")
     },
     onError: (err) => Alert.alert("Login failed", err.message),

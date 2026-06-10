@@ -130,9 +130,7 @@ export function useUpdateInterest(id: string) {
 
 // --- Delete ---
 
-async function deleteInterest(
-  id: string
-): Promise<ApiSuccessResponse<InterestResponse>> {
+async function deleteInterest(id: string): Promise<void> {
   const res = await fetchWithAuth(`/api/interests/${id}`, {
     method: "DELETE",
   })
@@ -140,8 +138,6 @@ async function deleteInterest(
   if (!res.ok) {
     await formatErrorResponse(res)
   }
-
-  return res.json()
 }
 
 export const deleteInterestMutationOptions = (
@@ -150,7 +146,10 @@ export const deleteInterestMutationOptions = (
 ) => ({
   mutationFn: () => deleteInterest(id),
   onSuccess: async () => {
-    await queryClient.invalidateQueries({ queryKey: ["interests"] })
+    await queryClient.refetchQueries({
+      queryKey: ["interests"],
+      exact: true,
+    })
   },
 })
 
