@@ -77,7 +77,7 @@ export default function App() {
     // OSRM (Open Source Routing Machine) free api for routes
     try {
       const response = await fetch(
-        `https://router.project-osrm.org/route/v1/driving/${startLng},${startLat};${endLng},${endLat}?overview=full&geometries=geojson`
+        `https://router.project-osrm.org/route/v1/foot/${startLng},${startLat};${endLng},${endLat}?overview=full&geometries=geojson`
       );
       if (!response.ok) {
         throw new Error(`OSRM request failed: ${response.status}`);
@@ -106,7 +106,7 @@ export default function App() {
       <MapView
         style={styles.map}
         showsUserLocation={true}
-        region={
+        initialRegion={
           location
             ? {
               latitude: location.coords.latitude,
