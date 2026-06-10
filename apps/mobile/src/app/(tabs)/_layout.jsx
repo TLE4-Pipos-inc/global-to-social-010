@@ -51,6 +51,23 @@ export default function TabLayout() {
         name="settings"
         options={{
           href: null,
+          title: "Settings",
+        }}
+      />
+
+      <Tabs.Screen
+        name="interest"
+        options={{
+          href: null,
+          title: "Interests",
+        }}
+      />
+
+      <Tabs.Screen
+        name="matching"
+        options={{
+          href: null,
+          title: "Matching",
         }}
       />
     </Tabs>
