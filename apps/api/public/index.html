@@ -530,7 +530,9 @@
         if (!res.ok) {
           throw new Error(data?.message || `Request failed (${res.status})`)
         }
-        return data
+        // The API wraps successful payloads as { result, message }; unwrap to
+        // expose user/token directly (falls back to the raw body if unwrapped).
+        return data?.result ?? data
       }
 
       function attachSocket(socket, label = "main") {
