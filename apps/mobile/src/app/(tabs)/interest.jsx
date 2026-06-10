@@ -12,12 +12,12 @@ import { router } from "expo-router"
 import { PrimaryLightButton } from "@/components/buttons"
 import { Suspense, useState } from "react"
 import { useInterestQuery } from "@/features/intrests/hooks/query"
-import { API_URL } from "@/constants/api"
 import { useAccountQuery } from "@/features/auth"
 import { fetchWithAuth } from "@/lib/api"
 
 function Interest() {
   const [selectedInterest, setSelectedInterest] = useState([])
+  const [errorMessage, setErrorMessage] = useState("")
 
   const { data: userdata } = useAccountQuery()
   const user = userdata?.user
@@ -28,6 +28,13 @@ function Interest() {
 
   async function saveUserInterests() {
     try {
+      setErrorMessage("")
+
+      if (selectedInterest.length < 3) {
+        setErrorMessage("Please select at least 3 interests")
+        return false
+      }
+
       const response = await fetchWithAuth(`/api/user-interests`, {
         method: "POST",
         headers: {
@@ -40,9 +47,17 @@ function Interest() {
 
       const json = await response.json()
 
+      if (!response.ok) {
+        setErrorMessage(json.message || "Something went wrong")
+        return false
+      }
+      //
       // console.log("Saved interests:", json)
+      return true
     } catch (error) {
       // console.error("Failed to save interests", error)
+      setErrorMessage("Could not save interests")
+      return false
     }
   }
 
@@ -107,6 +122,10 @@ function Interest() {
           })}
         </View>
 
+        {errorMessage ? (
+          <ThemedText style={styles.errorText}>{errorMessage}</ThemedText>
+        ) : null}
+
         <View>
           <Text style={styles.languageTitle}>Languages</Text>
         </View>
@@ -115,8 +134,10 @@ function Interest() {
           <PrimaryLightButton
             title="Next"
             onPress={async () => {
-              await saveUserInterests()
-              router.push("/profile")
+              const saved = await saveUserInterests()
+              if (saved) {
+                router.push("/profile")
+              }
             }}
           />
         </View>
@@ -151,6 +172,10 @@ const styles = StyleSheet.create({
   boxTitle: {
     fontSize: 18,
     fontWeight: "bold",
+  },
+
+  errorText: {
+    color: "red",
   },
 
   boxText: {
