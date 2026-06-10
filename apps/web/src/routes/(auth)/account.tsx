@@ -46,7 +46,6 @@ function RouteError({ error }: { error: Error }) {
 
 function RouteComponent() {
   const accountQuery = useAccountQuery()
-  console.log("Account data:", accountQuery.data)
   return (
     <main className="mx-auto max-w-2xl px-4 py-10">
       <div className="flex items-end justify-between py-2">

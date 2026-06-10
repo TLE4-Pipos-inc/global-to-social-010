@@ -146,7 +146,7 @@ router.post("/refresh", (req, res) => {
     return sendSuccess(res, 200, {
       result: {
         user,
-        token: signAccess({ userId, email, role }),
+        token: signAccess({ userId, email: user.email, role: user.role }),
       },
       message: "Token refreshed successfully",
     })

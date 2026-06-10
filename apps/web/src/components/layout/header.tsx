@@ -12,18 +12,30 @@ function Header() {
         <img src="/logo.png" alt="" className="h-10 w-auto" />
       </Link>
       {isAdmin && (
-        <Button variant="link">
-          <Link to="/interests">Interests</Link>
+        <Button
+          variant="link"
+          render={<Link to="/interests" />}
+          nativeButton={false}
+        >
+          Interests
         </Button>
       )}
       <div className="ml-auto justify-self-end">
         {isLoggedIn ? (
-          <Button variant="link">
-            <Link to="/account">Account</Link>
+          <Button
+            variant="link"
+            render={<Link to="/account" />}
+            nativeButton={false}
+          >
+            Account
           </Button>
         ) : (
-          <Button variant="link">
-            <Link to="/login">Login</Link>
+          <Button
+            variant="link"
+            render={<Link to="/login" />}
+            nativeButton={false}
+          >
+            Login
           </Button>
         )}
       </div>

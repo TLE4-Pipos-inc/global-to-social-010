@@ -5,7 +5,7 @@ import { Button } from "#/components/ui/button"
 
 export const Route = createFileRoute("/interests/$id")({
   loader: async ({ context: { queryClient }, params }) => {
-    queryClient.prefetchQuery(getInterestByIdQueryOptions(params.id))
+    await queryClient.prefetchQuery(getInterestByIdQueryOptions(params.id))
   },
   pendingMs: 300,
   pendingMinMs: 200,

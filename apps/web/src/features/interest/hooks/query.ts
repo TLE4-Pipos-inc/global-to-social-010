@@ -149,9 +149,8 @@ export const deleteInterestMutationOptions = (
   queryClient: QueryClient
 ) => ({
   mutationFn: () => deleteInterest(id),
-  // TODO: Should be async but then the other success callback does not seem to work, now there is a very small flicker because the query has not been invalidated
-  onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: ["interests"] })
+  onSuccess: async () => {
+    await queryClient.invalidateQueries({ queryKey: ["interests"] })
   },
 })
 

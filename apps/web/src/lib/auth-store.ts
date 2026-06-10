@@ -25,10 +25,7 @@ function subscribeAuth(listener: () => void): () => void {
   return () => listeners.delete(listener)
 }
 
-async function restoreSession(): Promise<void> {
-  if (authState || restoreAttempted) return
-  restoreAttempted = true
-
+async function refreshToken(): Promise<boolean> {
   try {
     const res = await fetch("/api/auth/refresh", {
       method: "POST",
@@ -37,13 +34,21 @@ async function restoreSession(): Promise<void> {
         "Content-Type": "application/json",
       },
     })
-    if (!res.ok) return
+    if (!res.ok) return false
 
     const { result } = (await res.json()) as ApiSuccessResponse<LoginResponse>
     setAuth(result)
+    return true
   } catch {
-    // not logged in, leave authState as null
+    return false
   }
 }
 
-export { getAuth, setAuth, getAccessToken, subscribeAuth, restoreSession }
+async function restoreSession(): Promise<void> {
+  if (authState || restoreAttempted) return
+  restoreAttempted = true
+
+  await refreshToken()
+}
+
+export { getAuth, setAuth, getAccessToken, subscribeAuth, restoreSession, refreshToken }
