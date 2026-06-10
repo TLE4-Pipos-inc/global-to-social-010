@@ -27,7 +27,7 @@ function Settings() {
   const logout = useLogoutMutation()
   const updateUser = useUpdateUserMutation()
 
-  const user = data.result.user
+  const user = data.result
 
   const form = useAccountForm({
     defaultValues: {

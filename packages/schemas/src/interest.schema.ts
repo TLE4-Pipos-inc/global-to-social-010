@@ -6,5 +6,10 @@ export const InterestCreateSchema = z.object({
 
 export const InterestUpdateSchema = InterestCreateSchema
 
+export const InterestResponseSchema = InterestCreateSchema.extend({
+  id: z.string(),
+})
+
 export type InterestCreate = z.infer<typeof InterestCreateSchema>
 export type InterestUpdate = z.infer<typeof InterestUpdateSchema>
+export type InterestResponse = z.infer<typeof InterestResponseSchema>

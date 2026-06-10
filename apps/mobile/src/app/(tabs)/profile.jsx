@@ -15,7 +15,7 @@ function ProfileContent() {
   const accountQuery = useAccountQuery()
   const logout = useLogoutMutation()
 
-  const user = accountQuery.data.result.user
+  const user = accountQuery.data.result
 
   return (
     <>
