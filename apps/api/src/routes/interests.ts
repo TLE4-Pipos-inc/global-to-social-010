@@ -21,8 +21,8 @@ function isUniqueInterestError(error: unknown): boolean {
 }
 
 router.get("/", (_req, res) => {
-  const items = db.select().from(interests).all()
-  return sendSuccess(res, 200, { result: { interests: items } })
+  const result = db.select().from(interests).all()
+  return sendSuccess(res, 200, { result: result } )
 })
 
 router.get("/:id", (req, res) => {

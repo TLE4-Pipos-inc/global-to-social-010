@@ -1,5 +1,4 @@
 import { z } from "zod"
-import { BaseSchema } from "./base-schema.ts"
 
 export const UserRoleSchema = z.enum(["user", "partner", "admin"])
 
@@ -27,16 +26,23 @@ export const UpdateUserSchema = UserSchema.partial().pick({
   campus: true,
 })
 
-export const UserResponseSchema = UserSchema.extend(BaseSchema.shape).omit({
+export const UserResponseSchema = UserSchema.extend({
+  id: z.uuidv4(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+}).omit({
   password: true,
 })
 
-export const LoginResponseSchema = UserResponseSchema.extend({
+export const LoginResponseSchema = z.object({
+  user: UserResponseSchema,
   token: z.string(),
 })
 
+export type UserRole = z.infer<typeof UserRoleSchema>
 export type User = z.infer<typeof UserSchema>
 export type UserRegister = z.infer<typeof UserRegisterSchema>
 export type UserLogin = z.infer<typeof UserLoginSchema>
 
+export type UserResponse = z.infer<typeof UserResponseSchema>
 export type LoginResponse = z.infer<typeof LoginResponseSchema>

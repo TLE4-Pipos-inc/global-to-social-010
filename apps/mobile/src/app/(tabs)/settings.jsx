@@ -2,7 +2,12 @@ import { Image } from "expo-image"
 import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native"
 import { router } from "expo-router"
 import { Suspense } from "react"
-import { useAccountQuery, useAccountForm, useLogoutMutation, useUpdateUserMutation } from "@/features/auth"
+import {
+  useAccountQuery,
+  useAccountForm,
+  useLogoutMutation,
+  useUpdateUserMutation,
+} from "@/features/auth"
 import {
   DestructiveOutlineButton,
   PrimaryLightButton,
@@ -19,7 +24,10 @@ const schoolOptions = [
 
 const campusOptions = [
   { value: "International Business", label: "International Business" },
-  { value: "International Business & Entrepreneurship", label: "International Business & Entrepreneurship" },
+  {
+    value: "International Business & Entrepreneurship",
+    label: "International Business & Entrepreneurship",
+  },
 ]
 
 function Settings() {
@@ -27,7 +35,7 @@ function Settings() {
   const logout = useLogoutMutation()
   const updateUser = useUpdateUserMutation()
 
-  const user = data.result.user
+  const user = data.user
 
   const form = useAccountForm({
     defaultValues: {
@@ -183,5 +191,4 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#111",
   },
-
 })

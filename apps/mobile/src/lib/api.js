@@ -23,7 +23,8 @@ async function fetchWithAuth(path, init) {
     })
 
     if (refreshed.ok) {
-      const { token } = await refreshed.json()
+      const { result } = await refreshed.json()
+      const token = result.token
       setAccessToken(token)
 
       response = await fetch(url, {

@@ -285,9 +285,11 @@
 
           contentEl.innerHTML = marked.parse(markdown)
 
-          // Add slug IDs to every heading so sidebar anchors work
+          // Add slug IDs to every heading so sidebar anchors work.
+          // Matches GitHub's slug rules (each space → one hyphen, no collapsing)
+          // so inline Table-of-Contents links resolve the same in this viewer.
           contentEl.querySelectorAll("h1, h2, h3, h4, h5, h6").forEach((h) => {
-            h.id = h.textContent.toLowerCase().replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "-")
+            h.id = h.textContent.toLowerCase().replace(/[^\w\s-]/g, "").trim().replace(/\s/g, "-")
           })
 
           // Syntax-highlight fenced code blocks
