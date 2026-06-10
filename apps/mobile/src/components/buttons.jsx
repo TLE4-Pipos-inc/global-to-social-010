@@ -27,6 +27,12 @@ export const PrimaryDarkOutlineButton = ({ title, ...props }) => (
     </Pressable>
 );
 
+export const DestructiveOutlineButton = ({ title, ...props }) => (
+    <Pressable style={styles.destructiveOutline} {...props}>
+        <Text style={styles.destructiveOutlineText}>{title}</Text>
+    </Pressable>
+);
+
 const styles = StyleSheet.create({
     lightFilled: {
         height: 52,
@@ -80,5 +86,21 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: "500",
         color: Colors.darkGreenColor,
+    },
+
+    destructiveOutline: {
+        height: 52,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: Colors.dangerColor,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "transparent",
+    },
+
+    destructiveOutlineText: {
+        fontSize: 18,
+        fontWeight: "500",
+        color: Colors.dangerColor,
     },
 });

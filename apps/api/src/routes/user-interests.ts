@@ -1,15 +1,18 @@
-import { and, count, eq, inArray } from "drizzle-orm"
+import { and, count, eq } from "drizzle-orm"
 import express from "express"
 import {
+  UserInterestBulkUpdateSchema,
   UserInterestCreateSchema,
   UserInterestParamsSchema,
   UserInterestQuerySchema,
   UserInterestUpdateSchema,
 } from "@pub-hopper/schemas"
-import { db } from "@/db/client.js"
-import { interests, userInterests } from "@/db/schema.js"
-import { requireAuth } from "@/middleware/auth.js"
+import { db } from "@/db/client"
+import { interests, userInterests } from "@/db/schema"
+import { requireAuth } from "@/middleware/auth"
 import z from "zod"
+import { isForeignKeyError } from "@/lib/sql-error"
+import { sendSuccess, sendError } from "@/lib/response"
 
 const router = express.Router()
 
@@ -20,15 +23,6 @@ class MaxUserInterestsError extends Error {}
 class MinUserInterestsError extends Error {}
 class UserInterestNotFoundError extends Error {}
 
-function isForeignKeyError(error) {
-  return (
-    error?.code === "SQLITE_CONSTRAINT_FOREIGNKEY" ||
-    (error?.code === "SQLITE_CONSTRAINT" &&
-      String(error?.message ?? "")
-        .toLowerCase()
-        .includes("foreign key"))
-  )
-}
 
 function isUniqueError(error) {
   const message = String(error?.message ?? "").toLowerCase()
@@ -72,13 +66,14 @@ router.get("/", requireAuth, (req, res) => {
   const result = UserInterestQuerySchema.safeParse(req.query)
 
   if (!result.success) {
-    return res.status(400).json({
+    return sendError(res, 400, {
       message: "Invalid user interest query",
       errors: z.flattenError(result.error).fieldErrors,
     })
   }
 
-  const filters = [eq(userInterests.userId, res.locals.payload.userId)]
+  const userId = res.locals.userId
+  const filters = [eq(userInterests.userId, userId)]
 
   if (result.data.interestId) {
     filters.push(eq(userInterests.interestId, result.data.interestId))
@@ -95,33 +90,33 @@ router.get("/", requireAuth, (req, res) => {
     .where(and(...filters))
     .all()
 
-  return res.json({ userInterests: items })
+  return sendSuccess(res, 200, { result: items })
 })
 
 router.get("/:id", requireAuth, (req, res) => {
   const result = UserInterestParamsSchema.safeParse(req.params)
 
   if (!result.success) {
-    return res.status(400).json({
+    return sendError(res, 400, {
       message: "Invalid user interest parameters",
       errors: z.flattenError(result.error).fieldErrors,
     })
   }
 
-  const item = getUserInterest(res.locals.payload.userId, result.data.id)
+  const item = getUserInterest(res.locals.userId, result.data.id)
 
   if (!item) {
-    return res.status(404).json({ message: "User interest not found" })
+    return sendError(res, 404, { message: "User interest not found" })
   }
 
-  return res.json({ userInterest: item })
+  return sendSuccess(res, 200, { result: item })
 })
 
 router.post("/", requireAuth, (req, res) => {
   const result = UserInterestCreateSchema.safeParse(req.body)
 
   if (!result.success) {
-    return res.status(400).json({
+    return sendError(res, 400, {
       message: "Invalid user interest data",
       errors: z.flattenError(result.error).fieldErrors,
     })
@@ -134,7 +129,7 @@ router.post("/", requireAuth, (req, res) => {
       const currentCount = tx
         .select({ value: count() })
         .from(userInterests)
-        .where(eq(userInterests.userId, res.locals.payload.userId))
+        .where(eq(userInterests.userId, res.locals.userId))
         .get()
 
       if ((currentCount?.value ?? 0) + interestIds.length > maxUserInterests) {
@@ -144,7 +139,7 @@ router.post("/", requireAuth, (req, res) => {
       for (const interestId of interestIds) {
         tx.insert(userInterests)
           .values({
-            userId: res.locals.payload.userId,
+            userId: res.locals.userId,
             interestId,
           })
           .run()
@@ -152,30 +147,73 @@ router.post("/", requireAuth, (req, res) => {
     })
   } catch (error) {
     if (error instanceof MaxUserInterestsError) {
-      return res.status(400).json({
+      return sendError(res, 400, {
         message: `A user can select a maximum of ${maxUserInterests} interests`,
       })
     }
 
     if (isForeignKeyError(error)) {
-      return res.status(400).json({ message: "interestId does not exist" })
+      return sendError(res, 400, { message: "interestId does not exist" })
     }
 
     if (isUniqueError(error)) {
-      return res.status(409).json({ message: "User interest already exists" })
+      return sendError(res, 409, { message: "User interest already exists" })
     }
 
     console.error(error)
-    return res.status(500).json({ message: "Could not create user interest" })
+    return sendError(res, 500, { message: "Could not create user interest" })
   }
 
   const createdUserInterests = getUserInterestsByIds(
-    res.locals.payload.userId,
+    res.locals.userId,
     interestIds
   )
 
-  return res.status(201).json({
-    userInterests: createdUserInterests,
+  return sendSuccess(res, 201, { result: createdUserInterests })
+})
+
+router.patch("/", requireAuth, (req, res) => {
+  const result = UserInterestBulkUpdateSchema.safeParse(req.body)
+
+  if (!result.success) {
+    return sendError(res, 400, {
+      message: "Invalid user interest data",
+      errors: z.flattenError(result.error).fieldErrors,
+    })
+  }
+
+  const { interestIds } = result.data
+
+  try {
+    db.transaction((tx) => {
+      tx.delete(userInterests)
+        .where(eq(userInterests.userId, res.locals.userId))
+        .run()
+
+      for (const interestId of interestIds) {
+        tx.insert(userInterests)
+          .values({
+            userId: res.locals.userId,
+            interestId,
+          })
+          .run()
+      }
+    })
+  } catch (error) {
+    if (isForeignKeyError(error)) {
+      return sendError(res, 400, { message: "interestId does not exist" })
+    }
+
+    if (isUniqueError(error)) {
+      return sendError(res, 409, { message: "User interest already exists" })
+    }
+
+    console.error(error)
+    return sendError(res, 500, { message: "Could not update user interests" })
+  }
+
+  return sendSuccess(res, 200, {
+    result: getUserInterestsByIds(res.locals.userId, interestIds),
   })
 })
 
@@ -183,7 +221,7 @@ router.patch("/:id", requireAuth, (req, res) => {
   const paramsResult = UserInterestParamsSchema.safeParse(req.params)
 
   if (!paramsResult.success) {
-    return res.status(400).json({
+    return sendError(res, 400, {
       message: "Invalid user interest parameters",
       errors: z.flattenError(paramsResult.error).fieldErrors,
     })
@@ -192,7 +230,7 @@ router.patch("/:id", requireAuth, (req, res) => {
   const bodyResult = UserInterestUpdateSchema.safeParse(req.body)
 
   if (!bodyResult.success) {
-    return res.status(400).json({
+    return sendError(res, 400, {
       message: "Invalid user interest data",
       errors: z.flattenError(bodyResult.error).fieldErrors,
     })
@@ -200,15 +238,15 @@ router.patch("/:id", requireAuth, (req, res) => {
 
   if (paramsResult.data.id === bodyResult.data.interestId) {
     const existing = getUserInterest(
-      res.locals.payload.userId,
+      res.locals.userId,
       paramsResult.data.id
     )
 
     if (!existing) {
-      return res.status(404).json({ message: "User interest not found" })
+      return sendError(res, 404, { message: "User interest not found" })
     }
 
-    return res.json({ userInterest: existing })
+    return sendSuccess(res, 200, { result: existing })
   }
 
   try {
@@ -217,7 +255,7 @@ router.patch("/:id", requireAuth, (req, res) => {
         .delete(userInterests)
         .where(
           and(
-            eq(userInterests.userId, res.locals.payload.userId),
+            eq(userInterests.userId, res.locals.userId),
             eq(userInterests.interestId, paramsResult.data.id)
           )
         )
@@ -229,33 +267,30 @@ router.patch("/:id", requireAuth, (req, res) => {
 
       tx.insert(userInterests)
         .values({
-          userId: res.locals.payload.userId,
+          userId: res.locals.userId,
           interestId: bodyResult.data.interestId,
         })
         .run()
     })
   } catch (error) {
     if (error instanceof UserInterestNotFoundError) {
-      return res.status(404).json({ message: "User interest not found" })
+      return sendError(res, 404, { message: "User interest not found" })
     }
 
     if (isForeignKeyError(error)) {
-      return res.status(400).json({ message: "interestId does not exist" })
+      return sendError(res, 400, { message: "interestId does not exist" })
     }
 
     if (isUniqueError(error)) {
-      return res.status(409).json({ message: "User interest already exists" })
+      return sendError(res, 409, { message: "User interest already exists" })
     }
 
     console.error(error)
-    return res.status(500).json({ message: "Could not update user interest" })
+    return sendError(res, 500, { message: "Could not update user interest" })
   }
 
-  return res.json({
-    userInterest: getUserInterest(
-      res.locals.payload.userId,
-      bodyResult.data.interestId
-    ),
+  return sendSuccess(res, 200, {
+    result: getUserInterest(res.locals.userId, bodyResult.data.interestId),
   })
 })
 
@@ -263,7 +298,7 @@ router.delete("/:id", requireAuth, (req, res) => {
   const result = UserInterestParamsSchema.safeParse(req.params)
 
   if (!result.success) {
-    return res.status(400).json({
+    return sendError(res, 400, {
       message: "Invalid user interest parameters",
       errors: z.flattenError(result.error).fieldErrors,
     })
@@ -279,7 +314,7 @@ router.delete("/:id", requireAuth, (req, res) => {
         .from(userInterests)
         .where(
           and(
-            eq(userInterests.userId, res.locals.payload.userId),
+            eq(userInterests.userId, res.locals.userId),
             eq(userInterests.interestId, result.data.id)
           )
         )
@@ -292,7 +327,7 @@ router.delete("/:id", requireAuth, (req, res) => {
       const currentCount = tx
         .select({ value: count() })
         .from(userInterests)
-        .where(eq(userInterests.userId, res.locals.payload.userId))
+        .where(eq(userInterests.userId, res.locals.userId))
         .get()
 
       if ((currentCount?.value ?? 0) <= minUserInterests) {
@@ -302,7 +337,7 @@ router.delete("/:id", requireAuth, (req, res) => {
       tx.delete(userInterests)
         .where(
           and(
-            eq(userInterests.userId, res.locals.payload.userId),
+            eq(userInterests.userId, res.locals.userId),
             eq(userInterests.interestId, result.data.id)
           )
         )
@@ -310,20 +345,20 @@ router.delete("/:id", requireAuth, (req, res) => {
     })
   } catch (error) {
     if (error instanceof UserInterestNotFoundError) {
-      return res.status(404).json({ message: "User interest not found" })
+      return sendError(res, 404, { message: "User interest not found" })
     }
 
     if (error instanceof MinUserInterestsError) {
-      return res.status(400).json({
+      return sendError(res, 400, {
         message: `A user must keep at least ${minUserInterests} interests`,
       })
     }
 
     console.error(error)
-    return res.status(500).json({ message: "Could not delete user interest" })
+    return sendError(res, 500, { message: "Could not delete user interest" })
   }
 
-  return res.status(204).send()
+  return sendSuccess(res, 204, {})
 })
 
 export default router

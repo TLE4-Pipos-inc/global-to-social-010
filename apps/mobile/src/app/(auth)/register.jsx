@@ -28,8 +28,8 @@ export default function RegisterScreen() {
       if (!response.ok) throw new Error(json.message || "Registration failed")
       return json
     },
-    onSuccess: ({ token }) => {
-      setAccessToken(token)
+    onSuccess: ({ result }) => {
+      setAccessToken(result.token)
       router.replace("/(tabs)")
     },
     onError: (err) => Alert.alert("Registration failed", err.message),
