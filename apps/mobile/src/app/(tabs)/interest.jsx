@@ -1,74 +1,50 @@
-import { Image } from "expo-image"
 import {
-  Platform,
   StyleSheet,
   View,
   Text,
   Pressable,
-  TouchableOpacity,
-  FlatList,
-  Modal,
   ScrollView,
   ActivityIndicator,
 } from "react-native"
 
-import { ThemedView } from "@/components/themed-view"
 import { ThemedText } from "@/components/themed-text"
-import { Link, router } from "expo-router"
-import {
-  PrimaryDarkButton,
-  PrimaryDarkOutlineButton,
-  PrimaryLightButton,
-  PrimaryLightOutlineButton,
-} from "@/components/buttons"
+import { router } from "expo-router"
+import { PrimaryLightButton } from "@/components/buttons"
 import { Suspense, useState } from "react"
-import { useAccountQuery } from "@/features/auth"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useInterestQuery } from "@/features/intrests/hooks/query"
-import { fetchWithAuth } from "@/lib/api"
 import { API_URL } from "@/constants/api"
-import { setAccessToken } from "@/lib/token"
+import { useAccountQuery } from "@/features/auth"
+import { fetchWithAuth } from "@/lib/api"
 
 function Interest() {
   const [selectedInterest, setSelectedInterest] = useState([])
+
+  const { data: userdata } = useAccountQuery()
+  const user = userdata?.user
 
   const { data } = useInterestQuery()
 
   const interests = data?.interests || []
 
-  // const logout = useMutation({
-  //   mutationFn: () =>
-  //     fetch(`${API_URL}/api/auth/logout`, {
-  //       method: "POST",
-  //       credentials: "include",
-  //     }),
-  //   onSettled: () => {
-  //     setAccessToken(null)
-  //     queryClient.removeQueries({ queryKey: ["account"] })
-  //     router.replace("/(auth)/login")
-  //   },
-  // })
+  async function saveUserInterests() {
+    try {
+      const response = await fetchWithAuth(`/api/user-interests`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          interestIds: selectedInterest,
+        }),
+      })
 
-  // async function saveUserInterests() {
-  //   try {
-  //     const response = await fetch(`${API_URL}/api/users/interests`, {
-  //       method: "POST",
-  //       headers: {
-  //         "Content-Type": "application/json",
-  //       },
-  //       body: JSON.stringify({
-  //         userId: user.id,
-  //         interestIds: selectedInterest,
-  //       }),
-  //     })
-  //
-  //     const json = await response.json()
-  //
-  //     console.log("Saved interests:", json)
-  //   } catch (error) {
-  //     console.error("Failed to save interests", error)
-  //   }
-  // }
+      const json = await response.json()
+
+      // console.log("Saved interests:", json)
+    } catch (error) {
+      // console.error("Failed to save interests", error)
+    }
+  }
 
   return (
     <ScrollView>
@@ -138,7 +114,10 @@ function Interest() {
         <View style={styles.button}>
           <PrimaryLightButton
             title="Next"
-            onPress={() => router.push("/map")}
+            onPress={async () => {
+              await saveUserInterests()
+              router.push("/profile")
+            }}
           />
         </View>
       </View>
