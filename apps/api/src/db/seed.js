@@ -2,7 +2,15 @@ import bcrypt from "bcrypt"
 import { and, eq, isNull } from "drizzle-orm"
 import { v4 as uuidv4 } from "uuid"
 import { db } from "@/db/client.js"
-import { conversationStarters, interests, users, venues } from "@/db/schema.js"
+import {
+  conversationStarters,
+  interests,
+  routeStops,
+  routeThemes,
+  routes,
+  users,
+  venues,
+} from "@/db/schema.js"
 
 const userSeedData = [
   {
@@ -41,57 +49,336 @@ const interestSeedData = [
 
 const venueSeedData = [
   {
-    name: "Blaak Coffee Corner",
-    venueType: "cafe",
-    address: "Blaak 16, Rotterdam",
-    description:
-      "Calm coffee spot near Blaak for first meetups and quiet chats.",
-    latitude: 51.92015,
-    longitude: 4.48941,
-    suggestedOrder: "start",
-    vibe: "relaxed coffee and study energy",
-  },
-  {
-    name: "Markthal Social Table",
-    venueType: "restaurant",
-    address: "Dominee Jan Scharpstraat 298, Rotterdam",
-    description:
-      "Food-focused stop with easy conversation around shared bites.",
-    latitude: 51.92001,
-    longitude: 4.48666,
-    suggestedOrder: "food stop",
-    vibe: "busy, international, casual",
-  },
-  {
-    name: "Oude Haven Bar",
+    name: "BrewDog Rotterdam",
     venueType: "bar",
-    address: "Oude Haven 36, Rotterdam",
-    description: "Social evening bar close to the water and the cube houses.",
-    latitude: 51.92085,
-    longitude: 4.49158,
-    suggestedOrder: "evening stop",
-    vibe: "warm, social, nightlife",
+    address: "Witte de Withstraat 83, 3012 BN Rotterdam",
+    description: "Busy student nightlife bar and central party hub in Rotterdam city center.",
+    latitude: 51.91537585257126,
+    longitude: 4.475666441833537,
+    suggestedOrder: "start",
+    vibe: "high energy nightlife and student crowd",
   },
   {
-    name: "010 Cowork Lounge",
-    venueType: "coworking",
-    address: "Wijnhaven 99, Rotterdam",
-    description: "Light coworking space for alcohol-free social routes.",
-    latitude: 51.91783,
-    longitude: 4.48993,
-    suggestedOrder: "daytime stop",
-    vibe: "focused, open, low pressure",
+    name: "Cafe restaurant Erasmus",
+    venueType: "restaurant",
+    address: "Stadhuisplein 23, Rotterdam",
+    description: "Stylish cocktail and dining bar transitioning into nightlife.",
+    latitude: 51.91897901259875,
+    longitude: 4.481015142324509,
+    suggestedOrder: "early stop",
+    vibe: "cocktails and social dining",
   },
   {
-    name: "Maas Event Loft",
-    venueType: "event",
-    address: "Boompjes 60, Rotterdam",
-    description: "Flexible event location for themed student meetups.",
-    latitude: 51.91479,
-    longitude: 4.48713,
+    name: "Cafe 't Fust",
+    venueType: "bar",
+    address: "Stadhuisplein 23, Rotterdam",
+    description: "The oldest café on Stadhuisplein, can you still imagine? Such a different city and era, but still the familiar café.",
+    latitude: 51.92248506330943,
+    longitude: 4.477184435187327,
+    suggestedOrder: "early stop",
+    vibe: "dinner to party transition",
+  },
+  {
+    name: "Beau Restobar",
+    venueType: "bar",
+    address: "Stadhuisplein 23, 3012 AR Rotterdam",
+    description: "Restaurant bar that shifts into a lively night crowd later in the evening.",
+    latitude: 51.9225082148123,
+    longitude: 4.476998021039504,
+    suggestedOrder: "early stop",
+    vibe: "dinner to party transition",
+  },
+]
+
+const routeThemeSeedData = [
+  {
+    name: "Bars",
+    description:
+      "A social evening route through Rotterdam bars with lively stops for groups meeting new people.",
+    mood: "social, evening, lively",
+    active: true,
+  },
+  {
+    name: "Cafes",
+    description:
+      "A relaxed daytime coffee route through Rotterdam cafes for easy conversations and low-pressure meetups.",
+    mood: "relaxed, daytime, cozy",
+    active: true,
+  },
+]
+
+const routeVenueSeedData = [
+  {
+    name: "Witte Aap",
+    venueType: "bar",
+    address: "Witte de Withstraat 78, Rotterdam",
+    description:
+      "Busy Rotterdam bar on Witte de Withstraat with a strong international student crowd.",
+    latitude: 51.91529,
+    longitude: 4.4763,
+    suggestedOrder: 1,
+    vibe: "lively, social, late-night",
+  },
+  {
+    name: "NRC",
+    venueType: "bar",
+    address: "Witte de Withstraat 63, Rotterdam",
+    description:
+      "Large bar and restaurant space with enough room for groups and casual drinks.",
+    latitude: 51.915334364860946,
+    longitude: 4.47632249385537,
+    suggestedOrder: 2,
+    vibe: "spacious, energetic, social",
+  },
+  {
+    name: "BAEK Rotterdam",
+    venueType: "bar",
+    address: "Blaak 329, 3011 GB Rotterdam",
+    description:
+      "Compact cocktail-style bar for small group conversations and evening energy.",
+    latitude: 51.91893767185632,
+    longitude: 4.48474079596383,
+    suggestedOrder: 3,
+    vibe: "cocktails, intimate, upbeat",
+  },
+  {
+    name: "De Gele Kanarie",
+    venueType: "bar",
+    address: "Goudsesingel 284, Rotterdam",
+    description:
+      "Playful Rotterdam bar with a casual beer-hall feel and a strong group atmosphere.",
+    latitude: 51.92420987044394,
+    longitude: 4.489485193669806,
+    suggestedOrder: 4,
+    vibe: "playful, beer, group-friendly",
+  },
+  {
+    name: "Cafe Van Zanten",
+    venueType: "bar",
+    address: "Meent 44, Rotterdam",
+    description:
+      "Classic central Rotterdam bar with terrace energy and accessible social seating.",
+    latitude: 51.92326917341973,
+    longitude: 4.485147630436374,
+    suggestedOrder: 5,
+    vibe: "classic, casual, terrace",
+  },
+  {
+    name: "Harvest Coffee Brewers",
+    venueType: "cafe",
+    address: "Glashaven 107, Rotterdam",
+    description:
+      "Specialty coffee spot near Blaak and Oude Haven, good for relaxed daytime meetups.",
+    latitude: 51.91598091346657,
+    longitude: 4.4857842386063105,
+    suggestedOrder: 1,
+    vibe: "specialty coffee, calm, creative",
+  },
+  {
+    name: "CoffEY",
+    venueType: "cafe",
+    address: "Boompjes 258, 3011 XZ Rotterdam",
+    description:
+      "Modern coffee spot near Blaak for relaxed daytime meetups and easy conversations.",
+    latitude: 51.914213952225246,
+    longitude: 4.486513680227359,
+    suggestedOrder: 2,
+    vibe: "modern coffee, relaxed, social",
+  },
+  {
+    name: "Heilige Boontjes",
+    venueType: "cafe",
+    address: "Eendrachtsplein 3, Rotterdam",
+    description:
+      "Social coffee cafe in a former police station with a strong Rotterdam identity.",
+    latitude: 51.917261066838776,
+    longitude: 4.472750454387031,
+    suggestedOrder: "3",
+    vibe: "social impact, warm, easy chats",
+  },
+  {
+    name: "Nine Bar",
+    venueType: "cafe",
+    address: "Botersloot 44A, Rotterdam",
+    description:
+      "Small central coffee bar close to the Markthal and Blaak for quick relaxed stops.",
+    latitude: 51.92229446144416,
+    longitude: 4.488017789134435,
+    suggestedOrder: 4,
+    vibe: "small, central, friendly",
+  },
+  {
+    name: "Cafecito Meent",
+    venueType: "cafe",
+    address: "Meent 52, 3011 JM Rotterdam",
+    description:
+      "Specialty coffee and ceremonial matcha spot on Meent for relaxed daytime meetups.",
+    latitude: 51.9229362877991,
+    longitude: 4.484230159104578,
+    suggestedOrder: 5,
+    vibe: "specialty coffee, matcha, relaxed",
+  },
+]
+
+const routeSeedData = [
+  {
+    themeName: "Bars",
+    name: "Witte de With Bar Route",
+    area: "Witte de Withkwartier",
+    city: "Rotterdam",
+    routeType: "social",
+    active: true,
+  },
+  {
+    themeName: "Cafes",
+    name: "Rotterdam Coffee Route",
+    area: "Centrum en Noord",
+    city: "Rotterdam",
+    routeType: "social",
+    active: true,
+  },
+]
+
+const routeStopSeedData = [
+  {
+    routeName: "Witte de With Bar Route",
+    venueName: "Witte Aap",
+    venueAddress: "Witte de Withstraat 78, Rotterdam",
+    routeOrder: 1,
+    plannedDurationMinutes: 35,
+    walkLabel: "Start on Witte de Withstraat",
+  },
+  {
+    routeName: "Witte de With Bar Route",
+    venueName: "NRC",
+    venueAddress: "Witte de Withstraat 63, Rotterdam",
+    routeOrder: 2,
+    plannedDurationMinutes: 40,
+    walkLabel: "3 min walk along Witte de Withstraat",
+  },
+  {
+    routeName: "Witte de With Bar Route",
+    venueName: "BAEK Rotterdam",
+    venueAddress: "Blaak 329, 3011 GB Rotterdam",
+    routeOrder: 3,
+    plannedDurationMinutes: 35,
+    walkLabel: "Short walk back through Witte de Withstraat",
+  },
+  {
+    routeName: "Witte de With Bar Route",
+    venueName: "De Gele Kanarie",
+    venueAddress: "Goudsesingel 284, Rotterdam",
+    routeOrder: 4,
+    plannedDurationMinutes: 45,
+    walkLabel: "12 min walk toward Goudsesingel",
+  },
+  {
+    routeName: "Witte de With Bar Route",
+    venueName: "Cafe Van Zanten",
+    venueAddress: "Meent 44, Rotterdam",
+    routeOrder: 5,
+    plannedDurationMinutes: 40,
+    walkLabel: "8 min walk toward Meent",
+  },
+  {
+    routeName: "Rotterdam Coffee Route",
+    venueName: "Harvest Coffee Brewers",
+    venueAddress: "Glashaven 107, Rotterdam",
+    routeOrder: 1,
+    plannedDurationMinutes: 35,
+    walkLabel: "Start near Glashaven and Oude Haven",
+  },
+  {
+    routeName: "Rotterdam Coffee Route",
+    venueName: "CoffEY",
+    venueAddress: "Boompjes 258, 3011 XZ Rotterdam",
+    routeOrder: 2,
+    plannedDurationMinutes: 35,
+    walkLabel: "Short walk around the Blaak area",
+  },
+  {
+    routeName: "Rotterdam Coffee Route",
+    venueName: "Heilige Boontjes",
+    venueAddress: "Eendrachtsplein 3, Rotterdam",
+    routeOrder: 3,
+    plannedDurationMinutes: 35,
+    walkLabel: "7 min walk toward Eendrachtsplein",
+  },
+  {
+    routeName: "Rotterdam Coffee Route",
+    venueName: "Nine Bar",
+    venueAddress: "Botersloot 44A, Rotterdam",
+    routeOrder: 4,
+    plannedDurationMinutes: 30,
+    walkLabel: "12 min walk toward Markthal and Blaak",
+  },
+  {
+    routeName: "Rotterdam Coffee Route",
+    venueName: "Cafecito Meent",
+    venueAddress: "Meent 52, 3011 JM Rotterdam",
+    routeOrder: 5,
+    plannedDurationMinutes: 40,
+    walkLabel: "Final coffee stop around Meent",
+    name: "Bokaal",
+    venueType: "bar",
+    address: "Nieuwemarkt 11, Rotterdam",
+    description: "Craft beer bar popular with groups and casual drinkers.",
+    latitude: 51.92246430151668,
+    longitude: 4.488385368822203,
+    suggestedOrder: "mid stop",
+    vibe: "craft beer and social groups",
+  },
+  {
+    name: "Biergarten Rotterdam",
+    venueType: "bar",
+    address: "Schiestraat 18, Rotterdam",
+    description: "Large open beer hall with long tables, DJs, and group energy.",
+    latitude: 51.925431867492144,
+    longitude: 4.476302831137676,
+    suggestedOrder: "mid stop",
+    vibe: "group drinking and DJ energy",
+  },
+  {
+    name: "Sijf",
+    venueType: "bar",
+    address: "Oude Binnenweg 115, Rotterdam",
+    description: "Classic brown café with relaxed atmosphere for conversations.",
+    latitude: 51.91746480752428,
+    longitude: 4.474279318970599,
+    suggestedOrder: "relax stop",
+    vibe: "chill drinks and conversation",
+  },
+
+  {
+    name: "Witte de Aap",
+    venueType: "bar",
+    address: "Witte de Withstraat 78, Rotterdam",
+    description: "Iconic international bar always full of students, travelers and locals.",
+    latitude: 51.91543052803871,
+    longitude: 4.476314755206046,
+    suggestedOrder: "late stop",
+    vibe: "international nightlife crowd",
+  },
+  {
+    name: "Bar3",
+    venueType: "bar",
+    address: "Nieuwe Binnenweg 17, Rotterdam",
+    description: "Alternative bar with music, arcade feel and late-night crowd.",
+    latitude: 51.91699994266714,
+    longitude: 4.471886933284131,
+    suggestedOrder: "late stop",
+    vibe: "alternative nightlife and music",
+  },
+  {
+    name: "Wunderbar",
+    venueType: "bar",
+    address: "Boomgaardsstraat 71, Rotterdam",
+    description: "Underground cultural bar with experimental music and late-night events.",
+    latitude: 51.91575741591754,
+    longitude: 4.476434284465318,
     suggestedOrder: "final stop",
-    vibe: "group activities and events",
-  },
+    vibe: "underground nightlife and events",
+  }
 ]
 
 const starterSeedData = [
@@ -549,10 +836,10 @@ async function seedUsers() {
   return inserted
 }
 
-function seedVenues() {
+function seedVenues(seedData = venueSeedData) {
   let inserted = 0
 
-  for (const venue of venueSeedData) {
+  for (const venue of seedData) {
     const existingVenue = db
       .select()
       .from(venues)
@@ -566,6 +853,184 @@ function seedVenues() {
     db.insert(venues)
       .values({ id: uuidv4(), ...venue })
       .run()
+    inserted += 1
+  }
+
+  return inserted
+}
+
+function seedRouteThemes() {
+  let inserted = 0
+
+  for (const theme of routeThemeSeedData) {
+    const existingTheme = db
+      .select()
+      .from(routeThemes)
+      .where(eq(routeThemes.name, theme.name))
+      .get()
+
+    if (existingTheme) continue
+
+    db.insert(routeThemes)
+      .values({ id: uuidv4(), ...theme })
+      .run()
+
+    inserted += 1
+  }
+
+  return inserted
+}
+
+function getRouteThemeIdsByName() {
+  return new Map(
+    db
+      .select()
+      .from(routeThemes)
+      .all()
+      .map((theme) => [theme.name, theme.id])
+  )
+}
+
+function seedRoutes() {
+  const themeIdsByName = getRouteThemeIdsByName()
+  let inserted = 0
+
+  for (const route of routeSeedData) {
+    const themeId = themeIdsByName.get(route.themeName)
+
+    if (!themeId) {
+      console.warn(
+        `Skipped route "${route.name}": missing theme ${route.themeName}`
+      )
+      continue
+    }
+
+    const existingRoute = db
+      .select()
+      .from(routes)
+      .where(and(eq(routes.name, route.name), eq(routes.area, route.area)))
+      .get()
+
+    if (existingRoute) continue
+
+    db.insert(routes)
+      .values({
+        id: uuidv4(),
+        themeId,
+        name: route.name,
+        area: route.area,
+        city: route.city,
+        routeType: route.routeType,
+        active: route.active,
+      })
+      .run()
+
+    inserted += 1
+  }
+
+  return inserted
+}
+
+function buildUniqueIdMap(records, getKey, label) {
+  const idsByKey = new Map()
+
+  for (const record of records) {
+    const key = getKey(record)
+    const ids = idsByKey.get(key) ?? []
+    ids.push(record.id)
+    idsByKey.set(key, ids)
+  }
+
+  const duplicateKeys = [...idsByKey.entries()].filter(
+    ([, ids]) => ids.length > 1
+  )
+
+  if (duplicateKeys.length > 0) {
+    const details = duplicateKeys
+      .map(([key, ids]) => `${key} (${ids.length} ids: ${ids.join(", ")})`)
+      .join("; ")
+
+    throw new Error(`Ambiguous ${label} seed lookup keys: ${details}`)
+  }
+
+  return new Map([...idsByKey.entries()].map(([key, ids]) => [key, ids[0]]))
+}
+
+function getRouteIdsByName() {
+  return buildUniqueIdMap(
+    db.select().from(routes).all(),
+    (route) => route.name,
+    "route name"
+  )
+}
+
+function getVenueIdsByNameAndAddress() {
+  return buildUniqueIdMap(
+    db.select().from(venues).all(),
+    (venue) => `${venue.name}|${venue.address}`,
+    "venue name/address"
+  )
+}
+
+function seedRouteStops() {
+  const routeIdsByName = getRouteIdsByName()
+  const venueIdsByNameAndAddress = getVenueIdsByNameAndAddress()
+  let inserted = 0
+
+  for (const stop of routeStopSeedData) {
+    const routeId = routeIdsByName.get(stop.routeName)
+    const venueId = venueIdsByNameAndAddress.get(
+      `${stop.venueName}|${stop.venueAddress}`
+    )
+
+    if (!routeId) {
+      console.warn(
+        `Skipped route stop ${stop.routeName} #${stop.routeOrder}: missing route`
+      )
+      continue
+    }
+
+    if (!venueId) {
+      console.warn(
+        `Skipped route stop ${stop.routeName} #${stop.routeOrder}: missing venue ${stop.venueName}`
+      )
+      continue
+    }
+
+    const existingByOrder = db
+      .select()
+      .from(routeStops)
+      .where(
+        and(
+          eq(routeStops.routeId, routeId),
+          eq(routeStops.routeOrder, stop.routeOrder)
+        )
+      )
+      .get()
+
+    if (existingByOrder) continue
+
+    const existingByVenue = db
+      .select()
+      .from(routeStops)
+      .where(
+        and(eq(routeStops.routeId, routeId), eq(routeStops.venueId, venueId))
+      )
+      .get()
+
+    if (existingByVenue) continue
+
+    db.insert(routeStops)
+      .values({
+        id: uuidv4(),
+        routeId,
+        venueId,
+        routeOrder: stop.routeOrder,
+        plannedDurationMinutes: stop.plannedDurationMinutes,
+        walkLabel: stop.walkLabel,
+      })
+      .run()
+
     inserted += 1
   }
 
@@ -637,11 +1102,19 @@ function seedConversationStarters() {
 
 const insertedUsers = await seedUsers()
 const insertedInterests = seedInterests()
+const insertedRouteThemes = seedRouteThemes()
 const insertedVenues = seedVenues()
+const insertedRouteVenues = seedVenues(routeVenueSeedData)
+const insertedRoutes = seedRoutes()
+const insertedRouteStops = seedRouteStops()
 const insertedConversationStarters = seedConversationStarters()
 
 console.log("Seed complete")
 console.log(`Users inserted: ${insertedUsers}`)
 console.log(`Interests inserted: ${insertedInterests}`)
 console.log(`Venues inserted: ${insertedVenues}`)
+console.log(`Route themes inserted: ${insertedRouteThemes}`)
+console.log(`Route venues inserted: ${insertedRouteVenues}`)
+console.log(`Routes inserted: ${insertedRoutes}`)
+console.log(`Route stops inserted: ${insertedRouteStops}`)
 console.log(`Conversation starters inserted: ${insertedConversationStarters}`)
