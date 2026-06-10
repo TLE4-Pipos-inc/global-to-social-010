@@ -773,6 +773,11 @@
         writeLog("stop timer finished", ack)
       })
 
+      // Manual edits to the session/stop inputs must also refresh button state,
+      // since updateStopBtnStates otherwise only runs on programmatic updates.
+      sessionIdInput.addEventListener("input", updateStopBtnStates)
+      stopIdInput.addEventListener("input", updateStopBtnStates)
+
       bind("loginGroup1Btn", async () => {
         await loginGroup("user1", groupEmail1Input.value, groupPass1Input.value)
       })
