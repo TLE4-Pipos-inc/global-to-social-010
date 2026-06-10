@@ -882,23 +882,42 @@ function seedRoutes() {
   return inserted
 }
 
+function buildUniqueIdMap(records, getKey, label) {
+  const idsByKey = new Map()
+
+  for (const record of records) {
+    const key = getKey(record)
+    const ids = idsByKey.get(key) ?? []
+    ids.push(record.id)
+    idsByKey.set(key, ids)
+  }
+
+  const duplicateKeys = [...idsByKey.entries()].filter(([, ids]) => ids.length > 1)
+
+  if (duplicateKeys.length > 0) {
+    const details = duplicateKeys
+      .map(([key, ids]) => `${key} (${ids.length} ids: ${ids.join(", ")})`)
+      .join("; ")
+
+    throw new Error(`Ambiguous ${label} seed lookup keys: ${details}`)
+  }
+
+  return new Map([...idsByKey.entries()].map(([key, ids]) => [key, ids[0]]))
+}
+
 function getRouteIdsByName() {
-  return new Map(
-    db
-      .select()
-      .from(routes)
-      .all()
-      .map((route) => [route.name, route.id])
+  return buildUniqueIdMap(
+    db.select().from(routes).all(),
+    (route) => route.name,
+    "route name"
   )
 }
 
 function getVenueIdsByNameAndAddress() {
-  return new Map(
-    db
-      .select()
-      .from(venues)
-      .all()
-      .map((venue) => [`${venue.name}|${venue.address}`, venue.id])
+  return buildUniqueIdMap(
+    db.select().from(venues).all(),
+    (venue) => `${venue.name}|${venue.address}`,
+    "venue name/address"
   )
 }
 
