@@ -2,7 +2,15 @@ import bcrypt from "bcrypt"
 import { and, eq, isNull } from "drizzle-orm"
 import { v4 as uuidv4 } from "uuid"
 import { db } from "@/db/client.js"
-import { conversationStarters, interests, users, venues } from "@/db/schema.js"
+import {
+  conversationStarters,
+  interests,
+  routeStops,
+  routeThemes,
+  routes,
+  users,
+  venues,
+} from "@/db/schema.js"
 
 const userSeedData = [
   {
@@ -91,6 +99,238 @@ const venueSeedData = [
     longitude: 4.48713,
     suggestedOrder: "final stop",
     vibe: "group activities and events",
+  },
+]
+
+const routeThemeSeedData = [
+  {
+    name: "Bars",
+    description:
+      "A social evening route through Rotterdam bars with lively stops for groups meeting new people.",
+    mood: "social, evening, lively",
+    active: true,
+  },
+  {
+    name: "Cafes",
+    description:
+      "A relaxed daytime coffee route through Rotterdam cafes for easy conversations and low-pressure meetups.",
+    mood: "relaxed, daytime, cozy",
+    active: true,
+  },
+]
+
+const routeVenueSeedData = [
+  {
+    name: "Witte Aap",
+    venueType: "bar",
+    address: "Witte de Withstraat 78, Rotterdam",
+    description:
+      "Busy Rotterdam bar on Witte de Withstraat with a strong international student crowd.",
+    latitude: 51.91687,
+    longitude: 4.47578,
+    suggestedOrder: "1",
+    vibe: "lively, social, late-night",
+  },
+  {
+    name: "NRC",
+    venueType: "bar",
+    address: "Witte de Withstraat 63, Rotterdam",
+    description:
+      "Large bar and restaurant space with enough room for groups and casual drinks.",
+    latitude: 51.91682,
+    longitude: 4.47678,
+    suggestedOrder: "2",
+    vibe: "spacious, energetic, social",
+  },
+  {
+    name: "BAEK Rotterdam",
+    venueType: "bar",
+    address: "Witte de Withstraat 73A, Rotterdam",
+    description:
+      "Compact cocktail-style bar for small group conversations and evening energy.",
+    latitude: 51.91676,
+    longitude: 4.47617,
+    suggestedOrder: "3",
+    vibe: "cocktails, intimate, upbeat",
+  },
+  {
+    name: "De Gele Kanarie",
+    venueType: "bar",
+    address: "Goudsesingel 284, Rotterdam",
+    description:
+      "Playful Rotterdam bar with a casual beer-hall feel and a strong group atmosphere.",
+    latitude: 51.92332,
+    longitude: 4.48684,
+    suggestedOrder: "4",
+    vibe: "playful, beer, group-friendly",
+  },
+  {
+    name: "Cafe Van Zanten",
+    venueType: "bar",
+    address: "Meent 44, Rotterdam",
+    description:
+      "Classic central Rotterdam bar with terrace energy and accessible social seating.",
+    latitude: 51.92249,
+    longitude: 4.48265,
+    suggestedOrder: "5",
+    vibe: "classic, casual, terrace",
+  },
+  {
+    name: "Hopper Coffee",
+    venueType: "cafe",
+    address: "Schiedamse Vest 146, Rotterdam",
+    description:
+      "Known Rotterdam coffee spot with a calm setting for daytime student meetups.",
+    latitude: 51.91606,
+    longitude: 4.47846,
+    suggestedOrder: "1",
+    vibe: "specialty coffee, calm, creative",
+  },
+  {
+    name: "Man Met Bril Koffie",
+    venueType: "cafe",
+    address: "Vijverhofstraat 70, Rotterdam",
+    description:
+      "Coffee roaster cafe in Rotterdam Noord with an easygoing local atmosphere.",
+    latitude: 51.92934,
+    longitude: 4.4772,
+    suggestedOrder: "2",
+    vibe: "local, coffee-focused, relaxed",
+  },
+  {
+    name: "Heilige Boontjes",
+    venueType: "cafe",
+    address: "Eendrachtsplein 3, Rotterdam",
+    description:
+      "Social coffee cafe in a former police station with a strong Rotterdam identity.",
+    latitude: 51.91784,
+    longitude: 4.47369,
+    suggestedOrder: "3",
+    vibe: "social impact, warm, easy chats",
+  },
+  {
+    name: "Nine Bar",
+    venueType: "cafe",
+    address: "Botersloot 44A, Rotterdam",
+    description:
+      "Small central coffee bar close to the Markthal and Blaak for quick relaxed stops.",
+    latitude: 51.92154,
+    longitude: 4.48815,
+    suggestedOrder: "4",
+    vibe: "small, central, friendly",
+  },
+  {
+    name: "Urban Espresso Bar",
+    venueType: "cafe",
+    address: "Nieuwe Binnenweg 263, Rotterdam",
+    description:
+      "Accessible cafe for coffee, light bites, and relaxed conversations with new people.",
+    latitude: 51.91451,
+    longitude: 4.45796,
+    suggestedOrder: "5",
+    vibe: "easygoing, daytime, comfortable",
+  },
+]
+
+const routeSeedData = [
+  {
+    themeName: "Bars",
+    name: "Witte de With Bar Route",
+    area: "Witte de Withkwartier",
+    city: "Rotterdam",
+    routeType: "social",
+    active: true,
+  },
+  {
+    themeName: "Cafes",
+    name: "Rotterdam Coffee Route",
+    area: "Centrum en Noord",
+    city: "Rotterdam",
+    routeType: "social",
+    active: true,
+  },
+]
+
+const routeStopSeedData = [
+  {
+    routeName: "Witte de With Bar Route",
+    venueName: "Witte Aap",
+    venueAddress: "Witte de Withstraat 78, Rotterdam",
+    routeOrder: 1,
+    plannedDurationMinutes: 35,
+    walkLabel: "Start on Witte de Withstraat",
+  },
+  {
+    routeName: "Witte de With Bar Route",
+    venueName: "NRC",
+    venueAddress: "Witte de Withstraat 63, Rotterdam",
+    routeOrder: 2,
+    plannedDurationMinutes: 40,
+    walkLabel: "3 min walk along Witte de Withstraat",
+  },
+  {
+    routeName: "Witte de With Bar Route",
+    venueName: "BAEK Rotterdam",
+    venueAddress: "Witte de Withstraat 73A, Rotterdam",
+    routeOrder: 3,
+    plannedDurationMinutes: 35,
+    walkLabel: "Short walk back through Witte de Withstraat",
+  },
+  {
+    routeName: "Witte de With Bar Route",
+    venueName: "De Gele Kanarie",
+    venueAddress: "Goudsesingel 284, Rotterdam",
+    routeOrder: 4,
+    plannedDurationMinutes: 45,
+    walkLabel: "12 min walk toward Goudsesingel",
+  },
+  {
+    routeName: "Witte de With Bar Route",
+    venueName: "Cafe Van Zanten",
+    venueAddress: "Meent 44, Rotterdam",
+    routeOrder: 5,
+    plannedDurationMinutes: 40,
+    walkLabel: "8 min walk toward Meent",
+  },
+  {
+    routeName: "Rotterdam Coffee Route",
+    venueName: "Hopper Coffee",
+    venueAddress: "Schiedamse Vest 146, Rotterdam",
+    routeOrder: 1,
+    plannedDurationMinutes: 35,
+    walkLabel: "Start near Schiedamse Vest",
+  },
+  {
+    routeName: "Rotterdam Coffee Route",
+    venueName: "Heilige Boontjes",
+    venueAddress: "Eendrachtsplein 3, Rotterdam",
+    routeOrder: 2,
+    plannedDurationMinutes: 35,
+    walkLabel: "7 min walk toward Eendrachtsplein",
+  },
+  {
+    routeName: "Rotterdam Coffee Route",
+    venueName: "Nine Bar",
+    venueAddress: "Botersloot 44A, Rotterdam",
+    routeOrder: 3,
+    plannedDurationMinutes: 30,
+    walkLabel: "12 min walk toward Markthal and Blaak",
+  },
+  {
+    routeName: "Rotterdam Coffee Route",
+    venueName: "Man Met Bril Koffie",
+    venueAddress: "Vijverhofstraat 70, Rotterdam",
+    routeOrder: 4,
+    plannedDurationMinutes: 45,
+    walkLabel: "15 min walk or short metro ride toward Noord",
+  },
+  {
+    routeName: "Rotterdam Coffee Route",
+    venueName: "Urban Espresso Bar",
+    venueAddress: "Nieuwe Binnenweg 263, Rotterdam",
+    routeOrder: 5,
+    plannedDurationMinutes: 40,
+    walkLabel: "Final coffee stop toward Nieuwe Binnenweg",
   },
 ]
 
@@ -549,10 +789,10 @@ async function seedUsers() {
   return inserted
 }
 
-function seedVenues() {
+function seedVenues(seedData = venueSeedData) {
   let inserted = 0
 
-  for (const venue of venueSeedData) {
+  for (const venue of seedData) {
     const existingVenue = db
       .select()
       .from(venues)
@@ -566,6 +806,157 @@ function seedVenues() {
     db.insert(venues)
       .values({ id: uuidv4(), ...venue })
       .run()
+    inserted += 1
+  }
+
+  return inserted
+}
+
+function seedRouteThemes() {
+  let inserted = 0
+
+  for (const theme of routeThemeSeedData) {
+    const existingTheme = db
+      .select()
+      .from(routeThemes)
+      .where(eq(routeThemes.name, theme.name))
+      .get()
+
+    if (existingTheme) continue
+
+    db.insert(routeThemes)
+      .values({ id: uuidv4(), ...theme })
+      .run()
+
+    inserted += 1
+  }
+
+  return inserted
+}
+
+function getRouteThemeIdsByName() {
+  return new Map(
+    db
+      .select()
+      .from(routeThemes)
+      .all()
+      .map((theme) => [theme.name, theme.id])
+  )
+}
+
+function seedRoutes() {
+  const themeIdsByName = getRouteThemeIdsByName()
+  let inserted = 0
+
+  for (const route of routeSeedData) {
+    const themeId = themeIdsByName.get(route.themeName)
+
+    if (!themeId) {
+      console.warn(`Skipped route "${route.name}": missing theme ${route.themeName}`)
+      continue
+    }
+
+    const existingRoute = db
+      .select()
+      .from(routes)
+      .where(and(eq(routes.name, route.name), eq(routes.area, route.area)))
+      .get()
+
+    if (existingRoute) continue
+
+    db.insert(routes)
+      .values({
+        id: uuidv4(),
+        themeId,
+        name: route.name,
+        area: route.area,
+        city: route.city,
+        routeType: route.routeType,
+        active: route.active,
+      })
+      .run()
+
+    inserted += 1
+  }
+
+  return inserted
+}
+
+function getRouteIdsByName() {
+  return new Map(
+    db
+      .select()
+      .from(routes)
+      .all()
+      .map((route) => [route.name, route.id])
+  )
+}
+
+function getVenueIdsByNameAndAddress() {
+  return new Map(
+    db
+      .select()
+      .from(venues)
+      .all()
+      .map((venue) => [`${venue.name}|${venue.address}`, venue.id])
+  )
+}
+
+function seedRouteStops() {
+  const routeIdsByName = getRouteIdsByName()
+  const venueIdsByNameAndAddress = getVenueIdsByNameAndAddress()
+  let inserted = 0
+
+  for (const stop of routeStopSeedData) {
+    const routeId = routeIdsByName.get(stop.routeName)
+    const venueId = venueIdsByNameAndAddress.get(
+      `${stop.venueName}|${stop.venueAddress}`
+    )
+
+    if (!routeId) {
+      console.warn(`Skipped route stop ${stop.routeName} #${stop.routeOrder}: missing route`)
+      continue
+    }
+
+    if (!venueId) {
+      console.warn(`Skipped route stop ${stop.routeName} #${stop.routeOrder}: missing venue ${stop.venueName}`)
+      continue
+    }
+
+    const existingByOrder = db
+      .select()
+      .from(routeStops)
+      .where(
+        and(
+          eq(routeStops.routeId, routeId),
+          eq(routeStops.routeOrder, stop.routeOrder)
+        )
+      )
+      .get()
+
+    if (existingByOrder) continue
+
+    const existingByVenue = db
+      .select()
+      .from(routeStops)
+      .where(
+        and(eq(routeStops.routeId, routeId), eq(routeStops.venueId, venueId))
+      )
+      .get()
+
+    if (existingByVenue) continue
+
+    db.insert(routeStops)
+      .values({
+        id: uuidv4(),
+        routeId,
+        venueId,
+        routeOrder: stop.routeOrder,
+        plannedDurationMinutes: stop.plannedDurationMinutes,
+        walkLabel: stop.walkLabel,
+      })
+      .run()
+
     inserted += 1
   }
 
@@ -637,11 +1028,19 @@ function seedConversationStarters() {
 
 const insertedUsers = await seedUsers()
 const insertedInterests = seedInterests()
+const insertedRouteThemes = seedRouteThemes()
 const insertedVenues = seedVenues()
+const insertedRouteVenues = seedVenues(routeVenueSeedData)
+const insertedRoutes = seedRoutes()
+const insertedRouteStops = seedRouteStops()
 const insertedConversationStarters = seedConversationStarters()
 
 console.log("Seed complete")
 console.log(`Users inserted: ${insertedUsers}`)
 console.log(`Interests inserted: ${insertedInterests}`)
 console.log(`Venues inserted: ${insertedVenues}`)
+console.log(`Route themes inserted: ${insertedRouteThemes}`)
+console.log(`Route venues inserted: ${insertedRouteVenues}`)
+console.log(`Routes inserted: ${insertedRoutes}`)
+console.log(`Route stops inserted: ${insertedRouteStops}`)
 console.log(`Conversation starters inserted: ${insertedConversationStarters}`)
