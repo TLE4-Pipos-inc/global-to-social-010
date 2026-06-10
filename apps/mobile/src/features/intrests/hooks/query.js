@@ -12,12 +12,12 @@ async function fetchInterest() {
   return res.json()
 }
 
-export const accountQueryOptions = queryOptions({
+export const interestQueryOptions = queryOptions({
   queryKey: ["interest"],
   queryFn: fetchInterest,
-  staleTime: 600,
+  staleTime: 6000,
 })
 
 export function useInterestQuery() {
-  return useSuspenseQuery(accountQueryOptions)
+  return useSuspenseQuery(interestQueryOptions)
 }

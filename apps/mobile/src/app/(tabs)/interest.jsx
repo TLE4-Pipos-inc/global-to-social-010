@@ -1,29 +1,16 @@
-import { Image } from "expo-image"
 import {
-  Platform,
   StyleSheet,
   View,
   Text,
-  Pressable,
-  TouchableOpacity,
-  FlatList,
-  Modal,
   ScrollView,
   ActivityIndicator,
 } from "react-native"
-
-import { ThemedView } from "@/components/themed-view"
 import { ThemedText } from "@/components/themed-text"
-import { Link, router } from "expo-router"
+import { router } from "expo-router"
 import {
-  PrimaryDarkButton,
-  PrimaryDarkOutlineButton,
   PrimaryLightButton,
-  PrimaryLightOutlineButton,
 } from "@/components/buttons"
-import { Suspense, useState } from "react"
-import { useAccountQuery } from "@/features/auth"
-import { useQueryClient } from "@tanstack/react-query"
+import { Suspense } from "react"
 import { useInterestQuery } from "@/features/intrests/hooks/query"
 
 function Interest() {
@@ -69,32 +56,6 @@ function Interest() {
         <View>
           <Text style={styles.language}>Languages</Text>
         </View>
-
-        {/*<View style={styles.container}>*/}
-        {/*  <Modal visible={isVisible} transparent animationType="slide">*/}
-        {/*    <View style={styles.modalBackground}>*/}
-        {/*      <View style={styles.modalContent}>*/}
-        {/*        <FlatList*/}
-        {/*          data={dummyLanguages}*/}
-        {/*          keyExtractor={(item) => item}*/}
-        {/*          renderItem={({ item }) => (*/}
-        {/*            <TouchableOpacity*/}
-        {/*              style={styles.option}*/}
-        {/*              onPress={() => handleLanguageSelect(item)}*/}
-        {/*            >*/}
-        {/*              <ThemedText style={styles.optionText}>{item}</ThemedText>*/}
-        {/*            </TouchableOpacity>*/}
-        {/*          )}*/}
-        {/*        />*/}
-
-        {/*        <TouchableOpacity onPress={() => setIsVisible(false)}>*/}
-        {/*          <ThemedText style={styles.closeText}>Close</ThemedText>*/}
-        {/*        </TouchableOpacity>*/}
-        {/*      </View>*/}
-        {/*    </View>*/}
-        {/*  </Modal>*/}
-        {/*</View>*/}
-
         <View style={styles.button}>
           <PrimaryLightButton
             title="Next"
