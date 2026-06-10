@@ -1053,7 +1053,7 @@ function seedConversationStarters() {
 
   for (const [
     interestName,
-    category,
+    ,
     prompt,
     triggerMinute,
   ] of starterSeedData) {
@@ -1076,7 +1076,6 @@ function seedConversationStarters() {
           interestsId
             ? eq(conversationStarters.interestsId, interestsId)
             : isNull(conversationStarters.interestsId),
-          eq(conversationStarters.category, category),
           eq(conversationStarters.prompt, prompt),
           eq(conversationStarters.triggerMinute, triggerMinute)
         )
@@ -1088,7 +1087,6 @@ function seedConversationStarters() {
     const starter = {
       id: uuidv4(),
       interestsId,
-      category,
       prompt,
       triggerMinute,
     }

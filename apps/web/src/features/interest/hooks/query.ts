@@ -1,7 +1,7 @@
 import { fetchWithAuth } from "#/lib/api"
 import { formatErrorResponse } from "#/lib/api-error"
 import type { ApiSuccessResponse, UpdateData } from "#/types/api"
-import type { Interest, InterestResponse } from "#/types/interest"
+import type { InterestCreate, InterestResponse } from "@pub-hopper/schemas"
 import {
   QueryClient,
   useMutation,
@@ -59,7 +59,7 @@ export function useGetInterestById(id: string) {
 // --- Create ---
 
 async function createInterest(
-  data: Interest
+  data: InterestCreate
 ): Promise<ApiSuccessResponse<InterestResponse>> {
   const res = await fetchWithAuth("/api/interests", {
     method: "POST",
@@ -96,7 +96,7 @@ async function updateInterest({
   data,
 }: {
   id: string
-  data: UpdateData<Interest>
+  data: UpdateData<InterestCreate>
 }): Promise<ApiSuccessResponse<InterestResponse>> {
   const res = await fetchWithAuth(`/api/interests/${id}`, {
     method: "PATCH",
@@ -115,7 +115,7 @@ export const updateInterestMutationOptions = (
   id: string,
   queryClient: QueryClient
 ) => ({
-  mutationFn: (data: UpdateData<Interest>) => updateInterest({ id, data }),
+  mutationFn: (data: UpdateData<InterestCreate>) => updateInterest({ id, data }),
   onSuccess: () => {
     queryClient.invalidateQueries({ queryKey: ["interests"] })
     queryClient.invalidateQueries({ queryKey: ["interests", id] })

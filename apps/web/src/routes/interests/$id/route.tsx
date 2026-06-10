@@ -1,11 +1,15 @@
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router"
 import { getInterestByIdQueryOptions } from "#/features/interest/hooks/query"
+import { getConversationStartersQueryOptions } from "#/features/conversation-starter/hooks/query"
 import { Skeleton } from "#/components/ui/skeleton"
 import { Button } from "#/components/ui/button"
 
 export const Route = createFileRoute("/interests/$id")({
   loader: async ({ context: { queryClient }, params }) => {
     await queryClient.prefetchQuery(getInterestByIdQueryOptions(params.id))
+    await queryClient.prefetchQuery(
+      getConversationStartersQueryOptions({ interestsId: params.id })
+    )
   },
   pendingMs: 300,
   pendingMinMs: 200,
@@ -27,8 +31,8 @@ function InterestDetailError({ error }: { error: Error }) {
   return (
     <>
       <div className="flex items-end justify-between py-2">
-        <Button variant="outline">
-          <Link to="/interests">Back to Interests</Link>
+        <Button variant="outline" render={<Link to="/interests" />} nativeButton={false}>
+          Back to Interests
         </Button>
       </div>
       <div className="text-center">

@@ -4,7 +4,7 @@ import {
   useGetInterests,
 } from "../../features/interest/hooks/query"
 import { Button } from "#/components/ui/button"
-import { InterestCard } from "#/features/interest/components/interest-card"
+import { InterestCard, InterestGeneralCard } from "#/features/interest/components/interest-card"
 import { Skeleton } from "#/components/ui/skeleton"
 
 export const Route = createFileRoute("/interests/")({
@@ -48,14 +48,15 @@ function RouteComponent() {
       <div className="flex items-end justify-between py-2">
         <h1 className="text-2xl">Interests</h1>
 
-        <Button variant="outline">
-          <Link to="/interests/create">Create Interest</Link>
+        <Button variant="outline" render={<Link to="/interests/create" />} nativeButton={false}>
+          Create Interest
         </Button>
       </div>
       {interestsData.length === 0 ? (
         <p>No interests found.</p>
       ) : (
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
+          <InterestGeneralCard />
           {interestsData.map((interest) => (
             <InterestCard key={interest.id} interest={interest} />
           ))}

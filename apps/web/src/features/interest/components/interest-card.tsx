@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card"
-import type { InterestResponse } from "#/types/interest"
+import type { InterestResponse } from "@pub-hopper/schemas"
 import { Link } from "@tanstack/react-router"
 
 function InterestCard({ interest }: { interest: InterestResponse }) {
@@ -17,4 +17,19 @@ function InterestCard({ interest }: { interest: InterestResponse }) {
   )
 }
 
-export { InterestCard }
+function InterestGeneralCard() {
+  return (
+    <Link to="/conversation-starters">
+      <Card className="hover:scale-105 hover:shadow-md">
+        <CardHeader>
+          <CardTitle>
+            <h2>General</h2>
+          </CardTitle>
+        </CardHeader>
+        <CardContent />
+      </Card>
+    </Link>
+  )
+}
+
+export { InterestCard, InterestGeneralCard }

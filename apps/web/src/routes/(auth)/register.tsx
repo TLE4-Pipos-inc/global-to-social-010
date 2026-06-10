@@ -135,8 +135,8 @@ function RouteComponent() {
         </CardContent>
         <CardFooter className="justify-center">
           <span>Already have an account?</span>
-          <Button variant="link">
-            <Link to="/login">Log in</Link>
+          <Button variant="link" render={<Link to="/login" />} nativeButton={false}>
+            Log in
           </Button>
         </CardFooter>
       </Card>

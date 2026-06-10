@@ -4,7 +4,7 @@ import { Button } from "#/components/ui/button"
 import { Spinner } from "#/components/ui/spinner"
 import { useInterestForm } from "#/features/interest/hooks/form"
 import { useCreateInterest } from "#/features/interest/hooks/query"
-import { InterestSchema } from "#/types/interest"
+import { InterestCreateSchema } from "@pub-hopper/schemas"
 import { toast } from "sonner"
 
 export const Route = createFileRoute("/interests/create")({
@@ -20,7 +20,7 @@ function RouteComponent() {
       name: "",
     },
     validators: {
-      onSubmit: InterestSchema,
+      onSubmit: InterestCreateSchema,
     },
     onSubmit: ({ value }) => {
       createInterest.mutate(value, {
@@ -45,8 +45,8 @@ function RouteComponent() {
   return (
     <>
       <div className="flex items-end justify-between py-2">
-        <Button variant="outline">
-          <Link to="/interests">Back to Interests</Link>
+        <Button variant="outline" render={<Link to="/interests" />} nativeButton={false}>
+          Back to Interests
         </Button>
       </div>
       <form

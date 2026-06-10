@@ -51,8 +51,8 @@ function RouteComponent() {
       <div className="flex items-end justify-between py-2">
         <h1 className="text-2xl">Account</h1>
 
-        <Button variant="outline">
-          <Link to="/logout">Logout</Link>
+        <Button variant="outline" render={<Link to="/logout" />} nativeButton={false}>
+          Logout
         </Button>
       </div>
       <p>

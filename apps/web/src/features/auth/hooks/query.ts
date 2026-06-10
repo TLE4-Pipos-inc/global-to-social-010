@@ -8,7 +8,6 @@ async function fetchAccount(): Promise<ApiSuccessResponse<UserResponse>> {
 
   if (!res.ok) {
     const errorData = (await res.json()) as ApiErrorResponse
-    console.log(errorData.message)
     throw new Error(errorData.message, { cause: errorData.errors })
   }
 

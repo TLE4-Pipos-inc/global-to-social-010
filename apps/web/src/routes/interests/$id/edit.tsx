@@ -5,7 +5,7 @@ import {
 } from "../../../features/interest/hooks/query"
 import { FieldGroup } from "#/components/ui/field"
 import { Button } from "#/components/ui/button"
-import { InterestSchema } from "#/types/interest"
+import { InterestCreateSchema } from "@pub-hopper/schemas"
 import { useInterestForm } from "../../../features/interest/hooks/form"
 import { toast } from "sonner"
 import { Spinner } from "#/components/ui/spinner"
@@ -27,7 +27,7 @@ function RouteComponent() {
       name: interest.name,
     },
     validators: {
-      onSubmit: InterestSchema,
+      onSubmit: InterestCreateSchema,
     },
     onSubmit: ({ value }) => {
       updateInterest.mutate(
@@ -55,10 +55,12 @@ function RouteComponent() {
   return (
     <>
       <div className="flex items-end justify-between py-2">
-        <Button variant="outline">
-          <Link to="/interests/$id" params={{ id: interest.id }}>
-            Back to interest
-          </Link>
+        <Button
+          variant="outline"
+          render={<Link to="/interests/$id" params={{ id: interest.id }} />}
+          nativeButton={false}
+        >
+          Back to interest
         </Button>
         <Button
           type="submit"

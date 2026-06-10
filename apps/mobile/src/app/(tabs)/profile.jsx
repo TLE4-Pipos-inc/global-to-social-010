@@ -14,7 +14,7 @@ import { Colors } from "@/constants/theme"
 function ProfileContent() {
   const accountQuery = useAccountQuery()
   const logout = useLogoutMutation()
-  const user = accountQuery.data.user
+  const user = accountQuery.data.result
 
   return (
     <>

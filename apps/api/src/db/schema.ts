@@ -250,7 +250,6 @@ export const conversationStarters = sqliteTable(
   {
     id: text("id").primaryKey(),
     interestsId: text("interests_id").references(() => interests.id, { onDelete: "cascade" }),
-    category: text("category").notNull(),
     prompt: text("prompt").notNull(),
     triggerMinute: integer("trigger_minute").notNull(),
   },

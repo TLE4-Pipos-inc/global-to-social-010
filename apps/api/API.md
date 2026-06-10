@@ -938,7 +938,7 @@ List conversation starters, optionally filtered. No auth required.
     {
       "id": "uuid",
       "interestsId": "uuid",
-      "category": "icebreaker",
+      "interestName": "icebreaker",
       "prompt": "What would your perfect Saturday look like?",
       "triggerMinute": 10
     }
@@ -973,7 +973,6 @@ Create a conversation starter.
 ```json
 {
   "interestsId": "uuid-or-null",
-  "category": "icebreaker",
   "prompt": "What would your perfect Saturday look like?",
   "triggerMinute": 10
 }
@@ -982,9 +981,10 @@ Create a conversation starter.
 | Field | Type | Required | Rules |
 |-------|------|----------|-------|
 | `interestsId` | string (uuid) | no | must be a valid interest id if provided |
-| `category` | string | yes | trimmed, min 1 |
 | `prompt` | string | yes | trimmed, min 1 |
 | `triggerMinute` | number | yes | one of `0 5 10 15 20 25 30 35 40 45` |
+
+`GET` responses also include `interestName` (the linked interest's `name`, or `null` if `interestsId` is `null`).
 
 **Response `201`**
 ```json
@@ -1522,7 +1522,6 @@ Pushed to the session room while a stop timer is running — once immediately wh
   "starter": {
     "id": "uuid",
     "interestsId": "uuid-or-null",
-    "category": "icebreaker",
     "prompt": "What would your perfect Saturday look like?",
     "triggerMinute": 0
   },
