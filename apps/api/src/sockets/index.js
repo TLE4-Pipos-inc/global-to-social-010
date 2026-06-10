@@ -11,7 +11,7 @@ import {
   persistQueuedParty,
   removePersistedParty,
   startStopTimer,
-} from "../lib/matchmaking/session.js"
+} from "@/lib/matchmaking/session.js"
 import { ConversationStarterScheduler } from "../lib/conversation-starters.js"
 
 /**
