@@ -12,7 +12,7 @@ import {
   removePersistedParty,
   startStopTimer,
 } from "@/lib/matchmaking/session.js"
-import { ConversationStarterScheduler } from "../lib/conversation-starters.js"
+import { ConversationStarterScheduler } from "@/lib/conversation-starters.js"
 
 /**
  * Event catalog. Mirror this object in the client.
