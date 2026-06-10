@@ -187,9 +187,9 @@ export function createMatchedSession({ parties, players, selectedTimeSlot, match
     // Clamp matchScore to 0-100 for storage (it arrives as a 0-1 float).
     const storedScore = Math.round(Math.min(100, Math.max(0, matchScore * 100)))
 
-    const membersResult = players.map((p, idx) => ({
+    const membersResult = players.map((p) => ({
       userId: p.userId,
-      role: idx === 0 ? "host" : "member",
+      role: p.userId === leadParty.leaderId ? "host" : "member",
       name: p.name ?? "Player",
     }))
 
