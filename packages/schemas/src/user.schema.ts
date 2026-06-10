@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { BaseSchema } from "./base-schema.js"
+import { BaseSchema } from "./base-schema.ts"
 
 export const UserRoleSchema = z.enum(["user", "partner", "admin"])
 
