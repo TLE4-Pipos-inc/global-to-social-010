@@ -56,7 +56,7 @@ const venueSeedData = [
     address: "Stadhuisplein 23, Rotterdam",
     description: "Stylish cocktail and dining bar transitioning into nightlife.",
     latitude: 51.91897901259875,
-    longitude:  4.481015142324509,
+    longitude: 4.481015142324509,
     suggestedOrder: "early stop",
     vibe: "cocktails and social dining",
   },

@@ -25,7 +25,6 @@ function isUniqueEmailError(error) {
 }
 
 router.post("/register", async (req, res) => {
-  console.log("test")
   const result = RegisterUserSchema.safeParse(req.body)
   if (!result.success) {
     return res.status(400).json({
