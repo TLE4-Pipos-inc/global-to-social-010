@@ -12,23 +12,24 @@ import { router } from "expo-router"
 import { PrimaryLightButton } from "@/components/buttons"
 import { Suspense, useState } from "react"
 import { useInterestQuery } from "@/features/intrests/hooks/query"
-import { useAccountQuery } from "@/features/auth"
 import { fetchWithAuth } from "@/lib/api"
 
 function Interest() {
   const [selectedInterest, setSelectedInterest] = useState([])
   const [errorMessage, setErrorMessage] = useState("")
 
-  const { data: userdata } = useAccountQuery()
-  const user = userdata?.user
-
   const { data } = useInterestQuery()
 
-  const interests = data?.interests || []
+  console.log("interest query data:", data)
+
+  const interests =
+    data?.interests || data?.result?.interests || data?.result || []
 
   async function saveUserInterests() {
     try {
       setErrorMessage("")
+
+      console.log("selectedInterest before save:", selectedInterest)
 
       if (selectedInterest.length < 3) {
         setErrorMessage("Please select at least 3 interests")
@@ -36,7 +37,7 @@ function Interest() {
       }
 
       const response = await fetchWithAuth(`/api/user-interests`, {
-        method: "POST",
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
@@ -48,14 +49,19 @@ function Interest() {
       const json = await response.json()
 
       if (!response.ok) {
-        setErrorMessage(json.message || "Something went wrong")
+        if (json.errors?.interestIds) {
+          setErrorMessage("You can only select a maximum of 5 interests")
+        } else {
+          setErrorMessage(json.message || "Something went wrong")
+        }
+
         return false
       }
-      //
-      // console.log("Saved interests:", json)
+
+      console.log("Saved interests:", json)
       return true
     } catch (error) {
-      // console.error("Failed to save interests", error)
+      console.error("Failed to save interests", error)
       setErrorMessage("Could not save interests")
       return false
     }
@@ -74,20 +80,23 @@ function Interest() {
           }}
         >
           <Text style={styles.title}>match by interest</Text>
+
           <ThemedText style={styles.text}>
             Pick what you're into — we'll find compatible students
           </ThemedText>
         </View>
 
-        <View style={{}}>
+        <View>
           <View style={styles.box}>
             <ThemedText style={styles.boxTitle}>How matching works</ThemedText>
+
             <ThemedText style={styles.boxText}>
               We compare your interests with other groups at the same time slot
               to find the best match.
             </ThemedText>
           </View>
         </View>
+
         <View style={styles.interestsContainer}>
           {interests.map((interest) => {
             const isSelected = selectedInterest.includes(interest.id)
@@ -100,6 +109,8 @@ function Interest() {
                   isSelected && styles.interestPillSelected,
                 ]}
                 onPress={() => {
+                  setErrorMessage("")
+
                   if (isSelected) {
                     setSelectedInterest(
                       selectedInterest.filter((id) => id !== interest.id)
@@ -135,6 +146,7 @@ function Interest() {
             title="Next"
             onPress={async () => {
               const saved = await saveUserInterests()
+
               if (saved) {
                 router.push("/profile")
               }
@@ -172,10 +184,6 @@ const styles = StyleSheet.create({
   boxTitle: {
     fontSize: 18,
     fontWeight: "bold",
-  },
-
-  errorText: {
-    color: "red",
   },
 
   boxText: {
@@ -246,8 +254,19 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
 
+  errorText: {
+    color: "red",
+    textAlign: "center",
+    marginTop: 12,
+    fontSize: 14,
+  },
+
   button: {
     paddingHorizontal: 24,
     paddingVertical: 32,
+  },
+
+  loader: {
+    marginTop: 40,
   },
 })
