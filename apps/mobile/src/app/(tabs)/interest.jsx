@@ -23,8 +23,11 @@ import {
 } from "@/components/buttons"
 import { Suspense, useState } from "react"
 import { useAccountQuery } from "@/features/auth"
-import { useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useInterestQuery } from "@/features/intrests/hooks/query"
+import { fetchWithAuth } from "@/lib/api"
+import { API_URL } from "@/constants/api"
+import { setAccessToken } from "@/lib/token"
 
 function Interest() {
   const [selectedInterest, setSelectedInterest] = useState([])
@@ -33,8 +36,38 @@ function Interest() {
 
   const interests = data?.interests || []
 
-  // const toggleInterest = () = {
+  // const logout = useMutation({
+  //   mutationFn: () =>
+  //     fetch(`${API_URL}/api/auth/logout`, {
+  //       method: "POST",
+  //       credentials: "include",
+  //     }),
+  //   onSettled: () => {
+  //     setAccessToken(null)
+  //     queryClient.removeQueries({ queryKey: ["account"] })
+  //     router.replace("/(auth)/login")
+  //   },
+  // })
+
+  // async function saveUserInterests() {
+  //   try {
+  //     const response = await fetch(`${API_URL}/api/users/interests`, {
+  //       method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //       body: JSON.stringify({
+  //         userId: user.id,
+  //         interestIds: selectedInterest,
+  //       }),
+  //     })
   //
+  //     const json = await response.json()
+  //
+  //     console.log("Saved interests:", json)
+  //   } catch (error) {
+  //     console.error("Failed to save interests", error)
+  //   }
   // }
 
   return (
