@@ -158,11 +158,11 @@ export function createMatchedSession({ parties, players, selectedTimeSlot, match
         })
         .run()
 
-      const leadMemberRows = leadParty.members.map((m, index) => ({
+      const leadMemberRows = leadParty.members.map((m) => ({
         id: uuidv4(),
         groupId,
         userId: m.userId,
-        role: index === 0 ? "host" : "member",
+        role: m.userId === leadParty.leaderId ? "host" : "member",
       }))
       tx.insert(groupMembers).values(leadMemberRows).run()
     }
