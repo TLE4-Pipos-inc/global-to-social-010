@@ -4,8 +4,15 @@ import { PartyQueue, serializeParty } from "../lib/matchmaking/queue.js"
 import {
   activateSession,
   createMatchedSession,
+  finishStopTimer,
+  getSessionStop,
+  isSessionMember,
   loadPlayerProfile,
+  persistQueuedParty,
+  removePersistedParty,
+  startStopTimer,
 } from "../lib/matchmaking/session.js"
+import { ConversationStarterScheduler } from "../lib/conversation-starters.js"
 
 /**
  * Event catalog. Mirror this object in the client.
@@ -20,6 +27,8 @@ export const SOCKET_EVENTS = Object.freeze({
   PARTY_QUEUE: "party:queue",
   PARTY_UNQUEUE: "party:unqueue",
   SESSION_READY: "session:ready",
+  STOP_START: "stop:start",
+  STOP_FINISH: "stop:finish",
 
   // ---- server -> client ----
   PARTY_UPDATED: "party:updated",
@@ -27,6 +36,9 @@ export const SOCKET_EVENTS = Object.freeze({
   QUEUE_UPDATE: "queue:update",
   MATCH_FOUND: "match:found",
   SESSION_STARTED: "session:started",
+  STOP_TIMER_STARTED: "stop:timer:started",
+  STOP_TIMER_FINISHED: "stop:timer:finished",
+  CONVERSATION_STARTER: "conversation:starter",
   ERROR: "error:matchmaking",
 })
 
@@ -47,6 +59,7 @@ export function attachSocketServer(httpServer, opts = {}) {
 
   const queue = new PartyQueue()
   queue.start()
+  const scheduler = new ConversationStarterScheduler()
   /** @type {Map<string, string[]>} sessionId -> partyIds waiting for release */
   const sessionParties = new Map()
 
@@ -107,6 +120,12 @@ export function attachSocketServer(httpServer, opts = {}) {
     socket.on(SOCKET_EVENTS.SESSION_READY, (payload, ack) =>
       safe(socket, ack, () => handleSessionReady(io, socket, queue, sessionParties, payload)),
     )
+    socket.on(SOCKET_EVENTS.STOP_START, (payload, ack) =>
+      safe(socket, ack, () => handleStopStart(io, socket, scheduler, payload)),
+    )
+    socket.on(SOCKET_EVENTS.STOP_FINISH, (payload, ack) =>
+      safe(socket, ack, () => handleStopFinish(io, socket, scheduler, payload)),
+    )
 
     socket.on("disconnect", () => {
       // The user's other sockets (other tabs) keep their party membership.
@@ -121,6 +140,7 @@ export function attachSocketServer(httpServer, opts = {}) {
     let result
     try {
       result = createMatchedSession({
+        parties: match.parties,
         players: match.players,
         selectedTimeSlot: match.selectedTimeSlot,
         matchScore: match.matchScore,
@@ -162,7 +182,7 @@ export function attachSocketServer(httpServer, opts = {}) {
     }
   })
 
-  return { io, queue }
+  return { io, queue, scheduler }
 }
 
 // ---------------------------------------------------------------------------
@@ -209,6 +229,10 @@ function handleLeaveParty(io, socket, queue) {
   const partyId = partyBefore.id
   const result = queue.leaveParty(userId)
 
+  // A leave always either dissolves the party or drops its size below 4,
+  // making any persisted row invalid. Remove it unconditionally (no-op if absent).
+  removePersistedParty(partyId)
+
   // Pull every socket of this user out of the room.
   for (const sid of io.sockets.adapter.rooms.get(userRoom(userId)) ?? []) {
     io.sockets.sockets.get(sid)?.leave(partyRoom(partyId))
@@ -235,6 +259,9 @@ function handleKick(io, socket, queue, payload) {
   const partyId = partyBefore.id
 
   const party = queue.kickMember(leaderId, targetUserId)
+
+  // Kick removes a member (and unqueues if queued), invalidating any persisted row.
+  removePersistedParty(partyId)
 
   // Notify the kicked user explicitly + remove their sockets from the room.
   io.to(userRoom(targetUserId)).emit(SOCKET_EVENTS.PARTY_DISSOLVED, {
@@ -271,6 +298,16 @@ function handleQueue(io, socket, queue, payload) {
   }
 
   const party = queue.queueParty(leaderId, selectedTimeSlot)
+
+  // Persist parties that satisfy the existing group_size constraint (4..8).
+  // Smaller parties will be written to the DB when the match is confirmed.
+  persistQueuedParty({
+    partyId: party.id,
+    members: party.members,
+    leaderId: party.leaderId,
+    selectedTimeSlot: party.selectedTimeSlot,
+  })
+
   const data = serializeParty(party)
   io.to(partyRoom(party.id)).emit(SOCKET_EVENTS.PARTY_UPDATED, data)
 
@@ -285,6 +322,10 @@ function handleQueue(io, socket, queue, payload) {
 function handleUnqueue(io, socket, queue) {
   const leaderId = socket.data.userId
   const party = queue.unqueueParty(leaderId)
+
+  // Remove the persisted row if it was written at queue time (no-op if it wasn't).
+  removePersistedParty(party.id)
+
   const data = serializeParty(party)
   io.to(partyRoom(party.id)).emit(SOCKET_EVENTS.PARTY_UPDATED, data)
   return { ok: true, party: data }
@@ -332,6 +373,69 @@ function handleSessionReady(io, socket, queue, sessionParties, payload) {
   }
 
   return { ok: true, ready: readyUserIds.size, total: totalUserIds.size }
+}
+
+function handleStopStart(io, socket, scheduler, payload) {
+  const userId = socket.data.userId
+  const stopId = String(payload?.stopId ?? "")
+  const sessionId = String(payload?.sessionId ?? "")
+
+  if (!stopId) throw httpError("INVALID_STOP", "stopId is required")
+  if (!sessionId) throw httpError("INVALID_SESSION", "sessionId is required")
+
+  const stop = getSessionStop(sessionId, stopId)
+  if (!stop) throw httpError("STOP_NOT_FOUND", "Stop not found in this session")
+  if (stop.timerState !== "not_started") {
+    throw httpError("INVALID_STATE", `Stop timer is already ${stop.timerState}`)
+  }
+
+  if (!isSessionMember(sessionId, userId)) {
+    throw httpError("NOT_MEMBER", "You are not a member of this session")
+  }
+
+  const started = startStopTimer(stopId)
+  if (!started) throw httpError("START_FAILED", "Could not start the stop timer")
+
+  scheduler.startForStop({
+    sessionId,
+    stopId,
+    plannedDurationMinutes: stop.plannedDurationMinutes,
+    io,
+    room: sessionRoom(sessionId),
+    eventName: SOCKET_EVENTS.CONVERSATION_STARTER,
+  })
+
+  io.to(sessionRoom(sessionId)).emit(SOCKET_EVENTS.STOP_TIMER_STARTED, { stopId, sessionId })
+
+  return { ok: true, stopId, sessionId }
+}
+
+function handleStopFinish(io, socket, scheduler, payload) {
+  const userId = socket.data.userId
+  const stopId = String(payload?.stopId ?? "")
+  const sessionId = String(payload?.sessionId ?? "")
+
+  if (!stopId) throw httpError("INVALID_STOP", "stopId is required")
+  if (!sessionId) throw httpError("INVALID_SESSION", "sessionId is required")
+
+  const stop = getSessionStop(sessionId, stopId)
+  if (!stop) throw httpError("STOP_NOT_FOUND", "Stop not found in this session")
+  if (stop.timerState !== "running") {
+    throw httpError("INVALID_STATE", `Stop timer is not running (state: ${stop.timerState})`)
+  }
+
+  if (!isSessionMember(sessionId, userId)) {
+    throw httpError("NOT_MEMBER", "You are not a member of this session")
+  }
+
+  const finished = finishStopTimer(stopId)
+  if (!finished) throw httpError("FINISH_FAILED", "Could not finish the stop timer")
+
+  scheduler.stopCurrent(sessionId)
+
+  io.to(sessionRoom(sessionId)).emit(SOCKET_EVENTS.STOP_TIMER_FINISHED, { stopId, sessionId })
+
+  return { ok: true, stopId, sessionId }
 }
 
 // ---------------------------------------------------------------------------

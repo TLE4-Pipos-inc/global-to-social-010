@@ -207,6 +207,36 @@
         display: grid;
         gap: 12px;
       }
+
+      .full-width {
+        grid-column: 1 / -1;
+      }
+
+      .starter-entry {
+        padding: 10px 14px;
+        border-radius: 10px;
+        background: rgba(56, 189, 248, 0.06);
+        border: 1px solid rgba(56, 189, 248, 0.18);
+        margin-bottom: 8px;
+      }
+
+      .starter-entry .meta {
+        font-size: 0.78rem;
+        color: var(--muted);
+        margin-bottom: 4px;
+      }
+
+      .starter-entry .prompt {
+        font-size: 1rem;
+        color: var(--text);
+        font-weight: 600;
+      }
+
+      #starterLog {
+        min-height: 120px;
+        max-height: 400px;
+        overflow-y: auto;
+      }
     </style>
   </head>
   <body>
@@ -303,6 +333,16 @@
           <button id="sessionReadyBtn" disabled>Session Ready</button>
           <button id="copyInviteBtn">Copy Invite Code</button>
         </div>
+
+        <div>
+          <label for="stopId">Stop ID</label>
+          <input id="stopId" placeholder="Auto-filled from match payload (first stop)" />
+        </div>
+
+        <div class="grid actions">
+          <button id="startStopBtn" class="good" disabled>Start Stop Timer</button>
+          <button id="finishStopBtn" class="warn" disabled>Finish Stop Timer</button>
+        </div>
       </section>
 
       <section class="card stack">
@@ -346,6 +386,16 @@
           <pre id="log"></pre>
         </div>
       </section>
+      <section class="card stack full-width">
+        <div>
+          <h2>Conversation Starters</h2>
+          <p class="small">
+            Pushed to all session members every 5 minutes once a stop timer is running.
+            Based on shared group interests; falls back to general starters when needed.
+          </p>
+        </div>
+        <div id="starterLog"></div>
+      </section>
     </main>
 
     <script src="/socket.io/socket.io.js"></script>
@@ -359,21 +409,30 @@
         PARTY_QUEUE: "party:queue",
         PARTY_UNQUEUE: "party:unqueue",
         SESSION_READY: "session:ready",
+        STOP_START: "stop:start",
+        STOP_FINISH: "stop:finish",
         PARTY_UPDATED: "party:updated",
         PARTY_DISSOLVED: "party:dissolved",
         QUEUE_UPDATE: "queue:update",
         MATCH_FOUND: "match:found",
         SESSION_STARTED: "session:started",
+        STOP_TIMER_STARTED: "stop:timer:started",
+        STOP_TIMER_FINISHED: "stop:timer:finished",
+        CONVERSATION_STARTER: "conversation:starter",
         ERROR: "error:matchmaking",
       }
 
       const $ = (id) => document.getElementById(id)
       const logEl = $("log")
+      const starterLogEl = $("starterLog")
       const connDot = $("connDot")
       const connText = $("connText")
       const userText = $("userText")
       const sessionIdInput = $("sessionId")
       const sessionReadyBtn = $("sessionReadyBtn")
+      const stopIdInput = $("stopId")
+      const startStopBtn = $("startStopBtn")
+      const finishStopBtn = $("finishStopBtn")
       const apiBaseInput = $("apiBase")
       const socketUrlInput = $("socketUrl")
       const inviteCodeInput = $("inviteCode")
@@ -422,6 +481,30 @@
         sessionReadyBtn.title = sessionId
           ? "Send session:ready for the current session"
           : "Disabled until a match creates a session id"
+        updateStopBtnStates()
+      }
+
+      function setStopId(stopId) {
+        stopIdInput.value = stopId || ""
+        updateStopBtnStates()
+      }
+
+      function updateStopBtnStates() {
+        const hasSession = !!sessionIdInput.value.trim()
+        const hasStop = !!stopIdInput.value.trim()
+        startStopBtn.disabled = !(hasSession && hasStop)
+        finishStopBtn.disabled = !(hasSession && hasStop)
+      }
+
+      function writeStarterLog(starter, triggerMinute, stopId) {
+        const stamp = new Date().toLocaleTimeString()
+        const entry = document.createElement("div")
+        entry.className = "starter-entry"
+        entry.innerHTML = `
+          <div class="meta">${stamp} &middot; minute ${triggerMinute} &middot; stop ${stopId?.slice(0, 8)}… &middot; ${starter.category}</div>
+          <div class="prompt">${starter.prompt}</div>
+        `
+        starterLogEl.prepend(entry)
       }
 
       function storeToken(token) {
@@ -477,8 +560,17 @@
               note: "Add an active route to the DB before using session:ready",
             })
           }
+          if (payload?.stops?.[0]?.id) {
+            setStopId(payload.stops[0].id)
+          }
         })
         socket.on(SOCKET_EVENTS.SESSION_STARTED, (payload) => writeLog(`${label} session started`, payload))
+        socket.on(SOCKET_EVENTS.STOP_TIMER_STARTED, (payload) => writeLog(`${label} stop timer started`, payload))
+        socket.on(SOCKET_EVENTS.STOP_TIMER_FINISHED, (payload) => writeLog(`${label} stop timer finished`, payload))
+        socket.on(SOCKET_EVENTS.CONVERSATION_STARTER, (payload) => {
+          writeLog(`${label} conversation starter`, { minute: payload.triggerMinute, prompt: payload.starter?.prompt })
+          writeStarterLog(payload.starter, payload.triggerMinute, payload.stopId)
+        })
         socket.on(SOCKET_EVENTS.ERROR, (payload) => writeLog(`${label} socket error`, payload))
         socket.on("connect_error", (error) => {
           setConnectionStatus("bad", `${label}: connect error`)
@@ -620,6 +712,7 @@
       }
       if (state.user) setCurrentUser(state.user)
       setSessionId(sessionIdInput.value.trim())
+      updateStopBtnStates()
 
       bind("registerBtn", () => authAndConnect("register"))
       bind("loginBtn", () => authAndConnect("login"))
@@ -663,6 +756,22 @@
         writeLog("session ready", ack)
       })
       bind("copyInviteBtn", copyInviteCode)
+      bind("startStopBtn", async () => {
+        const sessionId = sessionIdInput.value.trim()
+        const stopId = stopIdInput.value.trim()
+        if (!sessionId) throw new Error("No sessionId. Wait for a match first.")
+        if (!stopId) throw new Error("No stopId. Fill in the Stop ID field.")
+        const ack = await emitAck(state.socket, SOCKET_EVENTS.STOP_START, { sessionId, stopId })
+        writeLog("stop timer started", ack)
+      })
+      bind("finishStopBtn", async () => {
+        const sessionId = sessionIdInput.value.trim()
+        const stopId = stopIdInput.value.trim()
+        if (!sessionId) throw new Error("No sessionId.")
+        if (!stopId) throw new Error("No stopId.")
+        const ack = await emitAck(state.socket, SOCKET_EVENTS.STOP_FINISH, { sessionId, stopId })
+        writeLog("stop timer finished", ack)
+      })
 
       bind("loginGroup1Btn", async () => {
         await loginGroup("user1", groupEmail1Input.value, groupPass1Input.value)
