@@ -1,14 +1,15 @@
 import { desc, eq } from "drizzle-orm"
 import express from "express"
-import { db } from "../db/client.js"
-import { groupJoinMatches, playerGroups } from "../db/schema.js"
-import { requireAuth } from "../middleware/auth.js"
+import { db } from "@/db/client"
+import { groupJoinMatches, playerGroups } from "@/db/schema"
+import { requireAuth } from "@/middleware/auth"
 
 const router = express.Router()
 
 // GET /api/matches/me — match history for the authenticated user
-router.get("/me", requireAuth, (req, res) => {
-  const userId = res.locals.payload.userId
+router.get("/me", requireAuth, (_req, res) => {
+  const userId = res.locals.userId
+  console.log("Fetching matches for userId:", userId)
 
   const matches = db
     .select({

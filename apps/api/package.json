@@ -5,9 +5,10 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "build": "esbuild src/index.js --bundle --platform=node --format=esm --outfile=dist/index.js --packages=external && cp -r drizzle dist/drizzle",
+    "dev": "tsx watch --env-file=.env src/index.ts",
+    "build": "esbuild src/index.ts --bundle --platform=node --format=esm --outfile=dist/index.js --packages=external && cp -r drizzle dist/drizzle",
+    "typecheck": "tsc --noEmit",
     "start": "node dist/index.js",
-    "dev": "tsx watch --env-file=.env src/index.js",
     "tunnel": "ngrok http 8000",
     "lint": "eslint src/ --max-warnings 0",
     "db:generate": "drizzle-kit generate",
@@ -35,12 +36,20 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "esbuild": "^0.25.12",
+    "@types/bcrypt": "^6.0.0",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^25.5.2",
     "drizzle-kit": "^0.31.10",
     "socket.io-client": "^4.8.3",
     "eslint": "^9.0.0",
     "eslint-plugin-n": "^17.0.0",
     "ngrok": "5.0.0-beta.2",
-    "esbuild": "^0.25.0",
-    "tsx": "^4.19.4"
+    "tsc-alias": "^1.8.0",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.0"
   }
 }

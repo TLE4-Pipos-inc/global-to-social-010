@@ -13,8 +13,11 @@
 - [Endpoints](#endpoints)
   - [Status](#status)
   - [Auth](#auth)
+  - [Users](#users)
   - [Interests](#interests)
+  - [User Interests](#user-interests)
   - [Venues](#venues)
+  - [Thema Routes](#thema-routes)
   - [Conversation Starters](#conversation-starters)
   - [Matches](#matches)
   - [Sessions](#sessions)
@@ -208,6 +211,46 @@ Permanently delete the authenticated user's account and clear auth cookies.
 
 ---
 
+### Users
+
+Base path: `/api/users`
+
+---
+
+#### `PATCH /api/users/me`
+
+Update the authenticated user's profile fields.
+
+**Auth required:** yes
+
+**Request body** (all fields optional)
+```json
+{
+  "name": "Alice",
+  "school": "EUR",
+  "campus": "Woudestein"
+}
+```
+
+At least one field must be provided. Unknown fields are ignored.
+
+**Response `200`**
+```json
+{
+  "user": {
+    "id": "uuid",
+    "email": "alice@example.com",
+    "name": "Alice",
+    "school": "EUR",
+    "campus": "Woudestein"
+  }
+}
+```
+
+**Errors:** `400` no fields provided or validation failure · `401` unauthenticated · `404` user not found · `500` server error
+
+---
+
 ### Interests
 
 Base path: `/api/interests`
@@ -294,6 +337,112 @@ Delete an interest.
 **Response `204`** — no body
 
 **Errors:** `404` not found · `409` interest is referenced by a group (foreign-key constraint) · `500` server error
+
+---
+
+### User Interests
+
+Base path: `/api/user-interests`
+
+Manages the interests linked to the authenticated user. A user must always have between **3 and 5** interests.
+
+---
+
+#### `GET /api/user-interests`
+
+List the authenticated user's interests.
+
+**Auth required:** yes
+
+**Query parameters**
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `interestId` | string (uuid) | Filter to a specific interest |
+
+**Response `200`**
+```json
+{
+  "userInterests": [
+    { "userId": "uuid", "interestId": "uuid", "interestName": "photography" }
+  ]
+}
+```
+
+**Errors:** `400` invalid query params · `401` unauthenticated
+
+---
+
+#### `GET /api/user-interests/:id`
+
+Fetch a single user interest by interest ID.
+
+**Auth required:** yes
+
+**Response `200`**
+```json
+{ "userInterest": { "userId": "uuid", "interestId": "uuid", "interestName": "photography" } }
+```
+
+**Errors:** `400` invalid id · `401` unauthenticated · `404` not found
+
+---
+
+#### `POST /api/user-interests`
+
+Add one or more interests to the authenticated user. The total after adding must not exceed **5**.
+
+**Auth required:** yes
+
+**Request body**
+```json
+{ "interestIds": ["uuid", "uuid"] }
+```
+
+**Response `201`**
+```json
+{
+  "userInterests": [
+    { "userId": "uuid", "interestId": "uuid", "interestName": "photography" }
+  ]
+}
+```
+
+**Errors:** `400` would exceed 5 interests or `interestId` does not exist · `401` unauthenticated · `409` interest already added · `500` server error
+
+---
+
+#### `PATCH /api/user-interests/:id`
+
+Replace one interest with another (`:id` is the current interest ID).
+
+**Auth required:** yes
+
+**Request body**
+```json
+{ "interestId": "uuid" }
+```
+
+If the new `interestId` equals the current one the request is a no-op and returns the existing record.
+
+**Response `200`**
+```json
+{ "userInterest": { "userId": "uuid", "interestId": "uuid", "interestName": "hiking" } }
+```
+
+**Errors:** `400` `interestId` does not exist · `401` unauthenticated · `404` current interest not found · `409` new interest already added · `500` server error
+
+---
+
+#### `DELETE /api/user-interests/:id`
+
+Remove an interest from the authenticated user. The user must retain at least **3** interests.
+
+**Auth required:** yes
+
+**Response `204`** — no body
+
+**Errors:** `400` would drop below 3 interests · `401` unauthenticated · `404` not found · `500` server error
 
 ---
 
@@ -405,6 +554,125 @@ Delete a venue.
 **Response `204`** — no body
 
 **Errors:** `400` invalid id · `404` not found · `409` venue is used in a route (routeStops) · `500` server error
+
+---
+
+### Thema Routes
+
+Base path: `/api/thema-route`
+
+Manages route themes (`routeThemes`). A theme describes the mood and style of a pub-hop route (e.g. "Classic Pub Crawl").
+
+---
+
+#### `GET /api/thema-route`
+
+List all thema routes. No auth required.
+
+**Query parameters**
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `active` | boolean | Filter by active status (`true` or `false`) |
+
+**Response `200`**
+```json
+{
+  "themaRoutes": [
+    {
+      "id": "uuid",
+      "name": "Classic Pub Crawl",
+      "description": "A great starter route.",
+      "mood": "casual",
+      "active": true
+    }
+  ]
+}
+```
+
+**Errors:** `400` invalid query params
+
+---
+
+#### `GET /api/thema-route/:id`
+
+Fetch a single thema route by ID. No auth required.
+
+**Response `200`**
+```json
+{ "themaRoute": { "id": "uuid", "name": "Classic Pub Crawl", "description": "...", "mood": "casual", "active": true } }
+```
+
+**Errors:** `400` invalid id · `404` not found
+
+---
+
+#### `POST /api/thema-route`
+
+Create a new thema route.
+
+**Auth required:** yes
+
+**Request body**
+```json
+{
+  "name": "Classic Pub Crawl",
+  "description": "A great starter route.",
+  "mood": "casual",
+  "active": true
+}
+```
+
+| Field | Type | Required |
+|-------|------|----------|
+| `name` | string | yes |
+| `description` | string | no |
+| `mood` | string | no |
+| `active` | boolean | no (defaults to `true`) |
+
+**Response `201`**
+```json
+{ "themaRoute": { "id": "uuid", "name": "Classic Pub Crawl", "..." : "..." } }
+```
+
+**Errors:** `400` validation failure · `401` unauthenticated · `409` name already exists · `500` server error
+
+---
+
+#### `PATCH /api/thema-route/:id`
+
+Update a thema route. All fields optional.
+
+**Auth required:** yes
+
+**Request body** (all fields optional)
+```json
+{
+  "name": "Updated Name",
+  "active": false
+}
+```
+
+At least one field must be provided.
+
+**Response `200`**
+```json
+{ "themaRoute": { "id": "uuid", "name": "Updated Name", "..." : "..." } }
+```
+
+**Errors:** `400` no fields provided or validation failure · `401` unauthenticated · `404` not found · `409` name already taken · `500` server error
+
+---
+
+#### `DELETE /api/thema-route/:id`
+
+Delete a thema route.
+
+**Auth required:** yes
+
+**Response `204`** — no body
+
+**Errors:** `400` invalid id · `401` unauthenticated · `404` not found · `409` thema route is referenced by an active route (foreign-key constraint) · `500` server error
 
 ---
 

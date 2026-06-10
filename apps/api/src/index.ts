@@ -4,15 +4,18 @@ import cookieParser from "cookie-parser"
 import path from "path"
 import http from "http"
 import { fileURLToPath } from "url"
-import matchesRouter from "@/routes/matches.js"
-import sessionsRouter from "@/routes/sessions.js"
-import { attachSocketServer } from "@/sockets/index.js"
-import authRouter from "@/routes/auth.js"
-import conversationStartersRouter from "@/routes/conversations-starters.js"
-import interestsRouter from "@/routes/interests.js"
-import userInterestsRouter from "@/routes/user-interests.js"
-import venuesRouter from "@/routes/venues.js"
-import usersRouter from "@/routes/users.js"
+import matchesRouter from "@/routes/matches"
+import sessionsRouter from "@/routes/sessions"
+import { attachSocketServer } from "@/sockets/index"
+import authRouter from "@/routes/auth"
+import conversationStartersRouter from "@/routes/conversations-starters"
+import interestsRouter from "@/routes/interests"
+import userInterestsRouter from "@/routes/user-interests"
+import venuesRouter from "@/routes/venues"
+import usersRouter from "@/routes/users"
+import themaRouteRouter from "@/routes/thema-route"
+import routesRouter from "@/routes/routes"
+import routeStopsRouter from "@/routes/route-stops"
 // ConnectDB();
 
 const app = express()
@@ -26,8 +29,8 @@ app.use(express.json())
 app.use(cookieParser())
 app.use(
   cors({
-    origin: "*",
-    credentials: true, // required to allow cookies cross-origin
+    origin: clientOrigin,
+    credentials: true,
   })
 )
 
@@ -36,7 +39,6 @@ app.use("/api/auth", authRouter)
 app.use("/api/sessions", sessionsRouter)
 app.use("/api/matches", matchesRouter)
 app.use("/api/users", usersRouter)
-app.use("/api/user-interests", userInterestsRouter)
 
 app.use("/websocket-test", express.static(publicDir))
 app.get("/websocket-test", (_req, res) => {
@@ -46,6 +48,9 @@ app.use("/api/conversation-starters", conversationStartersRouter)
 app.use("/api/interests", interestsRouter)
 app.use("/api/user-interests", userInterestsRouter)
 app.use("/api/venues", venuesRouter)
+app.use("/api/thema-route", themaRouteRouter)
+app.use("/api/routes", routesRouter)
+app.use("/api/route-stops", routeStopsRouter)
 
 app.get("/api/status", (_req, res) => {
   res.json({ message: "API is running" })
