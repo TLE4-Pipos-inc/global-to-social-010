@@ -1,6 +1,6 @@
 import { Server } from "socket.io"
-import { verifyAccess } from "../lib/jwt-helper.js"
-import { PartyQueue, serializeParty } from "../lib/matchmaking/queue.js"
+import { verifyAccess } from "@/lib/jwt-helper"
+import { PartyQueue, serializeParty } from "@/lib/matchmaking/queue.js"
 import {
   activateSession,
   createMatchedSession,

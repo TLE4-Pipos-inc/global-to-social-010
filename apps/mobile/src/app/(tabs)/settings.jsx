@@ -1,114 +1,46 @@
 import { Image } from "expo-image"
-import {
-  ActivityIndicator,
-  FlatList,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native"
+import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native"
 import { router } from "expo-router"
-import { Suspense, useState } from "react"
-import { useAccountQuery } from "@/features/auth"
+import { Suspense } from "react"
+import { useAccountQuery, useAccountForm, useLogoutMutation, useUpdateUserMutation } from "@/features/auth"
 import {
+  DestructiveOutlineButton,
   PrimaryLightButton,
   PrimaryLightOutlineButton,
 } from "@/components/buttons"
-import { fetchWithAuth } from "@/lib/api"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { setAccessToken } from "@/lib/token"
-import { API_URL } from "@/constants/api"
 import { ThemedView } from "@/components/themed-view"
 import { ThemedText } from "@/components/themed-text"
+import { UpdateUserSchema } from "@pub-hopper/schemas"
 
-const schools = ["Hogeschool Rotterdam", "EuroCollege Hogeschool"]
+const schoolOptions = [
+  { value: "Hogeschool Rotterdam", label: "Hogeschool Rotterdam" },
+  { value: "EuroCollege Hogeschool", label: "EuroCollege Hogeschool" },
+]
 
-const campuses = [
-  "International Business",
-  "International Business & Entrepreneurship",
+const campusOptions = [
+  { value: "International Business", label: "International Business" },
+  { value: "International Business & Entrepreneurship", label: "International Business & Entrepreneurship" },
 ]
 
 function Settings() {
   const { data } = useAccountQuery()
-  const queryClient = useQueryClient()
+  const logout = useLogoutMutation()
+  const updateUser = useUpdateUserMutation()
 
-  const [name, setName] = useState(data.user.name || "")
-  const [selectedSchool, setSelectedSchool] = useState(data.user.school || "")
-  const [selectedCampus, setSelectedCampus] = useState(data.user.campus || "")
+  const user = data.result.user
 
-  const [schoolModalVisible, setSchoolModalVisible] = useState(false)
-  const [campusModalVisible, setCampusModalVisible] = useState(false)
-
-  const [isSaving, setIsSaving] = useState(false)
-
-  const logout = useMutation({
-    mutationFn: () =>
-      fetch(`${API_URL}/api/auth/logout`, {
-        method: "POST",
-        credentials: "include",
-      }),
-    onSuccess: () => {
-      setAccessToken(null)
-      queryClient.removeQueries({ queryKey: ["account"] })
-      router.replace("/(auth)/login")
+  const form = useAccountForm({
+    defaultValues: {
+      name: user.name || "",
+      school: user.school || "",
+      campus: user.campus || "",
     },
+    validators: { onSubmit: UpdateUserSchema },
+    onSubmit: ({ value }) =>
+      updateUser.mutate(value, {
+        onSuccess: () => router.replace("/profile"),
+      }),
   })
-  const deleteAccount = () => {
-    console.log("Delete account pressed")
-  }
-
-  const saveUserInfo = async () => {
-    try {
-      if (!name) {
-        return
-      }
-
-      if (!selectedSchool) {
-        return
-      }
-
-      if (!selectedCampus) {
-        return
-      }
-
-      setIsSaving(true)
-
-      const res = await fetchWithAuth("/api/users/me", {
-        method: "PATCH",
-        body: JSON.stringify({
-          name,
-          school: selectedSchool,
-          campus: selectedCampus,
-        }),
-      })
-
-      if (!res.ok) {
-        const errorText = await res.text()
-        throw new Error("Could not save profile")
-      }
-
-      const result = await res.json()
-
-      router.replace("/profile")
-    } catch (error) {
-      console.error("Failed to save profile:", error)
-      // TODO: Show error alert to user
-    } finally {
-      setIsSaving(false)
-    }
-  }
-
-  const handleSchoolSelect = (school) => {
-    setSelectedSchool(school)
-    setSchoolModalVisible(false)
-  }
-
-  const handleCampusSelect = (campus) => {
-    setSelectedCampus(campus)
-    setCampusModalVisible(false)
-  }
 
   return (
     <ScrollView>
@@ -123,46 +55,33 @@ function Settings() {
           </View>
 
           <ThemedView style={styles.card}>
-            <ThemedText style={styles.label}>Name</ThemedText>
-            <TextInput
-              style={styles.input}
-              value={name}
-              onChangeText={setName}
-              placeholder="Enter your name"
-              placeholderTextColor="#777"
+            <form.AppField name="name">
+              {(field) => (
+                <field.InputField
+                  label="Name"
+                  placeholder="Enter your name"
+                  autoCapitalize="words"
+                />
+              )}
+            </form.AppField>
+
+            <form.AppField name="school">
+              {(field) => (
+                <field.DropdownField label="School" options={schoolOptions} />
+              )}
+            </form.AppField>
+
+            <form.AppField name="campus">
+              {(field) => (
+                <field.DropdownField label="Campus" options={campusOptions} />
+              )}
+            </form.AppField>
+
+            <PrimaryLightButton
+              title={updateUser.isPending ? "Saving..." : "Save profile"}
+              onPress={() => form.handleSubmit()}
+              disabled={updateUser.isPending}
             />
-
-            <ThemedText style={styles.label}>School</ThemedText>
-            <TouchableOpacity
-              style={styles.dropdownButton}
-              onPress={() => setSchoolModalVisible(true)}
-            >
-              <ThemedText style={styles.dropdownButtonText} numberOfLines={1}>
-                {selectedSchool || "Select school"}
-              </ThemedText>
-              <ThemedText style={styles.arrow}>⌄</ThemedText>
-            </TouchableOpacity>
-
-            <ThemedText style={styles.label}>Campus</ThemedText>
-            <TouchableOpacity
-              style={styles.dropdownButton}
-              onPress={() => setCampusModalVisible(true)}
-            >
-              <ThemedText style={styles.dropdownButtonText} numberOfLines={1}>
-                {selectedCampus || "Select campus"}
-              </ThemedText>
-              <ThemedText style={styles.arrow}>⌄</ThemedText>
-            </TouchableOpacity>
-
-            {isSaving && <ActivityIndicator style={styles.savingLoader} />}
-
-            <ThemedView style={styles.buttonWrapper}>
-              <PrimaryLightButton
-                title={isSaving ? "Saving..." : "Save profile"}
-                onPress={saveUserInfo}
-                disabled={isSaving}
-              />
-            </ThemedView>
           </ThemedView>
         </ThemedView>
 
@@ -172,67 +91,20 @@ function Settings() {
           <PrimaryLightOutlineButton
             title={logout.isPending ? "Logging out..." : "Log out"}
             disabled={logout.isPending}
-            onPress={() => logout.mutate()}
+            onPress={() =>
+              logout.mutate(undefined, {
+                onSettled: () => router.replace("/(auth)/login"),
+              })
+            }
           />
 
-          <TouchableOpacity style={styles.deleteButton} onPress={deleteAccount}>
-            <ThemedText style={styles.deleteButtonText}>
-              Delete account
-            </ThemedText>
-          </TouchableOpacity>
+          <DestructiveOutlineButton
+            title="Delete account"
+            onPress={() => console.log("Delete account pressed")}
+          />
         </ThemedView>
 
         <ThemedView style={styles.bottomFill} />
-
-        <Modal visible={schoolModalVisible} transparent animationType="slide">
-          <ThemedView style={styles.modalBackground}>
-            <ThemedView style={styles.modalContent}>
-              <ThemedText style={styles.modalTitle}>Select school</ThemedText>
-
-              <FlatList
-                data={schools}
-                keyExtractor={(item) => item}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={styles.option}
-                    onPress={() => handleSchoolSelect(item)}
-                  >
-                    <ThemedText style={styles.optionText}>{item}</ThemedText>
-                  </TouchableOpacity>
-                )}
-              />
-
-              <TouchableOpacity onPress={() => setSchoolModalVisible(false)}>
-                <ThemedText style={styles.closeText}>Close</ThemedText>
-              </TouchableOpacity>
-            </ThemedView>
-          </ThemedView>
-        </Modal>
-
-        <Modal visible={campusModalVisible} transparent animationType="slide">
-          <ThemedView style={styles.modalBackground}>
-            <ThemedView style={styles.modalContent}>
-              <ThemedText style={styles.modalTitle}>Select campus</ThemedText>
-
-              <FlatList
-                data={campuses}
-                keyExtractor={(item) => item}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={styles.option}
-                    onPress={() => handleCampusSelect(item)}
-                  >
-                    <ThemedText style={styles.optionText}>{item}</ThemedText>
-                  </TouchableOpacity>
-                )}
-              />
-
-              <TouchableOpacity onPress={() => setCampusModalVisible(false)}>
-                <ThemedText style={styles.closeText}>Close</ThemedText>
-              </TouchableOpacity>
-            </ThemedView>
-          </ThemedView>
-        </Modal>
       </ThemedView>
     </ScrollView>
   )
@@ -250,20 +122,6 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: "#ECECEC",
-  },
-
-  topHeader: {
-    backgroundColor: "#F2D560",
-    paddingTop: 58,
-    paddingBottom: 14,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  title: {
-    fontSize: 28,
-    fontWeight: "800",
-    color: "#1A1A1A",
   },
 
   orangeSection: {
@@ -290,6 +148,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderRadius: 18,
     padding: 16,
+    gap: 12,
     shadowColor: "#000",
     shadowOpacity: 0.08,
     shadowRadius: 8,
@@ -297,100 +156,8 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
 
-  label: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#333",
-    marginBottom: 5,
-    marginTop: 4,
-  },
-
-  input: {
-    height: 44,
-    backgroundColor: "#F7F7F7",
-    borderWidth: 1.3,
-    borderColor: "#222",
-    borderRadius: 13,
-    paddingHorizontal: 14,
-    color: "#111",
-    fontSize: 16,
-    marginBottom: 9,
-  },
-
-  dropdownButton: {
-    height: 44,
-    backgroundColor: "#F7F7F7",
-    borderWidth: 1.3,
-    borderColor: "#222",
-    borderRadius: 13,
-    paddingHorizontal: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 9,
-  },
-
-  dropdownButtonText: {
-    flex: 1,
-    fontSize: 16,
-    color: "#111",
-  },
-
-  arrow: {
-    fontSize: 22,
-    color: "#111",
-    marginTop: -4,
-  },
-
-  savingLoader: {
-    marginVertical: 6,
-  },
-
-  buttonWrapper: {
-    marginTop: 6,
-  },
-
   bottomFill: {
     flex: 1,
-  },
-
-  modalBackground: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.35)",
-    justifyContent: "center",
-    padding: 24,
-  },
-
-  modalContent: {
-    backgroundColor: "white",
-    borderRadius: 18,
-    padding: 16,
-    maxHeight: "70%",
-  },
-
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "800",
-    marginBottom: 12,
-    color: "#111",
-  },
-
-  option: {
-    paddingVertical: 13,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E8E8E8",
-  },
-
-  optionText: {
-    fontSize: 15,
-    color: "#111",
-  },
-
-  closeText: {
-    textAlign: "center",
-    marginTop: 14,
-    fontWeight: "700",
-    color: "#111",
-    fontSize: 15,
   },
 
   loader: {
@@ -403,6 +170,7 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     borderRadius: 18,
     padding: 16,
+    gap: 12,
     shadowColor: "#000",
     shadowOpacity: 0.06,
     shadowRadius: 8,
@@ -414,23 +182,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "800",
     color: "#111",
-    marginBottom: 12,
   },
 
-  deleteButton: {
-    marginTop: 12,
-    height: 44,
-    borderRadius: 13,
-    borderWidth: 1.5,
-    borderColor: "#D64545",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFF5F5",
-  },
-
-  deleteButtonText: {
-    color: "#D64545",
-    fontSize: 16,
-    fontWeight: "700",
-  },
 })
