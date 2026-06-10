@@ -4,10 +4,13 @@ import { v4 as uuidv4 } from "uuid"
 import { db } from "@/db/client.js"
 import {
   conversationStarters,
+  groupMembers,
   interests,
+  playerGroups,
   routeStops,
   routeThemes,
   routes,
+  userInterests,
   users,
   venues,
 } from "@/db/schema.js"
@@ -20,6 +23,41 @@ const userSeedData = [
     school: "Hogeschool Rotterdam",
     campus: "Kralingse Zoom",
     role: "user",
+  },
+]
+
+const testUserSeedData = [
+  {
+    name: "Jordi Test",
+    email: "jordi.test@example.com",
+    password: "Password123!",
+    role: "user",
+    school: "Hogeschool Rotterdam",
+    campus: "Wijnhaven",
+  },
+  {
+    name: "Sara Test",
+    email: "sara.test@example.com",
+    password: "Password123!",
+    role: "user",
+    school: "Hogeschool Rotterdam",
+    campus: "Wijnhaven",
+  },
+  {
+    name: "Noah Test",
+    email: "noah.test@example.com",
+    password: "Password123!",
+    role: "user",
+    school: "Erasmus University Rotterdam",
+    campus: "Woudestein",
+  },
+  {
+    name: "Lina Test",
+    email: "lina.test@example.com",
+    password: "Password123!",
+    role: "user",
+    school: "Erasmus University Rotterdam",
+    campus: "Woudestein",
   },
 ]
 
@@ -45,6 +83,94 @@ const interestSeedData = [
   "Fashion",
   "Nature",
   "Animals",
+]
+
+const sharedInterestSeedData = [
+  { id: "interest-coffee", name: "Coffee" },
+  { id: "interest-bars", name: "Bars" },
+  { id: "interest-social-games", name: "Social games" },
+  { id: "interest-photography", name: "Photography" },
+]
+
+const testUserInterestSeedData = testUserSeedData.flatMap((user) =>
+  sharedInterestSeedData.map((interest) => ({
+    userEmail: user.email,
+    interestName: interest.name,
+  }))
+)
+
+const testGroupSeedData = [
+  {
+    id: "test-group-wijnhaven-social-crew",
+    groupName: "Wijnhaven Social Crew",
+    groupSize: 4,
+    selectedTimeSlot: "2026-06-10T18:00:00.000Z",
+    matchStatus: "waiting",
+  },
+  {
+    id: "test-group-blaak-coffee-starters",
+    groupName: "Blaak Coffee Starters",
+    groupSize: 4,
+    selectedTimeSlot: "2026-06-10T18:00:00.000Z",
+    matchStatus: "waiting",
+  },
+  {
+    id: "test-group-erasmus-evening-team",
+    groupName: "Erasmus Evening Team",
+    groupSize: 4,
+    selectedTimeSlot: "2026-06-10T19:00:00.000Z",
+    matchStatus: "waiting",
+  },
+  {
+    id: "test-group-rotterdam-route-testers",
+    groupName: "Rotterdam Route Testers",
+    groupSize: 4,
+    selectedTimeSlot: "2026-06-10T19:00:00.000Z",
+    matchStatus: "waiting",
+  },
+]
+
+const testGroupMemberSeedData = [
+  {
+    groupName: "Wijnhaven Social Crew",
+    selectedTimeSlot: "2026-06-10T18:00:00.000Z",
+    members: [
+      { userEmail: "jordi.test@example.com", role: "leader" },
+      { userEmail: "sara.test@example.com", role: "member" },
+      { userEmail: "noah.test@example.com", role: "member" },
+      { userEmail: "lina.test@example.com", role: "member" },
+    ],
+  },
+  {
+    groupName: "Blaak Coffee Starters",
+    selectedTimeSlot: "2026-06-10T18:00:00.000Z",
+    members: [
+      { userEmail: "sara.test@example.com", role: "leader" },
+      { userEmail: "jordi.test@example.com", role: "member" },
+      { userEmail: "noah.test@example.com", role: "member" },
+      { userEmail: "lina.test@example.com", role: "member" },
+    ],
+  },
+  {
+    groupName: "Erasmus Evening Team",
+    selectedTimeSlot: "2026-06-10T19:00:00.000Z",
+    members: [
+      { userEmail: "noah.test@example.com", role: "leader" },
+      { userEmail: "jordi.test@example.com", role: "member" },
+      { userEmail: "sara.test@example.com", role: "member" },
+      { userEmail: "lina.test@example.com", role: "member" },
+    ],
+  },
+  {
+    groupName: "Rotterdam Route Testers",
+    selectedTimeSlot: "2026-06-10T19:00:00.000Z",
+    members: [
+      { userEmail: "lina.test@example.com", role: "leader" },
+      { userEmail: "jordi.test@example.com", role: "member" },
+      { userEmail: "sara.test@example.com", role: "member" },
+      { userEmail: "noah.test@example.com", role: "member" },
+    ],
+  },
 ]
 
 const venueSeedData = [
@@ -836,6 +962,200 @@ async function seedUsers() {
   return inserted
 }
 
+async function seedTestUsers() {
+  let inserted = 0
+  const saltRounds = Number(process.env.SALT_ROUNDS ?? 12)
+
+  for (const user of testUserSeedData) {
+    const existingUser = db
+      .select()
+      .from(users)
+      .where(eq(users.email, user.email))
+      .get()
+
+    if (existingUser) continue
+
+    const passwordHash = await bcrypt.hash(user.password, saltRounds)
+
+    db.insert(users)
+      .values({
+        id: uuidv4(),
+        name: user.name,
+        email: user.email,
+        password: passwordHash,
+        role: user.role,
+        school: user.school,
+        campus: user.campus,
+      })
+      .run()
+
+    inserted += 1
+  }
+
+  return inserted
+}
+
+function seedSharedInterests() {
+  let inserted = 0
+
+  for (const interest of sharedInterestSeedData) {
+    const existingInterest = db
+      .select()
+      .from(interests)
+      .where(eq(interests.name, interest.name))
+      .get()
+
+    if (existingInterest) continue
+
+    db.insert(interests).values(interest).run()
+    inserted += 1
+  }
+
+  return inserted
+}
+
+function getUserIdsByEmail() {
+  return new Map(
+    db
+      .select()
+      .from(users)
+      .all()
+      .map((user) => [user.email, user.id])
+  )
+}
+
+function seedTestUserInterests() {
+  const userIdsByEmail = getUserIdsByEmail()
+  const interestIdsByName = getInterestIdsByName()
+  let inserted = 0
+
+  for (const userInterest of testUserInterestSeedData) {
+    const userId = userIdsByEmail.get(userInterest.userEmail)
+    const interestId = interestIdsByName.get(userInterest.interestName)
+
+    if (!userId) {
+      console.warn(
+        `Skipped user interest: missing user ${userInterest.userEmail}`
+      )
+      continue
+    }
+
+    if (!interestId) {
+      console.warn(
+        `Skipped user interest: missing interest ${userInterest.interestName}`
+      )
+      continue
+    }
+
+    const existingUserInterest = db
+      .select()
+      .from(userInterests)
+      .where(
+        and(
+          eq(userInterests.userId, userId),
+          eq(userInterests.interestId, interestId)
+        )
+      )
+      .get()
+
+    if (existingUserInterest) continue
+
+    db.insert(userInterests).values({ userId, interestId }).run()
+    inserted += 1
+  }
+
+  return inserted
+}
+
+function seedTestGroups() {
+  let inserted = 0
+
+  for (const group of testGroupSeedData) {
+    const existingGroup = db
+      .select()
+      .from(playerGroups)
+      .where(
+        and(
+          eq(playerGroups.groupName, group.groupName),
+          eq(playerGroups.selectedTimeSlot, group.selectedTimeSlot)
+        )
+      )
+      .get()
+
+    if (existingGroup) continue
+
+    db.insert(playerGroups).values(group).run()
+    inserted += 1
+  }
+
+  return inserted
+}
+
+function getGroupIdsByNameAndTimeSlot() {
+  return new Map(
+    db
+      .select()
+      .from(playerGroups)
+      .all()
+      .map((group) => [
+        `${group.groupName}|${group.selectedTimeSlot}`,
+        group.id,
+      ])
+  )
+}
+
+function seedTestGroupMembers() {
+  const groupIdsByNameAndTimeSlot = getGroupIdsByNameAndTimeSlot()
+  const userIdsByEmail = getUserIdsByEmail()
+  let inserted = 0
+
+  for (const group of testGroupMemberSeedData) {
+    const groupId = groupIdsByNameAndTimeSlot.get(
+      `${group.groupName}|${group.selectedTimeSlot}`
+    )
+
+    if (!groupId) {
+      console.warn(`Skipped group members: missing group ${group.groupName}`)
+      continue
+    }
+
+    for (const member of group.members) {
+      const userId = userIdsByEmail.get(member.userEmail)
+
+      if (!userId) {
+        console.warn(`Skipped group member: missing user ${member.userEmail}`)
+        continue
+      }
+
+      const existingMember = db
+        .select()
+        .from(groupMembers)
+        .where(
+          and(
+            eq(groupMembers.groupId, groupId),
+            eq(groupMembers.userId, userId)
+          )
+        )
+        .get()
+
+      if (existingMember) continue
+
+      db.insert(groupMembers)
+        .values({
+          id: `${groupId}-${userId}`,
+          groupId,
+          userId,
+          role: member.role,
+        })
+        .run()
+
+      inserted += 1
+    }
+  }
+
+  return inserted
+}
+
 function seedVenues(seedData = venueSeedData) {
   let inserted = 0
 
@@ -1099,7 +1419,12 @@ function seedConversationStarters() {
 }
 
 const insertedUsers = await seedUsers()
+const insertedTestUsers = await seedTestUsers()
 const insertedInterests = seedInterests()
+const insertedSharedInterests = seedSharedInterests()
+const insertedUserInterests = seedTestUserInterests()
+const insertedTestGroups = seedTestGroups()
+const insertedTestGroupMembers = seedTestGroupMembers()
 const insertedRouteThemes = seedRouteThemes()
 const insertedVenues = seedVenues()
 const insertedRouteVenues = seedVenues(routeVenueSeedData)
@@ -1109,7 +1434,12 @@ const insertedConversationStarters = seedConversationStarters()
 
 console.log("Seed complete")
 console.log(`Users inserted: ${insertedUsers}`)
+console.log(`Test users inserted: ${insertedTestUsers}`)
 console.log(`Interests inserted: ${insertedInterests}`)
+console.log(`Shared interests inserted: ${insertedSharedInterests}`)
+console.log(`User interests inserted: ${insertedUserInterests}`)
+console.log(`Test groups inserted: ${insertedTestGroups}`)
+console.log(`Test group members inserted: ${insertedTestGroupMembers}`)
 console.log(`Venues inserted: ${insertedVenues}`)
 console.log(`Route themes inserted: ${insertedRouteThemes}`)
 console.log(`Route venues inserted: ${insertedRouteVenues}`)
