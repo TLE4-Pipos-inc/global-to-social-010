@@ -20,8 +20,6 @@ function Interest() {
 
   const { data } = useInterestQuery()
 
-  console.log("interest query data:", data)
-
   const interests =
     data?.interests || data?.result?.interests || data?.result || []
 
@@ -145,11 +143,8 @@ function Interest() {
           <PrimaryLightButton
             title="Next"
             onPress={async () => {
-              const saved = await saveUserInterests()
-
-              if (saved) {
-                router.push("/profile")
-              }
+              await saveUserInterests()
+              router.push("/matching")
             }}
           />
         </View>
