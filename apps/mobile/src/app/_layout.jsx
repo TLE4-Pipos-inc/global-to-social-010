@@ -30,8 +30,11 @@ export default function RootLayout() {
             credentials: "include",
           })
           if (res.ok) {
-            const { result } = await res.json()
-            setAccessToken(result.token)
+            const data = await res.json()
+            const token = data?.result?.token
+            if (token) {
+              setAccessToken(token)
+            }
           }
         } catch {}
       }

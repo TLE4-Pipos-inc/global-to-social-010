@@ -218,8 +218,7 @@ router.delete<{ id: string }>("/:id", requireAuth, (req, res) => {
 
   try {
     db.delete(photos).where(eq(photos.id, params.data.id)).run()
-    return sendSuccess(res, 204, { message: "Photo deleted successfully" })
-  } catch (error) {
+    return res.status(204).send()  } catch (error) {
     console.error(error)
     return sendError(res, 500, { message: "Could not delete photo" })
   }

@@ -143,8 +143,10 @@ function Interest() {
           <PrimaryLightButton
             title="Next"
             onPress={async () => {
-              await saveUserInterests()
-              router.push("/matching")
+              const success = await saveUserInterests()
+              if (success) {
+                router.push("/matching")
+              }
             }}
           />
         </View>

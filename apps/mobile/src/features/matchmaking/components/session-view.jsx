@@ -53,14 +53,14 @@ export function SessionView() {
               {state === "not_started" && (
                 <PrimaryLightButton
                   title={busy ? "Working…" : "Start stop"}
-                  disabled={busy}
+                  disabled={busy || !session}
                   onPress={() => run(() => startStop(session.id, stop.id))}
                 />
               )}
               {state === "running" && (
                 <PrimaryDarkButton
                   title={busy ? "Working…" : "Finish stop"}
-                  disabled={busy}
+                  disabled={busy || !session}
                   onPress={() => run(() => finishStop(session.id, stop.id))}
                 />
               )}
