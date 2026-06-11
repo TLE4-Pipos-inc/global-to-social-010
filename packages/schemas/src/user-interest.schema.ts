@@ -32,6 +32,21 @@ export const UserInterestUpdateSchema = z.object({
   interestId: UserInterestIdSchema,
 })
 
+export const UserInterestBulkUpdateSchema = z
+  .object({
+    interestIds: z.array(UserInterestIdSchema).min(3).max(5),
+  })
+  .strict()
+  .superRefine((data, ctx) => {
+    if (new Set(data.interestIds).size !== data.interestIds.length) {
+      ctx.addIssue({
+        code: "custom",
+        message: "interestIds must be unique",
+        path: ["interestIds"],
+      })
+    }
+  })
+
 export const UserInterestQuerySchema = z.object({
   interestId: UserInterestIdSchema.optional(),
 })
@@ -39,4 +54,5 @@ export const UserInterestQuerySchema = z.object({
 export type UserInterestParams = z.infer<typeof UserInterestParamsSchema>
 export type UserInterestCreate = z.infer<typeof UserInterestCreateSchema>
 export type UserInterestUpdate = z.infer<typeof UserInterestUpdateSchema>
+export type UserInterestBulkUpdate = z.infer<typeof UserInterestBulkUpdateSchema>
 export type UserInterestQuery = z.infer<typeof UserInterestQuerySchema>

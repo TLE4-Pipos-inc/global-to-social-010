@@ -34,9 +34,6 @@ export default function App() {
         console.log("Full response:", json)
 
         const venueList = json.result?.venues ?? []
-
-        console.log("Venues:", venueList)
-
         setVenues(venueList)
       } catch (error) {
         console.error("Failed to load venues", error)

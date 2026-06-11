@@ -23,8 +23,16 @@ async function fetchWithAuth(path, init) {
     })
 
     if (refreshed.ok) {
-      const { token } = await refreshed.json()
-      setAccessToken(token)
+      if (refreshed.ok) {
+        const data = await refreshed.json()
+        const token = data?.result?.token
+        if (!token) {
+          setAccessToken(null)
+          router.replace("/(auth)/login")
+          return response
+        }
+        setAccessToken(token)
+      }
 
       response = await fetch(url, {
         ...init,

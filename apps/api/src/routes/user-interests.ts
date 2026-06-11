@@ -1,6 +1,7 @@
-import { and, count, eq, inArray } from "drizzle-orm"
+import { and, count, eq } from "drizzle-orm"
 import express from "express"
 import {
+  UserInterestBulkUpdateSchema,
   UserInterestCreateSchema,
   UserInterestParamsSchema,
   UserInterestQuerySchema,
@@ -71,7 +72,8 @@ router.get("/", requireAuth, (req, res) => {
     })
   }
 
-  const filters = [eq(userInterests.userId, res.locals.payload.userId)]
+  const userId = res.locals.userId
+  const filters = [eq(userInterests.userId, userId)]
 
   if (result.data.interestId) {
     filters.push(eq(userInterests.interestId, result.data.interestId))
@@ -101,7 +103,7 @@ router.get("/:id", requireAuth, (req, res) => {
     })
   }
 
-  const item = getUserInterest(res.locals.payload.userId, result.data.id)
+  const item = getUserInterest(res.locals.userId, result.data.id)
 
   if (!item) {
     return sendError(res, 404, { message: "User interest not found" })
@@ -127,7 +129,7 @@ router.post("/", requireAuth, (req, res) => {
       const currentCount = tx
         .select({ value: count() })
         .from(userInterests)
-        .where(eq(userInterests.userId, res.locals.payload.userId))
+        .where(eq(userInterests.userId, res.locals.userId))
         .get()
 
       if ((currentCount?.value ?? 0) + interestIds.length > maxUserInterests) {
@@ -137,7 +139,7 @@ router.post("/", requireAuth, (req, res) => {
       for (const interestId of interestIds) {
         tx.insert(userInterests)
           .values({
-            userId: res.locals.payload.userId,
+            userId: res.locals.userId,
             interestId,
           })
           .run()
@@ -163,11 +165,56 @@ router.post("/", requireAuth, (req, res) => {
   }
 
   const createdUserInterests = getUserInterestsByIds(
-    res.locals.payload.userId,
+    res.locals.userId,
     interestIds
   )
 
   return sendSuccess(res, 201, { result: createdUserInterests })
+})
+
+router.patch("/", requireAuth, (req, res) => {
+  const result = UserInterestBulkUpdateSchema.safeParse(req.body)
+
+  if (!result.success) {
+    return sendError(res, 400, {
+      message: "Invalid user interest data",
+      errors: z.flattenError(result.error).fieldErrors,
+    })
+  }
+
+  const { interestIds } = result.data
+
+  try {
+    db.transaction((tx) => {
+      tx.delete(userInterests)
+        .where(eq(userInterests.userId, res.locals.userId))
+        .run()
+
+      for (const interestId of interestIds) {
+        tx.insert(userInterests)
+          .values({
+            userId: res.locals.userId,
+            interestId,
+          })
+          .run()
+      }
+    })
+  } catch (error) {
+    if (isForeignKeyError(error)) {
+      return sendError(res, 400, { message: "interestId does not exist" })
+    }
+
+    if (isUniqueError(error)) {
+      return sendError(res, 409, { message: "User interest already exists" })
+    }
+
+    console.error(error)
+    return sendError(res, 500, { message: "Could not update user interests" })
+  }
+
+  return sendSuccess(res, 200, {
+    result: getUserInterestsByIds(res.locals.userId, interestIds),
+  })
 })
 
 router.patch("/:id", requireAuth, (req, res) => {
@@ -191,7 +238,7 @@ router.patch("/:id", requireAuth, (req, res) => {
 
   if (paramsResult.data.id === bodyResult.data.interestId) {
     const existing = getUserInterest(
-      res.locals.payload.userId,
+      res.locals.userId,
       paramsResult.data.id
     )
 
@@ -208,7 +255,7 @@ router.patch("/:id", requireAuth, (req, res) => {
         .delete(userInterests)
         .where(
           and(
-            eq(userInterests.userId, res.locals.payload.userId),
+            eq(userInterests.userId, res.locals.userId),
             eq(userInterests.interestId, paramsResult.data.id)
           )
         )
@@ -220,7 +267,7 @@ router.patch("/:id", requireAuth, (req, res) => {
 
       tx.insert(userInterests)
         .values({
-          userId: res.locals.payload.userId,
+          userId: res.locals.userId,
           interestId: bodyResult.data.interestId,
         })
         .run()
@@ -243,7 +290,7 @@ router.patch("/:id", requireAuth, (req, res) => {
   }
 
   return sendSuccess(res, 200, {
-    result: getUserInterest(res.locals.payload.userId, bodyResult.data.interestId),
+    result: getUserInterest(res.locals.userId, bodyResult.data.interestId),
   })
 })
 
@@ -267,7 +314,7 @@ router.delete("/:id", requireAuth, (req, res) => {
         .from(userInterests)
         .where(
           and(
-            eq(userInterests.userId, res.locals.payload.userId),
+            eq(userInterests.userId, res.locals.userId),
             eq(userInterests.interestId, result.data.id)
           )
         )
@@ -280,7 +327,7 @@ router.delete("/:id", requireAuth, (req, res) => {
       const currentCount = tx
         .select({ value: count() })
         .from(userInterests)
-        .where(eq(userInterests.userId, res.locals.payload.userId))
+        .where(eq(userInterests.userId, res.locals.userId))
         .get()
 
       if ((currentCount?.value ?? 0) <= minUserInterests) {
@@ -290,7 +337,7 @@ router.delete("/:id", requireAuth, (req, res) => {
       tx.delete(userInterests)
         .where(
           and(
-            eq(userInterests.userId, res.locals.payload.userId),
+            eq(userInterests.userId, res.locals.userId),
             eq(userInterests.interestId, result.data.id)
           )
         )
