@@ -179,6 +179,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   code: {
+    padding: 10,
     fontSize: 32,
     fontWeight: "800",
     letterSpacing: 4,

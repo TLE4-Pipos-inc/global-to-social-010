@@ -69,6 +69,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   statValue: {
+    padding: 12,
     fontSize: 36,
     fontWeight: "800",
     color: Colors.darkGreenColor,
