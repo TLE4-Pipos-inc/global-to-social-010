@@ -31,3 +31,11 @@ export function isUniqueRouteStopError(error: unknown): boolean {
       error.message.includes("route_stops.route_id, route_stops.venue_id"))
   )
 }
+
+export function isUniquePartnerUserError(error: unknown): boolean {
+  return (
+    isSqliteError(error) &&
+    error.message.includes("UNIQUE constraint failed") &&
+    error.message.includes("partners.user_id")
+  )
+}

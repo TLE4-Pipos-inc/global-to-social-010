@@ -17,6 +17,8 @@ import themaRouteRouter from "@/routes/thema-route"
 import routesRouter from "@/routes/routes"
 import routeStopsRouter from "@/routes/route-stops"
 import photosRouter from "@/routes/photos"
+import partnersRouter from "@/routes/partners"
+import venuePartnershipsRouter from "@/routes/venue-partnerships"
 // ConnectDB();
 
 const app = express()
@@ -26,7 +28,7 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const publicDir = path.resolve(__dirname, "../public")
 
-app.use(express.json())
+app.use(express.json({ limit: "10mb" }))
 app.use(cookieParser())
 app.use(
   cors({
@@ -53,6 +55,8 @@ app.use("/api/thema-route", themaRouteRouter)
 app.use("/api/routes", routesRouter)
 app.use("/api/route-stops", routeStopsRouter)
 app.use("/api/photos", photosRouter)
+app.use("/api/partners", partnersRouter)
+app.use("/api/venue-partnerships", venuePartnershipsRouter)
 
 app.get("/api/status", (_req, res) => {
   res.json({ message: "API is running" })

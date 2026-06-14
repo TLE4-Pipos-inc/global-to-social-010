@@ -9,10 +9,13 @@ export const PhotoCreateSchema = z
     uploadedByGroupId: z.string().trim().min(1).nullable().optional(),
     photoUrl: OptionalTextSchema,
     localUri: OptionalTextSchema,
+    imageBase64: OptionalTextSchema,
+    fileName: OptionalTextSchema,
+    mimeType: OptionalTextSchema,
     proofType: z.string().trim().min(1).max(80).optional(),
   })
-  .refine((data) => data.photoUrl !== undefined || data.localUri !== undefined, {
-    message: "photoUrl or localUri is required",
+  .refine((data) => data.photoUrl !== undefined || data.localUri !== undefined || data.imageBase64 !== undefined, {
+    message: "photoUrl, localUri or imageBase64 is required",
     path: ["photoUrl"],
   })
 
@@ -21,6 +24,9 @@ export const PhotoUpdateSchema = z.object({
   uploadedByGroupId: z.string().trim().min(1).nullable().optional(),
   photoUrl: NullableTextSchema,
   localUri: NullableTextSchema,
+  imageBase64: NullableTextSchema,
+  fileName: NullableTextSchema,
+  mimeType: NullableTextSchema,
   proofType: z.string().trim().min(1).max(80).optional(),
 })
 
