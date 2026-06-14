@@ -65,7 +65,7 @@ export function SessionView() {
 
   // Only the first not-yet-finished stop is shown at a time.
   const currentStop = stops.find(
-    (stop) => (stopStates[stop.id] ?? "not_started") !== "finished",
+    (stop) => (stopStates[stop.id] ?? "not_started") !== "finished"
   )
   const currentState = currentStop
     ? (stopStates[currentStop.id] ?? "not_started")
@@ -96,10 +96,8 @@ export function SessionView() {
           <ThemedText type="subtitle">Conversation starter</ThemedText>
           <View style={styles.starterCard}>
             <ThemedText style={styles.starterMeta}>
-              minute {latestStarter.triggerMinute}
-              {latestStarter.starter?.category
-                ? ` · ${latestStarter.starter.category}`
-                : ""}
+              {latestStarter.starter?.category &&
+                `${latestStarter.starter.category}`}
               {` · ${formatMMSS(starterRemaining)}`}
             </ThemedText>
             <ThemedText type="defaultSemiBold">
