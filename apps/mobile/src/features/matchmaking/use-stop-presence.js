@@ -26,8 +26,11 @@ export function useStopPresence({ session, stop, active }) {
   targetRef.current = { session, stop, active }
 
   // Continuous watcher: re-reports on movement so wandering out of range drops
-  // the member from the quorum on the server.
+  // the member from the quorum on the server. Only runs when there is an active,
+  // fenceable stop — the dep array causes cleanup + restart whenever that changes.
   useEffect(() => {
+    if (!active || !session || !stop || stop.latitude == null || stop.longitude == null) return
+
     let subscription
     let cancelled = false
 
@@ -68,7 +71,7 @@ export function useStopPresence({ session, stop, active }) {
       cancelled = true
       subscription?.remove()
     }
-  }, [checkInStop])
+  }, [checkInStop, active, session?.id, stop?.id, stop?.latitude, stop?.longitude])
 
   // One-shot check-in the moment a new stop becomes active, so a group already
   // standing at the venue registers without waiting for a movement update.
