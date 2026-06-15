@@ -5,14 +5,14 @@
  * No DB and no server are required — we test the PartyQueue directly.
  */
 import assert from "node:assert/strict"
-import { PartyQueue } from "../../src/lib/matchmaking/queue.js"
+import { PartyQueue, requiredScoreForWait, tryFormGroup } from "../../src/lib/matchmaking/queue.js"
 
 const config = {
   MIN_GROUP_SIZE: 4,
   TARGET_GROUP_SIZE: 5,
   MAX_GROUP_SIZE: 8,
   MAX_PARTY_SIZE: 4,
-  EAGER_SCORE_THRESHOLD: 0.0, // accept any score so tests are deterministic
+  IDEAL_SCORE_THRESHOLD: 0.0, // accept any score so the base tests are deterministic
   RELAX_AFTER_MS: 30_000,
   TICK_INTERVAL_MS: 60_000,
   INVITE_CODE_LENGTH: 6,
@@ -174,6 +174,132 @@ test("leaving a queued party removes it from the bucket", () => {
   q.leaveParty("b")
   // Member change cancels the queue entry.
   assert.equal(q.bucketStats("23:00").parties, 0)
+})
+
+// --- compatibility-first matching -----------------------------------------
+
+// A player sharing nothing with the default profile -> scorePair === 0.
+function loner(id) {
+  return player(id, {
+    campus: `campus-${id}`,
+    school: `school-${id}`,
+    interestIds: [`interest-${id}`],
+  })
+}
+
+// Backdate a queued party (and its members) so it looks like it has waited `ms`.
+function backdateWait(queue, leaderId, ms) {
+  const party = queue.getPartyOfUser(leaderId)
+  const enqueuedAt = Date.now() - ms
+  party.enqueuedAt = enqueuedAt
+  for (const m of party.members) m.enqueuedAt = enqueuedAt
+}
+
+test("requiredScoreForWait decays from IDEAL to 0 across the relax window", () => {
+  const c = { ...config, IDEAL_SCORE_THRESHOLD: 0.6, RELAX_AFTER_MS: 30_000 }
+  assert.equal(requiredScoreForWait(0, c), 0.6)
+  assert.ok(Math.abs(requiredScoreForWait(15_000, c) - 0.3) < 1e-9)
+  assert.equal(requiredScoreForWait(30_000, c), 0)
+  assert.equal(requiredScoreForWait(60_000, c), 0) // clamps, never negative
+})
+
+test("compatible solos still match immediately", () => {
+  const c = { ...config, IDEAL_SCORE_THRESHOLD: 0.6 }
+  const q = new PartyQueue(c)
+  let matched = null
+  q.on("match", (m) => (matched = m))
+
+  // 2 shared interests -> score 0.75 >= 0.6, so they group right away.
+  const shared = ["music", "sports"]
+  for (const id of ["a", "b", "c", "d"]) {
+    q.createParty(player(id, { interestIds: shared }))
+    q.queueParty(id, "19:00")
+  }
+  assert.ok(matched, "highly compatible group should form right away")
+  assert.equal(matched.players.length, 4)
+})
+
+test("incompatible solos do NOT match immediately", () => {
+  const c = { ...config, IDEAL_SCORE_THRESHOLD: 0.6, RELAX_AFTER_MS: 30_000 }
+  const q = new PartyQueue(c)
+  let matched = null
+  q.on("match", (m) => (matched = m))
+
+  for (const id of ["a", "b", "c", "d"]) {
+    q.createParty(loner(id))
+    q.queueParty(id, "19:00")
+  }
+  assert.equal(matched, null, "score 0 is below the initial bar -> keep waiting")
+})
+
+test("incompatible solos match once the relax window elapses (last resort)", () => {
+  const c = { ...config, IDEAL_SCORE_THRESHOLD: 0.6, RELAX_AFTER_MS: 30_000 }
+  const q = new PartyQueue(c)
+  let matched = null
+  q.on("match", (m) => (matched = m))
+
+  for (const id of ["a", "b", "c", "d"]) {
+    q.createParty(loner(id))
+    q.queueParty(id, "19:00")
+  }
+  assert.equal(matched, null)
+
+  // Simulate everyone having waited past the relax window, then re-evaluate.
+  for (const id of ["a", "b", "c", "d"]) backdateWait(q, id, 31_000)
+  q.evaluateSlot("19:00")
+
+  assert.ok(matched, "after relaxing, an incompatible group forms as last resort")
+  assert.equal(matched.players.length, 4)
+})
+
+test("an incompatible oldest party does not block a compatible group", () => {
+  const c = { ...config, IDEAL_SCORE_THRESHOLD: 0.6, RELAX_AFTER_MS: 30_000 }
+  const q = new PartyQueue(c)
+  let matched = null
+  q.on("match", (m) => (matched = m))
+
+  // Oldest waiter shares no interests with anyone, and is nowhere near relaxing.
+  q.createParty(loner("old"))
+  q.queueParty("old", "19:00")
+  backdateWait(q, "old", 5_000)
+
+  // Four mutually compatible solos arrive afterwards (2 shared tags -> 0.75).
+  const shared = ["music", "sports"]
+  for (const id of ["a", "b", "c", "d"]) {
+    q.createParty(player(id, { interestIds: shared }))
+    q.queueParty(id, "19:00")
+  }
+
+  assert.ok(matched, "compatible group must form despite the incompatible elder")
+  const ids = matched.players.map((m) => m.userId).sort()
+  assert.deepEqual(ids, ["a", "b", "c", "d"], "elder is skipped as seed, not matched")
+})
+
+test("tryFormGroup prefers compatible parties over incompatible ones", () => {
+  const c = { ...config, IDEAL_SCORE_THRESHOLD: 0.6, MAX_GROUP_SIZE: 4, TARGET_GROUP_SIZE: 4 }
+  const now = Date.now()
+  const mk = (leader, p) => ({
+    id: leader,
+    leaderId: leader,
+    members: [{ ...p, enqueuedAt: now }],
+    enqueuedAt: now,
+    status: "queued",
+  })
+
+  // Seed + compatible parties share 2 interests -> 0.75 >= 0.6; loners share none.
+  const shared = ["music", "sports"]
+  const seed = mk("seed", player("seed", { interestIds: shared }))
+  const compatible = [
+    mk("c1", player("c1", { interestIds: shared })),
+    mk("c2", player("c2", { interestIds: shared })),
+    mk("c3", player("c3", { interestIds: shared })),
+  ]
+  const incompatible = [mk("x1", loner("x1")), mk("x2", loner("x2"))]
+
+  const group = tryFormGroup([seed, ...incompatible, ...compatible], c)
+  assert.ok(group)
+  const ids = group.players.map((m) => m.userId).sort()
+  assert.deepEqual(ids, ["c1", "c2", "c3", "seed"], "fills with compatible parties only")
 })
 
 console.log(`\n${passed} passed, ${failed} failed`)
