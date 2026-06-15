@@ -70,7 +70,6 @@ export default function TabLayout() {
           title: "Matching",
         }}
       />
-      
     </Tabs>
   )
 }
