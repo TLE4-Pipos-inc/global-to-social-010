@@ -35,7 +35,7 @@ export function SessionView() {
     stop: currentStop,
     active: currentState === "not_started",
   })
-  const requiresPresence = Boolean(currentStop?.latitude && currentStop?.longitude)
+  const requiresPresence = currentStop?.latitude != null && currentStop?.longitude != null
   const allPresent = !requiresPresence || (presence?.allPresent ?? false)
 
   const latestStarter = currentStop
