@@ -231,6 +231,8 @@ export function createMatchedSession({ parties, players, selectedTimeSlot, match
         address: venues.address,
         description: venues.description,
         vibe: venues.vibe,
+        latitude: venues.latitude,
+        longitude: venues.longitude,
         plannedDurationMinutes: routeStops.plannedDurationMinutes,
       })
       .from(routeStops)
@@ -290,18 +292,21 @@ export function createMatchedSession({ parties, players, selectedTimeSlot, match
         currentStopIndex: 0,
       },
       route,
-      stops: sessionStopRows.map((row, idx) => ({
-        id: row.id,
-        routeStopId: row.routeStopId,
-        order: stops[idx].routeOrder,
-        venueId: stops[idx].venueId,
-        venueName: stops[idx].venueName,
-        venueType: stops[idx].venueType,
-        address: stops[idx].address,
-        description: stops[idx].description,
-        vibe: stops[idx].vibe,
-        plannedDurationMinutes: stops[idx].plannedDurationMinutes,
-      })),
+       stops: sessionStopRows.map((row, idx) => ({
+         id: row.id,
+         routeStopId: row.routeStopId,
+         order: stops[idx].routeOrder,
+         venueId: stops[idx].venueId,
+         name: stops[idx].venueName,
+         venueName: stops[idx].venueName,
+         venueType: stops[idx].venueType,
+         address: stops[idx].address,
+         description: stops[idx].description,
+         vibe: stops[idx].vibe,
+         latitude: stops[idx].latitude,
+         longitude: stops[idx].longitude,
+         plannedDurationMinutes: stops[idx].plannedDurationMinutes,
+       })),
       members: membersResult,
     }
   })
