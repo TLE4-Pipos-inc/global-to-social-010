@@ -16,8 +16,8 @@ export const PartnerUpdateSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters").max(128).optional(),
   organizationName: OptionalTextSchema,
   contactEmail: z.email("Invalid email address").trim().toLowerCase().nullable().optional(),
-  partnershipType: OptionalTextSchema,
-  status: OptionalTextSchema,
+  partnershipType: z.string().trim().min(1).max(80).optional(),
+  status: z.string().trim().min(1).max(40).optional(),
 })
 
 export const PartnerParamsSchema = z.object({

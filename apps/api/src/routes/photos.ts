@@ -93,7 +93,7 @@ async function storePhotoFile(
 ): Promise<StoredPhoto> {
   const parsed = parseImageBase64(imageBase64, mimeType)
   const safeName = sanitizeBaseName(fileName)
-  const storedFileName = `${photoId}-${safeName}.${parsed.extension}`
+  const storedFileName = `${photoId}-${uuidv4()}-${safeName}.${parsed.extension}`
   const localUri = path.join(photoUploadDir, storedFileName)
 
   await fs.mkdir(photoUploadDir, { recursive: true })
@@ -332,7 +332,9 @@ router.patch<{ id: string }>("/:id", requireAuth, async (req, res) => {
     : existingPhoto.localUri
 
   if (!hasProofSource(nextPhotoUrl, nextLocalUri)) {
-    await removeStoredPhotoFile(storedPhoto?.localUri)
+    if (storedPhoto?.localUri !== existingPhoto.localUri) {
+      await removeStoredPhotoFile(storedPhoto?.localUri)
+    }
     return sendError(res, 400, { message: "photoUrl or localUri is required" })
   }
 
@@ -343,13 +345,15 @@ router.patch<{ id: string }>("/:id", requireAuth, async (req, res) => {
       .where(eq(photos.id, params.data.id))
       .returning()
 
-    if (storedPhoto) {
+    if (storedPhoto && storedPhoto.localUri !== existingPhoto.localUri) {
       await removeStoredPhotoFile(existingPhoto.localUri)
     }
 
     return sendSuccess(res, 200, { result })
   } catch (error) {
-    await removeStoredPhotoFile(storedPhoto?.localUri)
+    if (storedPhoto?.localUri !== existingPhoto.localUri) {
+      await removeStoredPhotoFile(storedPhoto?.localUri)
+    }
 
     if (isForeignKeyError(error)) {
       return sendError(res, 400, { message: "sessionStopId or uploadedByGroupId does not exist" })

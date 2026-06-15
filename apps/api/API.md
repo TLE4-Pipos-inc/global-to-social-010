@@ -586,17 +586,19 @@ List photos. No auth required.
 
 ```json
 {
-  "photos": [
-    {
-      "id": "uuid",
-      "sessionStopId": "uuid",
-      "uploadedByGroupId": "uuid",
-      "photoUrl": "https://example.com/test-photo.jpg",
-      "localUri": null,
-      "proofType": "venue_proof",
-      "createdAt": "2026-06-14 10:00:00"
-    }
-  ]
+  "result": {
+    "photos": [
+      {
+        "id": "uuid",
+        "sessionStopId": "uuid",
+        "uploadedByGroupId": "uuid",
+        "photoUrl": "https://example.com/test-photo.jpg",
+        "localUri": null,
+        "proofType": "venue_proof",
+        "createdAt": "2026-06-14 10:00:00"
+      }
+    ]
+  }
 }
 ```
 
