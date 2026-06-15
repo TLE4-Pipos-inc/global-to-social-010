@@ -1745,7 +1745,10 @@ with **your** compatibility against the current members. Never exposes invite co
 }
 ```
 
-`compatibility` is `0..1` (higher = more shared interests). Teams are returned most-compatible first.
+`status` is `"idle"` for still-assembling teams or `"queued"` for actively-searching ones;
+`selectedTimeSlot` is `null` until the team is queued (idle teams), and an ISO time-slot string once
+queued. `compatibility` is `0..1` (higher = more shared interests). Teams are returned
+most-compatible first.
 
 ---
 
