@@ -1069,6 +1069,33 @@ List all routes. No auth required.
 
 ---
 
+#### `GET /api/routes/theme/:themeId`
+
+Fetch all routes that belong to one thema route. No auth required.
+
+**Response `200`**
+```json
+{
+  "result": {
+    "routes": [
+      {
+        "id": "uuid",
+        "themeId": "theme-uuid",
+        "name": "Witte de With Bar Route",
+        "area": "Witte de Withkwartier",
+        "city": "Rotterdam",
+        "routeType": "social",
+        "active": true
+      }
+    ]
+  }
+}
+```
+
+**Errors:** `400` invalid `themeId` · `404` theme not found
+
+---
+
 #### `GET /api/routes/:id`
 
 Fetch a single route by ID. No auth required.
