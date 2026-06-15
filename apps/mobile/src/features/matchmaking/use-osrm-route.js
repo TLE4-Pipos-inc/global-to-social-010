@@ -17,43 +17,59 @@ export function useOSRMRoute(destLatitude, destLongitude) {
   // Watch user's current location
   useEffect(() => {
     let subscription
+    let active = true
     async function getCurrentLocation() {
-      let { status } = await Location.requestForegroundPermissionsAsync()
-      if (status !== "granted") {
-        console.error("Permission to access location was denied")
-        setError("Location permission denied")
-        return
-      }
-      subscription = await Location.watchPositionAsync(
-        {
-          accuracy: Location.Accuracy.Low,
-          timeInterval: 2000,
-          distanceInterval: 1,
-        },
-        (newLocation) => {
-          setLocation(newLocation)
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync()
+        if (status !== "granted") {
+          if (active) setError("Location permission denied")
+          return
         }
-      )
+        const sub = await Location.watchPositionAsync(
+          {
+            accuracy: Location.Accuracy.Low,
+            timeInterval: 2000,
+            distanceInterval: 1,
+          },
+            (newLocation) => {
+            if (active) setLocation(newLocation)
+          }
+        )
+          if (!active) {
+            sub.remove()
+            return
+          }
+          subscription = sub
+        } catch (err) {
+          if (active) setError("Unable to start location tracking")
+        }
     }
     getCurrentLocation()
-    return () => subscription?.remove()
+    return () => {
+      active = false
+      subscription?.remove()
+      }
   }, [])
 
   // Fetch route from OSRM when location or destination changes
   useEffect(() => {
-    if (!location || !destLatitude || !destLongitude) {
+    const endLat = Number(destLatitude)
+    const endLng = Number(destLongitude)
+    if (!location || !Number.isFinite(endLat) || !Number.isFinite(endLng)) {
       setRoute([])
       setError(null)
       return
     }
+
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 8000)
+    let active = true
 
     async function fetchRoute() {
       try {
         setError(null)
         const startLat = location.coords.latitude
         const startLng = location.coords.longitude
-        const endLat = Number(destLatitude)
-        const endLng = Number(destLongitude)
 
         const response = await fetch(
           `https://router.project-osrm.org/route/v1/foot/${startLng},${startLat};${endLng},${endLat}?overview=full&geometries=geojson`
@@ -69,15 +85,22 @@ export function useOSRMRoute(destLatitude, destLongitude) {
           latitude: coord[1],
           longitude: coord[0],
         }))
-        setRoute(coordinates)
+        if (active) setRoute(coordinates)
       } catch (err) {
-        console.error("Route error:", err)
-        setError(err.message)
-        setRoute([])
+        if (err?.name === "AbortError") return
+        if (active) {
+          setError(err.message)
+          setRoute([])
+        }
       }
     }
 
     fetchRoute()
+    return () => {
+      active = false
+      clearTimeout(timeoutId)
+      controller.abort()
+    }
   }, [location, destLatitude, destLongitude])
 
   return { route, location, error }

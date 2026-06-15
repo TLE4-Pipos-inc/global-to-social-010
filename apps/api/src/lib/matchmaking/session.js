@@ -298,6 +298,7 @@ export function createMatchedSession({ parties, players, selectedTimeSlot, match
          order: stops[idx].routeOrder,
          venueId: stops[idx].venueId,
          name: stops[idx].venueName,
+         venueName: stops[idx].venueName,
          venueType: stops[idx].venueType,
          address: stops[idx].address,
          description: stops[idx].description,
