@@ -8,6 +8,13 @@
       "when": 1780927466455,
       "tag": "0000_medical_agent_brand",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1781096871519,
+      "tag": "0001_tiny_manta",
+      "breakpoints": true
     }
   ]
 }

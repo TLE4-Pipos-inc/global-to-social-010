@@ -1,10 +1,15 @@
-import { queryOptions, useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
-import { fetchWithAuth } from '@/lib/api'
-import { setAccessToken } from '@/lib/token'
-import { API_URL } from '@/constants/api'
+import {
+  queryOptions,
+  useMutation,
+  useQueryClient,
+  useSuspenseQuery,
+} from "@tanstack/react-query"
+import { fetchWithAuth } from "@/lib/api"
+import { setAccessToken } from "@/lib/token"
+import { API_URL } from "@/constants/api"
 
 async function fetchAccount() {
-  const res = await fetchWithAuth('/api/auth/me')
+  const res = await fetchWithAuth("/api/auth/me")
 
   if (!res.ok) {
     const errorData = await res.json()
@@ -15,7 +20,7 @@ async function fetchAccount() {
 }
 
 export const accountQueryOptions = queryOptions({
-  queryKey: ['account'],
+  queryKey: ["account"],
   queryFn: fetchAccount,
   staleTime: Infinity,
 })
@@ -26,8 +31,8 @@ export function useAccountQuery() {
 
 async function performLogout() {
   await fetch(`${API_URL}/api/auth/logout`, {
-    method: 'POST',
-    credentials: 'include',
+    method: "POST",
+    credentials: "include",
   })
 }
 
@@ -44,13 +49,13 @@ export function useLogoutMutation() {
 }
 
 async function updateUser(body) {
-  const res = await fetchWithAuth('/api/users/me', {
-    method: 'PATCH',
+  const res = await fetchWithAuth("/api/users/me", {
+    method: "PATCH",
     body: JSON.stringify(body),
   })
 
   if (!res.ok) {
-    throw new Error('Could not save profile')
+    throw new Error("Could not save profile")
   }
 
   return res.json()
@@ -62,7 +67,7 @@ export function useUpdateUserMutation() {
   return useMutation({
     mutationFn: updateUser,
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['account'] })
+      queryClient.invalidateQueries({ queryKey: ["account"] })
     },
   })
 }

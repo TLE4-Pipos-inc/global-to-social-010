@@ -108,8 +108,10 @@ router.post("/login", async (req, res) => {
     id: user.id,
     email: user.email,
     name: user.name,
+    role: user.role,
     school: user.school,
     campus: user.campus,
+    createdAt: user.createdAt,
   }
 
   return sendSuccess(res, 200, { result: { user: returnUser, token } })
@@ -122,9 +124,29 @@ router.post("/refresh", (req, res) => {
 
   try {
     const { userId, email, role } = verifyRefresh(token)
+
+    const user = db
+      .select({
+        id: users.id,
+        email: users.email,
+        name: users.name,
+        role: users.role,
+        school: users.school,
+        campus: users.campus,
+        createdAt: users.createdAt,
+      })
+      .from(users)
+      .where(eq(users.id, userId))
+      .get()
+
+    if (!user) {
+      return sendError(res, 404, { message: "User not found" })
+    }
+
     return sendSuccess(res, 200, {
       result: {
-        token: signAccess({ userId, email, role }),
+        user,
+        token: signAccess({ userId, email: user.email, role: user.role }),
       },
       message: "Token refreshed successfully",
     })
@@ -134,24 +156,26 @@ router.post("/refresh", (req, res) => {
   }
 })
 
-router.get("/me", requireAuth, (req, res) => {
-  const user = db
+router.get("/me", requireAuth, (_req, res) => {
+  const result = db
     .select({
       id: users.id,
       email: users.email,
       name: users.name,
+      role: users.role,
       school: users.school,
       campus: users.campus,
+      createdAt: users.createdAt,
     })
     .from(users)
     .where(eq(users.id, res.locals.userId))
     .get()
 
-  if (!user) {
+  if (!result) {
     return sendError(res, 404, { message: "User not found" })
   }
 
-  return sendSuccess(res, 200, { result: { user } })
+  return sendSuccess(res, 200, { result })
 })
 
 router.post("/logout", (_req, res) => {
