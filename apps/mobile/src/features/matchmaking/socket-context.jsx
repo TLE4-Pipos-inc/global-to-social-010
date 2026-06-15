@@ -33,6 +33,7 @@ export function SocketProvider({ children }) {
   const [sessionStarted, setSessionStarted] = useState(false)
   const [stopStates, setStopStates] = useState({}) // stopId -> "not_started" | "running" | "finished"
   const [stopStartedAt, setStopStartedAt] = useState({}) // stopId -> ms timestamp the stop began running
+  const [stopPresence, setStopPresence] = useState({}) // stopId -> { present: string[], total, allPresent }
   const [starters, setStarters] = useState([]) // [{ starter, triggerMinute, stopId, receivedAt }]
   const [lastError, setLastError] = useState(null)
 
@@ -47,6 +48,7 @@ export function SocketProvider({ children }) {
     setSessionStarted(false)
     setStopStates({})
     setStopStartedAt({})
+    setStopPresence({})
     setStarters([])
   }, [])
 
@@ -80,6 +82,7 @@ export function SocketProvider({ children }) {
         for (const stop of payload?.stops ?? []) initial[stop.id] = "not_started"
         setStopStates(initial)
         setStopStartedAt({})
+        setStopPresence({})
       })
       socket.on(SOCKET_EVENTS.SESSION_STARTED, () => setSessionStarted(true))
       socket.on(SOCKET_EVENTS.STOP_TIMER_STARTED, ({ stopId }) => {
@@ -90,6 +93,12 @@ export function SocketProvider({ children }) {
       })
       socket.on(SOCKET_EVENTS.STOP_TIMER_FINISHED, ({ stopId }) =>
         setStopStates((prev) => ({ ...prev, [stopId]: "finished" })),
+      )
+      socket.on(SOCKET_EVENTS.STOP_PRESENCE, ({ stopId, present, total, allPresent }) =>
+        setStopPresence((prev) => ({
+          ...prev,
+          [stopId]: { present: present ?? [], total: total ?? 0, allPresent: Boolean(allPresent) },
+        })),
       )
       socket.on(SOCKET_EVENTS.CONVERSATION_STARTER, (payload) =>
         setStarters((prev) => [{ ...payload, receivedAt: Date.now() }, ...prev]),
@@ -178,6 +187,16 @@ export function SocketProvider({ children }) {
       // Named `readyUp` to avoid colliding with the `sessionReady` state value.
       readyUp: (sessionId) =>
         emitWithAck(SOCKET_EVENTS.SESSION_READY, { sessionId }),
+      // Fire-and-forget: check-ins stream continuously, so we skip the ack to
+      // avoid surfacing timeout alerts. The server replies via STOP_PRESENCE.
+      checkInStop: (sessionId, stopId, latitude, longitude) => {
+        socketRef.current?.emit(SOCKET_EVENTS.STOP_CHECK_IN, {
+          sessionId,
+          stopId,
+          latitude,
+          longitude,
+        })
+      },
       startStop: (sessionId, stopId) =>
         emitWithAck(SOCKET_EVENTS.STOP_START, { sessionId, stopId }),
       finishStop: (sessionId, stopId) =>
@@ -198,6 +217,7 @@ export function SocketProvider({ children }) {
       sessionStarted,
       stopStates,
       stopStartedAt,
+      stopPresence,
       starters,
       lastError,
       ...actions,
@@ -211,6 +231,7 @@ export function SocketProvider({ children }) {
       sessionStarted,
       stopStates,
       stopStartedAt,
+      stopPresence,
       starters,
       lastError,
       actions,

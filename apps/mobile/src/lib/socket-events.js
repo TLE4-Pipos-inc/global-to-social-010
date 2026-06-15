@@ -12,6 +12,7 @@ export const SOCKET_EVENTS = Object.freeze({
   PARTY_QUEUE: "party:queue",
   PARTY_UNQUEUE: "party:unqueue",
   SESSION_READY: "session:ready",
+  STOP_CHECK_IN: "stop:checkin",
   STOP_START: "stop:start",
   STOP_FINISH: "stop:finish",
 
@@ -21,6 +22,7 @@ export const SOCKET_EVENTS = Object.freeze({
   QUEUE_UPDATE: "queue:update",
   MATCH_FOUND: "match:found",
   SESSION_STARTED: "session:started",
+  STOP_PRESENCE: "stop:presence",
   STOP_TIMER_STARTED: "stop:timer:started",
   STOP_TIMER_FINISHED: "stop:timer:finished",
   CONVERSATION_STARTER: "conversation:starter",

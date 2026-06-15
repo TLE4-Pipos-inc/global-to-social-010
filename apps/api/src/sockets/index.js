@@ -5,7 +5,9 @@ import {
   activateSession,
   createMatchedSession,
   finishStopTimer,
+  getSessionMemberCount,
   getSessionStop,
+  getStopVenueLocation,
   isSessionMember,
   loadPlayerProfile,
   persistQueuedParty,
@@ -30,6 +32,7 @@ export const SOCKET_EVENTS = Object.freeze({
   PARTY_BROWSE: "party:browse",
   PARTY_JOIN_PUBLIC: "party:join-public",
   SESSION_READY: "session:ready",
+  STOP_CHECK_IN: "stop:checkin",
   STOP_START: "stop:start",
   STOP_FINISH: "stop:finish",
 
@@ -39,11 +42,19 @@ export const SOCKET_EVENTS = Object.freeze({
   QUEUE_UPDATE: "queue:update",
   MATCH_FOUND: "match:found",
   SESSION_STARTED: "session:started",
+  STOP_PRESENCE: "stop:presence",
   STOP_TIMER_STARTED: "stop:timer:started",
   STOP_TIMER_FINISHED: "stop:timer:finished",
   CONVERSATION_STARTER: "conversation:starter",
   ERROR: "error:matchmaking",
 })
+
+/**
+ * A check-in counts toward the "all members present" quorum only when the
+ * member is within this many metres of the stop's venue. Distance is computed
+ * server-side so the client never decides who is present.
+ */
+const STOP_PRESENCE_RADIUS_M = 50
 
 /**
  * Wire Socket.IO onto an existing HTTP server.
@@ -65,6 +76,8 @@ export function attachSocketServer(httpServer, opts = {}) {
   const scheduler = new ConversationStarterScheduler()
   /** @type {Map<string, string[]>} sessionId -> partyIds waiting for release */
   const sessionParties = new Map()
+  /** @type {Map<string, Set<string>>} `${sessionId}:${stopId}` -> userIds currently within range */
+  const stopPresence = new Map()
 
   // --- AUTH ---------------------------------------------------------------
   io.use((socket, next) => {
@@ -132,8 +145,17 @@ export function attachSocketServer(httpServer, opts = {}) {
     socket.on(SOCKET_EVENTS.SESSION_READY, (payload, ack) =>
       safe(socket, ack, () => handleSessionReady(io, socket, queue, sessionParties, payload)),
     )
+    // Check-ins are high-frequency and best-effort: never surface them as a
+    // user-facing ERROR, and don't bother with an ack.
+    socket.on(SOCKET_EVENTS.STOP_CHECK_IN, (payload) => {
+      try {
+        handleStopCheckIn(io, socket, stopPresence, payload)
+      } catch (err) {
+        console.error("Stop check-in failed:", err)
+      }
+    })
     socket.on(SOCKET_EVENTS.STOP_START, (payload, ack) =>
-      safe(socket, ack, () => handleStopStart(io, socket, scheduler, payload)),
+      safe(socket, ack, () => handleStopStart(io, socket, scheduler, stopPresence, payload)),
     )
     socket.on(SOCKET_EVENTS.STOP_FINISH, (payload, ack) =>
       safe(socket, ack, () => handleStopFinish(io, socket, scheduler, payload)),
@@ -462,7 +484,54 @@ function handleSessionReady(io, socket, queue, sessionParties, payload) {
   return { ok: true, ready: readyUserIds.size, total: totalUserIds.size }
 }
 
-function handleStopStart(io, socket, scheduler, payload) {
+/**
+ * Record a member's live location as a check-in for the active stop and
+ * broadcast the updated presence quorum to the whole session. Best-effort:
+ * malformed or out-of-context check-ins are silently ignored rather than
+ * surfaced as errors, since the client streams these continuously.
+ */
+function handleStopCheckIn(io, socket, stopPresence, payload) {
+  const userId = socket.data.userId
+  const sessionId = String(payload?.sessionId ?? "")
+  const stopId = String(payload?.stopId ?? "")
+  const lat = Number(payload?.latitude)
+  const lng = Number(payload?.longitude)
+
+  if (!sessionId || !stopId) return
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return
+  if (!isSessionMember(sessionId, userId)) return
+
+  // Only the stop that's waiting to begin needs presence tracking.
+  const stop = getSessionStop(sessionId, stopId)
+  if (!stop || stop.timerState !== "not_started") return
+
+  const venue = getStopVenueLocation(sessionId, stopId)
+  if (!venue || venue.latitude == null || venue.longitude == null) return
+
+  const distance = haversineMeters(lat, lng, venue.latitude, venue.longitude)
+  const key = presenceKey(sessionId, stopId)
+  let present = stopPresence.get(key)
+  if (!present) {
+    present = new Set()
+    stopPresence.set(key, present)
+  }
+
+  // Membership in the set tracks "currently within range" — wandering out of
+  // the radius drops the member back out of the quorum.
+  if (distance <= STOP_PRESENCE_RADIUS_M) present.add(userId)
+  else present.delete(userId)
+
+  const total = getSessionMemberCount(sessionId)
+  io.to(sessionRoom(sessionId)).emit(SOCKET_EVENTS.STOP_PRESENCE, {
+    sessionId,
+    stopId,
+    present: [...present],
+    total,
+    allPresent: total > 0 && present.size >= total,
+  })
+}
+
+function handleStopStart(io, socket, scheduler, stopPresence, payload) {
   const userId = socket.data.userId
   const stopId = String(payload?.stopId ?? "")
   const sessionId = String(payload?.sessionId ?? "")
@@ -480,8 +549,25 @@ function handleStopStart(io, socket, scheduler, payload) {
     throw httpError("NOT_MEMBER", "You are not a member of this session")
   }
 
+  // Geofence gate: every member must be checked in within range before the
+  // timer can start. Skipped when the venue has no coordinates to fence against.
+  const venue = getStopVenueLocation(sessionId, stopId)
+  if (venue && venue.latitude != null && venue.longitude != null) {
+    const total = getSessionMemberCount(sessionId)
+    const present = stopPresence.get(presenceKey(sessionId, stopId))
+    if (!present || total === 0 || present.size < total) {
+      throw httpError(
+        "NOT_ALL_PRESENT",
+        "All group members must be at the stop to start it",
+      )
+    }
+  }
+
   const started = startStopTimer(stopId)
   if (!started) throw httpError("START_FAILED", "Could not start the stop timer")
+
+  // The quorum has served its purpose for this stop; free the memory.
+  stopPresence.delete(presenceKey(sessionId, stopId))
 
   scheduler.startForStop({
     sessionId,
@@ -567,6 +653,23 @@ function partyRoom(partyId) {
 }
 function sessionRoom(sessionId) {
   return `session:${sessionId}`
+}
+function presenceKey(sessionId, stopId) {
+  return `${sessionId}:${stopId}`
+}
+
+/**
+ * Great-circle distance between two lat/lng points in metres (Haversine).
+ */
+function haversineMeters(lat1, lng1, lat2, lng2) {
+  const R = 6371000
+  const toRad = (deg) => (deg * Math.PI) / 180
+  const dLat = toRad(lat2 - lat1)
+  const dLng = toRad(lng2 - lng1)
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2
+  return 2 * R * Math.asin(Math.sqrt(a))
 }
 
 function extractBearer(header) {

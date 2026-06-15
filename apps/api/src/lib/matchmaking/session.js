@@ -332,6 +332,41 @@ export function getSessionStop(sessionId, stopId) {
 }
 
 /**
+ * Return the venue coordinates for a session stop, or null if not found.
+ * Latitude/longitude may be null when the venue has no geocoded location.
+ *
+ * @param {string} sessionId
+ * @param {string} stopId
+ * @returns {{ latitude: number|null, longitude: number|null } | undefined}
+ */
+export function getStopVenueLocation(sessionId, stopId) {
+  return db
+    .select({ latitude: venues.latitude, longitude: venues.longitude })
+    .from(sessionStops)
+    .innerJoin(routeStops, eq(routeStops.id, sessionStops.routeStopId))
+    .innerJoin(venues, eq(venues.id, routeStops.venueId))
+    .where(and(eq(sessionStops.id, stopId), eq(sessionStops.sessionId, sessionId)))
+    .get()
+}
+
+/**
+ * Count the members of the group that owns sessionId. Used as the quorum
+ * denominator for stop check-ins ("all members present").
+ *
+ * @param {string} sessionId
+ * @returns {number}
+ */
+export function getSessionMemberCount(sessionId) {
+  const rows = db
+    .select({ userId: groupMembers.userId })
+    .from(gameSessions)
+    .innerJoin(groupMembers, eq(groupMembers.groupId, gameSessions.groupId))
+    .where(eq(gameSessions.id, sessionId))
+    .all()
+  return rows.length
+}
+
+/**
  * Return true if userId is a member of the group that owns sessionId.
  *
  * @param {string} sessionId
