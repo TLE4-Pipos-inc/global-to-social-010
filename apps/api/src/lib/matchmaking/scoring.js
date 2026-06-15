@@ -10,11 +10,14 @@
  */
 
 /**
- * Pair compatibility score in [0, 1].
+ * Pair compatibility score in [0, 1], driven purely by shared interests.
  *
- *  - +0.4 for same campus
- *  - +0.2 for same school
- *  - +0.4 * Jaccard(interest sets)
+ * The score is the Jaccard similarity of the two interest sets:
+ *   |A ∩ B| / |A ∪ B|
+ * so two people with identical tags score 1.0 (100%), and people with no
+ * overlap score 0. Campus and school are intentionally NOT factored in — the
+ * product matches people on interests, and folding location into the score
+ * capped a perfect tag match at a misleading 40%.
  *
  * @param {QueuedPlayer} a
  * @param {QueuedPlayer} b
@@ -23,21 +26,14 @@
 export function scorePair(a, b) {
   if (!a || !b || a.userId === b.userId) return 0
 
-  let score = 0
-  if (a.campus && b.campus && a.campus === b.campus) score += 0.4
-  if (a.school && b.school && a.school === b.school) score += 0.2
-
   const setA = new Set(a.interestIds ?? [])
   const setB = new Set(b.interestIds ?? [])
-  if (setA.size > 0 || setB.size > 0) {
-    let intersection = 0
-    for (const id of setA) if (setB.has(id)) intersection++
-    const union = setA.size + setB.size - intersection
-    const jaccard = union === 0 ? 0 : intersection / union
-    score += 0.4 * jaccard
-  }
+  if (setA.size === 0 && setB.size === 0) return 0
 
-  return Math.min(1, score)
+  let intersection = 0
+  for (const id of setA) if (setB.has(id)) intersection++
+  const union = setA.size + setB.size - intersection
+  return union === 0 ? 0 : intersection / union
 }
 
 /**
