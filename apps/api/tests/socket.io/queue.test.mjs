@@ -209,9 +209,10 @@ test("compatible solos still match immediately", () => {
   let matched = null
   q.on("match", (m) => (matched = m))
 
-  // Default players share campus + school + interest -> score 1.0 >= 0.6.
+  // 2 shared interests -> score 0.75 >= 0.6, so they group right away.
+  const shared = ["music", "sports"]
   for (const id of ["a", "b", "c", "d"]) {
-    q.createParty(player(id))
+    q.createParty(player(id, { interestIds: shared }))
     q.queueParty(id, "19:00")
   }
   assert.ok(matched, "highly compatible group should form right away")
@@ -262,8 +263,14 @@ test("tryFormGroup prefers compatible parties over incompatible ones", () => {
     status: "queued",
   })
 
-  const seed = mk("seed", player("seed"))
-  const compatible = [mk("c1", player("c1")), mk("c2", player("c2")), mk("c3", player("c3"))]
+  // Seed + compatible parties share 2 interests -> 0.75 >= 0.6; loners share none.
+  const shared = ["music", "sports"]
+  const seed = mk("seed", player("seed", { interestIds: shared }))
+  const compatible = [
+    mk("c1", player("c1", { interestIds: shared })),
+    mk("c2", player("c2", { interestIds: shared })),
+    mk("c3", player("c3", { interestIds: shared })),
+  ]
   const incompatible = [mk("x1", loner("x1")), mk("x2", loner("x2"))]
 
   const group = tryFormGroup([seed, ...incompatible, ...compatible], c)

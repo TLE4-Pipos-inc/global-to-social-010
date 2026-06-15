@@ -12,12 +12,22 @@
 /**
  * Pair compatibility score in [0, 1], driven purely by shared interests.
  *
- * The score is the Jaccard similarity of the two interest sets:
- *   |A ∩ B| / |A ∪ B|
- * so two people with identical tags score 1.0 (100%), and people with no
- * overlap score 0. Campus and school are intentionally NOT factored in — the
- * product matches people on interests, and folding location into the score
- * capped a perfect tag match at a misleading 40%.
+ * Uses a diminishing-returns curve on the *count* of shared interests rather
+ * than Jaccard similarity. Each shared tag halves the remaining gap to a
+ * perfect match:
+ *
+ *   score = 1 - 0.5 ** sharedCount
+ *     0 shared -> 0.00
+ *     1 shared -> 0.50
+ *     2 shared -> 0.75
+ *     3 shared -> 0.875
+ *     4 shared -> 0.9375 ...
+ *
+ * This gives any common ground a generous buffer (a single shared interest is
+ * already a 50% match) while still rewarding more overlap. Set sizes are not
+ * penalised — having extra non-shared interests no longer drags the score down,
+ * which is why plain Jaccard felt harsh. Campus and school are intentionally
+ * NOT factored in: the product matches people on interests.
  *
  * @param {QueuedPlayer} a
  * @param {QueuedPlayer} b
@@ -28,12 +38,12 @@ export function scorePair(a, b) {
 
   const setA = new Set(a.interestIds ?? [])
   const setB = new Set(b.interestIds ?? [])
-  if (setA.size === 0 && setB.size === 0) return 0
 
-  let intersection = 0
-  for (const id of setA) if (setB.has(id)) intersection++
-  const union = setA.size + setB.size - intersection
-  return union === 0 ? 0 : intersection / union
+  let shared = 0
+  for (const id of setA) if (setB.has(id)) shared++
+  if (shared === 0) return 0
+
+  return 1 - Math.pow(0.5, shared)
 }
 
 /**
