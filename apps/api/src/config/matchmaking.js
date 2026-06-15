@@ -16,10 +16,22 @@ export const MATCHMAKING_CONFIG = Object.freeze({
   /** Max players a party can hold before it queues. */
   MAX_PARTY_SIZE: 4,
 
-  /** Compatibility score (0..1) above which any candidate is eagerly accepted. */
-  EAGER_SCORE_THRESHOLD: 0.6,
-  /** After this many ms of waiting we relax thresholds for the oldest waiter. */
-  RELAX_AFTER_MS: 30_000,
+  /**
+   * Compatibility score (0..1) a candidate must clear to be added to a group
+   * immediately, with no waiting. This is the bar at the *start* of the wait:
+   * only genuinely similar people are grouped right away. The bar then decays
+   * toward 0 over RELAX_AFTER_MS (see queue.js#requiredScoreForWait), so weaker
+   * matches are only accepted after the group has waited a while, and matching
+   * with anybody is the last resort.
+   */
+  IDEAL_SCORE_THRESHOLD: 0.6,
+  /**
+   * Length of the relaxation window. The required compatibility decays linearly
+   * from IDEAL_SCORE_THRESHOLD (at 0ms waited) down to 0 (at RELAX_AFTER_MS),
+   * which also bounds the worst-case time anyone waits before being matched
+   * with whoever is available. Raise this to demand compatibility for longer.
+   */
+  RELAX_AFTER_MS: 90_000,
   /** Periodic re-evaluation cadence for "patient" parties waiting in a slot. */
   TICK_INTERVAL_MS: 2_000,
 
