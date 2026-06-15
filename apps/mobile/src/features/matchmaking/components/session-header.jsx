@@ -42,7 +42,7 @@ const styles = StyleSheet.create({
     color: Colors.darkGreenColor,
   },
   title: {
-    fontSize: 20,
+    fontSize: 16,
     fontFamily: Fonts.bold,
     color: Colors.darkGreenColor,
   },

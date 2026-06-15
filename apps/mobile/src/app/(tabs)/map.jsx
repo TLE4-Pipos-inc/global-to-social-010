@@ -4,14 +4,18 @@ import MapView, { Marker, Callout, Polyline } from "react-native-maps"
 import { ThemedView } from "@/components/themed-view"
 import { ThemedText } from "@/components/themed-text"
 import { useEffect, useState } from "react"
-import * as Location from "expo-location"
 import { API_URL } from "@/constants/api"
+import { useOSRMRoute } from "@/features/matchmaking/use-osrm-route"
 
 export default function App() {
-  const [location, setLocation] = useState(null)
   const [venues, setVenues] = useState([])
-  const [route, setRoute] = useState([])
   const [selectedVenue, setSelectedVenue] = useState(null)
+
+  // Use OSRM hook for route calculation
+  const { route, location } = useOSRMRoute(
+    selectedVenue?.latitude,
+    selectedVenue?.longitude
+  )
 
   useEffect(() => {
     async function loadVenues() {
@@ -41,64 +45,6 @@ export default function App() {
     loadVenues()
   }, [])
 
-  useEffect(() => {
-    let subscription
-    async function getCurrentLocation() {
-      let { status } = await Location.requestForegroundPermissionsAsync()
-
-      if (status !== "granted") {
-        console.error("Permission to access location was denied")
-        return
-      }
-
-      subscription = await Location.watchPositionAsync(
-        {
-          accuracy: Location.Accuracy.Low,
-          timeInterval: 2000,
-          distanceInterval: 1,
-        },
-        (newLocation) => {
-          setLocation(newLocation)
-        }
-      )
-    }
-    getCurrentLocation()
-    return () => subscription?.remove()
-  }, [])
-
-  async function getRoute(venue) {
-    if (!location) return
-
-    const startLat = location.coords.latitude
-    const startLng = location.coords.longitude
-
-    const endLat = Number(venue.latitude)
-    const endLng = Number(venue.longitude)
-
-    // OSRM (Open Source Routing Machine) free api for routes
-    try {
-      const response = await fetch(
-        `https://router.project-osrm.org/route/v1/foot/${startLng},${startLat};${endLng},${endLat}?overview=full&geometries=geojson`
-      );
-      if (!response.ok) {
-        throw new Error(`OSRM request failed: ${response.status}`)
-      }
-      const data = await response.json()
-      if (!data?.routes?.length) {
-        throw new Error("No route returned by OSRM")
-      }
-      const coordinates = data.routes[0].geometry.coordinates.map((coord) => ({
-        latitude: coord[1],
-        longitude: coord[0],
-      }))
-      setRoute(coordinates)
-      setSelectedVenue(venue)
-    } catch (error) {
-      console.error("Route error:", error)
-      setRoute([])
-      setSelectedVenue(null)
-    }
-  }
 
   return (
     <ThemedView style={styles.container}>
@@ -131,7 +77,7 @@ export default function App() {
               latitude: Number(venue.latitude),
               longitude: Number(venue.longitude),
             }}
-            onPress={() => getRoute(venue)}
+            onPress={() => setSelectedVenue(venue)}
           >
             <Callout style={{ height: 100, width: 400 }}>
               <ThemedView style={styles.popup}>
