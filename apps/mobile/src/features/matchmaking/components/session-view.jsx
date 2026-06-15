@@ -56,9 +56,14 @@ export function SessionView() {
   // running to drive the duration countdown (client-side, approximate).
   const startedAtRef = useRef({})
   useEffect(() => {
+    startedAtRef.current = {}
+  }, [session?.id])
+  useEffect(() => {
     for (const [stopId, state] of Object.entries(stopStates)) {
       if (state === "running" && !startedAtRef.current[stopId]) {
         startedAtRef.current[stopId] = Date.now()
+      } else if (state !== "running") {
+        delete startedAtRef.current[stopId]
       }
     }
   }, [stopStates])
@@ -71,8 +76,10 @@ export function SessionView() {
     ? (stopStates[currentStop.id] ?? "not_started")
     : null
 
-  const latestStarter = starters[0]
-  const showStarter = currentState === "running" && latestStarter
+  const latestStarter = currentStop
+    ? starters.find((starter) => starter.stopId === currentStop.id)
+    : null
+  const showStarter = currentState === "running" && Boolean(latestStarter)
   const starterRemaining = latestStarter
     ? STARTER_COUNTDOWN_SECONDS - (now - latestStarter.receivedAt) / 1000
     : 0
