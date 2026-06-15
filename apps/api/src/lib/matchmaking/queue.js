@@ -352,18 +352,23 @@ export class PartyQueue extends EventEmitter {
 /**
  * Greedy clustering across **whole parties**, prioritising compatibility.
  *
- * 1. Seed with the party that has waited longest (fairness).
- * 2. Repeatedly consider the highest-scoring remaining party whose members fit
- *    inside MAX_GROUP_SIZE, and add it only if its compatibility clears the
- *    current bar (see requiredScoreForWait).
- * 3. Stop once we hit TARGET_GROUP_SIZE, or once the best remaining candidate
- *    falls below the bar.
+ * 1. Try each party as the seed in wait-time order (oldest first, for fairness).
+ * 2. For a given seed, repeatedly add the highest-scoring remaining party whose
+ *    members fit inside MAX_GROUP_SIZE, but only if its compatibility clears the
+ *    current bar (see requiredScoreForWait). Stop at TARGET_GROUP_SIZE, or when
+ *    the best remaining candidate falls below the bar.
+ * 3. Return the first seed that yields a group of >= MIN_GROUP_SIZE.
+ *
+ * Trying multiple seeds matters: the oldest waiter might be incompatible with
+ * everyone currently in the slot, but a younger set of parties could form a
+ * highly compatible group right now. Seeding only off the oldest party would
+ * stall the whole slot until that party's bar relaxed to 0. We still prefer the
+ * oldest seed (it's tried first), so this does not undermine fairness — the
+ * oldest party's wait is still bounded by RELAX_AFTER_MS.
  *
  * The bar starts high (IDEAL_SCORE_THRESHOLD) and decays to 0 the longer the
  * group has waited, so the order of preference is:
  *   similar people  >  forming a group at all  >  matching with anybody.
- * When nothing clears the bar and we have not reached MIN_GROUP_SIZE yet, we
- * return null and let the party keep waiting (re-evaluated on the next tick).
  *
  * Returns null if no acceptable group of >= MIN_GROUP_SIZE can be assembled.
  *
@@ -379,10 +384,30 @@ export function tryFormGroup(parties, config = MATCHMAKING_CONFIG) {
     (a, b) => (a.enqueuedAt ?? Infinity) - (b.enqueuedAt ?? Infinity),
   )
 
-  // The seed party must fit on its own (it cannot exceed MAX_GROUP_SIZE).
-  const seed = sorted.find((p) => p.members.length <= config.MAX_GROUP_SIZE)
-  if (!seed) return null
+  // Try each party as the seed, oldest first. If the oldest waiter cannot form
+  // an acceptable group yet, fall through to the next so a single incompatible
+  // early party does not block a compatible group in the same slot.
+  for (const seed of sorted) {
+    // The seed party must fit on its own (it cannot exceed MAX_GROUP_SIZE).
+    if (seed.members.length > config.MAX_GROUP_SIZE) continue
+    const group = growGroupFromSeed(seed, sorted, now, config)
+    if (group) return group
+  }
 
+  return null
+}
+
+/**
+ * Build the best group we can around a fixed seed party, or null if it cannot
+ * reach MIN_GROUP_SIZE under the current compatibility bar.
+ *
+ * @param {Party} seed
+ * @param {Party[]} sorted  All candidate parties (seed included), wait-sorted
+ * @param {number} now
+ * @param {typeof MATCHMAKING_CONFIG} config
+ * @returns {{ parties: Party[], players: QueuedPlayer[], matchScore: number } | null}
+ */
+function growGroupFromSeed(seed, sorted, now, config) {
   const seedWaitedMs = now - (seed.enqueuedAt ?? now)
 
   const cluster = [seed]
@@ -415,7 +440,7 @@ export function tryFormGroup(parties, config = MATCHMAKING_CONFIG) {
 
     // The best available candidate is not compatible enough yet. Since no other
     // candidate can score higher, stop here: keep what we have if it already
-    // meets MIN, otherwise the null return below makes the party wait.
+    // meets MIN, otherwise the null return below makes this seed give up.
     if (bestScore < requiredScore) break
 
     cluster.push(candidate)

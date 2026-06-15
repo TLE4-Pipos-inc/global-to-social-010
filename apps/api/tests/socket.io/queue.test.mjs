@@ -252,6 +252,29 @@ test("incompatible solos match once the relax window elapses (last resort)", () 
   assert.equal(matched.players.length, 4)
 })
 
+test("an incompatible oldest party does not block a compatible group", () => {
+  const c = { ...config, IDEAL_SCORE_THRESHOLD: 0.6, RELAX_AFTER_MS: 30_000 }
+  const q = new PartyQueue(c)
+  let matched = null
+  q.on("match", (m) => (matched = m))
+
+  // Oldest waiter shares no interests with anyone, and is nowhere near relaxing.
+  q.createParty(loner("old"))
+  q.queueParty("old", "19:00")
+  backdateWait(q, "old", 5_000)
+
+  // Four mutually compatible solos arrive afterwards (2 shared tags -> 0.75).
+  const shared = ["music", "sports"]
+  for (const id of ["a", "b", "c", "d"]) {
+    q.createParty(player(id, { interestIds: shared }))
+    q.queueParty(id, "19:00")
+  }
+
+  assert.ok(matched, "compatible group must form despite the incompatible elder")
+  const ids = matched.players.map((m) => m.userId).sort()
+  assert.deepEqual(ids, ["a", "b", "c", "d"], "elder is skipped as seed, not matched")
+})
+
 test("tryFormGroup prefers compatible parties over incompatible ones", () => {
   const c = { ...config, IDEAL_SCORE_THRESHOLD: 0.6, MAX_GROUP_SIZE: 4, TARGET_GROUP_SIZE: 4 }
   const now = Date.now()
