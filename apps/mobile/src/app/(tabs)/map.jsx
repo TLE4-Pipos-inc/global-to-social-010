@@ -30,9 +30,6 @@ export default function App() {
         }
 
         const json = await response.json()
-
-        console.log("Full response:", json)
-
         const venueList = json.result?.venues ?? []
         setVenues(venueList)
       } catch (error) {

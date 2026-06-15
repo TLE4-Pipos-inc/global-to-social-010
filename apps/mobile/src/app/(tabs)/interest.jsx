@@ -26,9 +26,6 @@ function Interest() {
   async function saveUserInterests() {
     try {
       setErrorMessage("")
-
-      console.log("selectedInterest before save:", selectedInterest)
-
       if (selectedInterest.length < 3) {
         setErrorMessage("Please select at least 3 interests")
         return false
@@ -55,8 +52,6 @@ function Interest() {
 
         return false
       }
-
-      console.log("Saved interests:", json)
       return true
     } catch (error) {
       console.error("Failed to save interests", error)

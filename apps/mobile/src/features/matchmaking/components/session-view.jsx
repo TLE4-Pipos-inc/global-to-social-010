@@ -1,5 +1,7 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Pressable, ScrollView, StyleSheet, View } from "react-native"
+import MapView, { Marker, Polyline } from "react-native-maps"
+import * as Location from "expo-location"
 import { ChevronDown, ChevronUp } from "lucide-react-native"
 import { ThemedText } from "@/components/themed-text"
 import {
@@ -90,12 +92,75 @@ export function SessionView() {
 /** Collapsible card revealing venue details for the active stop. */
 function InformationBox({ stop }) {
   const [open, setOpen] = useState(false)
+  const [location, setLocation] = useState(null)
+  const [route, setRoute] = useState([])
   const Chevron = open ? ChevronDown : ChevronUp
   const details = [
     ["Type", stop.venueType],
     ["Address", stop.address],
     ["Vibe", stop.vibe],
   ].filter(([, value]) => Boolean(value))
+
+  // Watch user's current location
+  useEffect(() => {
+    let subscription
+    async function getCurrentLocation() {
+      let { status } = await Location.requestForegroundPermissionsAsync()
+      if (status !== "granted") {
+        console.error("Permission to access location was denied")
+        return
+      }
+      subscription = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.Low,
+          timeInterval: 2000,
+          distanceInterval: 1,
+        },
+        (newLocation) => {
+          setLocation(newLocation)
+        }
+      )
+    }
+    getCurrentLocation()
+    return () => subscription?.remove()
+  }, [])
+
+  useEffect(() => {
+    if (!location || !stop.latitude || !stop.longitude) {
+      setRoute([])
+      return
+    }
+
+    async function getRoute() {
+      try {
+        const startLat = location.coords.latitude
+        const startLng = location.coords.longitude
+        const endLat = Number(stop.latitude)
+        const endLng = Number(stop.longitude)
+
+        const response = await fetch(
+          `https://router.project-osrm.org/route/v1/foot/${startLng},${startLat};${endLng},${endLat}?overview=full&geometries=geojson`
+        )
+        if (!response.ok) {
+          throw new Error(`OSRM request failed: ${response.status}`)
+        }
+        const data = await response.json()
+        if (!data?.routes?.length) {
+          throw new Error("No route returned by OSRM")
+        }
+        const coordinates = data.routes[0].geometry.coordinates.map((coord) => ({
+          latitude: coord[1],
+          longitude: coord[0],
+        }))
+        setRoute(coordinates)
+      } catch (error) {
+        console.error("Route error:", error)
+        setRoute([])
+      }
+    }
+
+    getRoute()
+  }, [location, stop.latitude, stop.longitude])
 
   return (
     <View style={styles.stopCard}>
@@ -118,6 +183,32 @@ function InformationBox({ stop }) {
             <ThemedText style={styles.mutedSmall}>
               No venue details available.
             </ThemedText>
+          )}
+          {stop.latitude && stop.longitude && (
+            <View style={{ marginTop: 12 }}>
+              <MapView
+                style={styles.miniMap}
+                initialRegion={{
+                  latitude: Number(stop.latitude),
+                  longitude: Number(stop.longitude),
+                  latitudeDelta: 0.01,
+                  longitudeDelta: 0.01,
+                }}
+                showsUserLocation={true}
+                loadingEnabled={true}
+              >
+                {route.length > 0 && (
+                  <Polyline coordinates={route} strokeWidth={5} strokeColor="blue" />
+                )}
+                <Marker
+                  coordinate={{
+                    latitude: Number(stop.latitude),
+                    longitude: Number(stop.longitude),
+                  }}
+                  title={stop.name || "Destination"}
+                />
+              </MapView>
+            </View>
           )}
         </View>
       )}
@@ -191,5 +282,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
     color: "#fff",
+  },
+  miniMap: {
+    width: "100%",
+    height: 180,
+    borderRadius: 12,
+    overflow: "hidden",
   },
 })

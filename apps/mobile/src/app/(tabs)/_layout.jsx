@@ -70,6 +70,14 @@ export default function TabLayout() {
           title: "Matching",
         }}
       />
+
+      <Tabs.Screen
+        name="routes"
+        options={{
+          href: null,
+          title: "Routes",
+        }}
+      />
     </Tabs>
   )
 }
