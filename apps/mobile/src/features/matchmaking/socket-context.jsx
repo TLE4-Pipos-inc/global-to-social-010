@@ -32,6 +32,7 @@ export function SocketProvider({ children }) {
   const [sessionReady, setSessionReady] = useState(null) // { ready, total }
   const [sessionStarted, setSessionStarted] = useState(false)
   const [stopStates, setStopStates] = useState({}) // stopId -> "not_started" | "running" | "finished"
+  const [stopStartedAt, setStopStartedAt] = useState({}) // stopId -> ms timestamp the stop began running
   const [starters, setStarters] = useState([]) // [{ starter, triggerMinute, stopId, receivedAt }]
   const [lastError, setLastError] = useState(null)
 
@@ -45,6 +46,7 @@ export function SocketProvider({ children }) {
     setSessionReady(null)
     setSessionStarted(false)
     setStopStates({})
+    setStopStartedAt({})
     setStarters([])
   }, [])
 
@@ -77,11 +79,15 @@ export function SocketProvider({ children }) {
         const initial = {}
         for (const stop of payload?.stops ?? []) initial[stop.id] = "not_started"
         setStopStates(initial)
+        setStopStartedAt({})
       })
       socket.on(SOCKET_EVENTS.SESSION_STARTED, () => setSessionStarted(true))
-      socket.on(SOCKET_EVENTS.STOP_TIMER_STARTED, ({ stopId }) =>
-        setStopStates((prev) => ({ ...prev, [stopId]: "running" })),
-      )
+      socket.on(SOCKET_EVENTS.STOP_TIMER_STARTED, ({ stopId }) => {
+        setStopStates((prev) => ({ ...prev, [stopId]: "running" }))
+        setStopStartedAt((prev) =>
+          prev[stopId] ? prev : { ...prev, [stopId]: Date.now() },
+        )
+      })
       socket.on(SOCKET_EVENTS.STOP_TIMER_FINISHED, ({ stopId }) =>
         setStopStates((prev) => ({ ...prev, [stopId]: "finished" })),
       )
@@ -191,6 +197,7 @@ export function SocketProvider({ children }) {
       sessionReady,
       sessionStarted,
       stopStates,
+      stopStartedAt,
       starters,
       lastError,
       ...actions,
@@ -203,6 +210,7 @@ export function SocketProvider({ children }) {
       sessionReady,
       sessionStarted,
       stopStates,
+      stopStartedAt,
       starters,
       lastError,
       actions,
