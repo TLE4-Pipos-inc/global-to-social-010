@@ -16,6 +16,7 @@ import {
 import { ThemedView } from "@/components/themed-view"
 import { ThemedText } from "@/components/themed-text"
 import { UpdateUserSchema } from "@pub-hopper/schemas"
+import { useInterestQuery } from "@/features/intrests/hooks/query"
 
 const schoolOptions = [
   { value: "Hogeschool Rotterdam", label: "Hogeschool Rotterdam" },
@@ -84,6 +85,11 @@ function Settings() {
                 <field.DropdownField label="Campus" options={campusOptions} />
               )}
             </form.AppField>
+
+            <PrimaryLightOutlineButton
+              title="choose your interests"
+              onPress={() => router.push("/interest")}
+            />
 
             <PrimaryLightButton
               title={updateUser.isPending ? "Saving..." : "Save profile"}

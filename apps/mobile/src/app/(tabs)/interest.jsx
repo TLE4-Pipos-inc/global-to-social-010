@@ -27,8 +27,6 @@ function Interest() {
     try {
       setErrorMessage("")
 
-      console.log("selectedInterest before save:", selectedInterest)
-
       if (selectedInterest.length < 3) {
         setErrorMessage("Please select at least 3 interests")
         return false
@@ -55,11 +53,8 @@ function Interest() {
 
         return false
       }
-
-      console.log("Saved interests:", json)
       return true
     } catch (error) {
-      console.error("Failed to save interests", error)
       setErrorMessage("Could not save interests")
       return false
     }
@@ -135,17 +130,13 @@ function Interest() {
           <ThemedText style={styles.errorText}>{errorMessage}</ThemedText>
         ) : null}
 
-        <View>
-          <Text style={styles.languageTitle}>Languages</Text>
-        </View>
-
         <View style={styles.button}>
           <PrimaryLightButton
-            title="Next"
+            title="Save"
             onPress={async () => {
               const success = await saveUserInterests()
               if (success) {
-                router.push("/matching")
+                router.push("/settings")
               }
             }}
           />

@@ -70,6 +70,21 @@ export default function TabLayout() {
           title: "Matching",
         }}
       />
+
+      <Tabs.Screen
+        name="theme"
+        options={{
+          href: null,
+          title: "Matching",
+        }}
+      />
+      <Tabs.Screen
+        name="routes"
+        options={{
+          href: null,
+          title: "Matching",
+        }}
+      />
     </Tabs>
   )
 }
