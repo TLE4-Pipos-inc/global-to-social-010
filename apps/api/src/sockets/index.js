@@ -57,6 +57,13 @@ export const SOCKET_EVENTS = Object.freeze({
 const STOP_PRESENCE_RADIUS_M = 50
 
 /**
+ * A check-in older than this is ignored when computing the quorum. The client
+ * streams every 3 s, so 10 s covers three missed intervals before dropping a
+ * member out of the quorum (e.g. phone dies, connection lost).
+ */
+const PRESENCE_STALE_MS = 10_000
+
+/**
  * Wire Socket.IO onto an existing HTTP server.
  *
  * @param {import("http").Server} httpServer
@@ -76,7 +83,7 @@ export function attachSocketServer(httpServer, opts = {}) {
   const scheduler = new ConversationStarterScheduler()
   /** @type {Map<string, string[]>} sessionId -> partyIds waiting for release */
   const sessionParties = new Map()
-  /** @type {Map<string, Set<string>>} `${sessionId}:${stopId}` -> userIds currently within range */
+  /** @type {Map<string, Map<string, number>>} `${sessionId}:${stopId}` -> userId -> lastSeenMs */
   const stopPresence = new Map()
 
   // --- AUTH ---------------------------------------------------------------
@@ -510,24 +517,25 @@ function handleStopCheckIn(io, socket, stopPresence, payload) {
 
   const distance = haversineMeters(lat, lng, venue.latitude, venue.longitude)
   const key = presenceKey(sessionId, stopId)
-  let present = stopPresence.get(key)
-  if (!present) {
-    present = new Set()
-    stopPresence.set(key, present)
+  let checkins = stopPresence.get(key)
+  if (!checkins) {
+    checkins = new Map()
+    stopPresence.set(key, checkins)
   }
 
-  // Membership in the set tracks "currently within range" — wandering out of
-  // the radius drops the member back out of the quorum.
-  if (distance <= STOP_PRESENCE_RADIUS_M) present.add(userId)
-  else present.delete(userId)
+  // Track the last-seen timestamp per user. Wandering out of the radius removes
+  // the entry immediately; a missing or stale entry is treated as absent.
+  if (distance <= STOP_PRESENCE_RADIUS_M) checkins.set(userId, Date.now())
+  else checkins.delete(userId)
 
+  const freshPresent = getFreshPresent(checkins)
   const total = getSessionMemberCount(sessionId)
   io.to(sessionRoom(sessionId)).emit(SOCKET_EVENTS.STOP_PRESENCE, {
     sessionId,
     stopId,
-    present: [...present],
+    present: freshPresent,
     total,
-    allPresent: total > 0 && present.size >= total,
+    allPresent: total > 0 && freshPresent.length >= total,
   })
 }
 
@@ -554,8 +562,9 @@ function handleStopStart(io, socket, scheduler, stopPresence, payload) {
   const venue = getStopVenueLocation(sessionId, stopId)
   if (venue && venue.latitude != null && venue.longitude != null) {
     const total = getSessionMemberCount(sessionId)
-    const present = stopPresence.get(presenceKey(sessionId, stopId))
-    if (!present || total === 0 || present.size < total) {
+    const checkins = stopPresence.get(presenceKey(sessionId, stopId))
+    const freshPresent = getFreshPresent(checkins)
+    if (total === 0 || freshPresent.length < total) {
       throw httpError(
         "NOT_ALL_PRESENT",
         "All group members must be at the stop to start it",
@@ -656,6 +665,23 @@ function sessionRoom(sessionId) {
 }
 function presenceKey(sessionId, stopId) {
   return `${sessionId}:${stopId}`
+}
+
+/**
+ * Returns the userIds from a checkins Map whose last-seen timestamp is within
+ * PRESENCE_STALE_MS. Handles undefined (no checkins recorded yet) gracefully.
+ *
+ * @param {Map<string, number> | undefined} checkins
+ * @returns {string[]}
+ */
+function getFreshPresent(checkins) {
+  if (!checkins) return []
+  const cutoff = Date.now() - PRESENCE_STALE_MS
+  const fresh = []
+  for (const [userId, ts] of checkins) {
+    if (ts >= cutoff) fresh.push(userId)
+  }
+  return fresh
 }
 
 /**
