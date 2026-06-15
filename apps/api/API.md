@@ -10,6 +10,7 @@
 ## Table of Contents
 
 - [Authentication](#authentication)
+- [Response Format](#response-format)
 - [Endpoints](#endpoints)
   - [Status](#status)
   - [Auth](#auth)
@@ -38,14 +39,34 @@
 
 ## Authentication
 
-Protected routes require a valid JWT access token. Supply it via one of:
+Protected REST routes require a valid JWT **access token**, supplied in the request header:
 
-- **HTTP-only cookie** `access_token` (set automatically on login/register)
-- **Header** `Authorization: Bearer <token>`
+- **Header** `Authorization: Bearer <access_token>`
 
-Tokens are issued on `/api/auth/register` and `/api/auth/login`. Access tokens expire in **1 hour**; refresh tokens expire in **7 days**. Call `/api/auth/refresh` (using the refresh cookie) to obtain a new access token without re-authenticating.
+> **Cookie vs. header.** The `access_token` HTTP-only cookie set on login/register holds a 7-day **refresh** token (not the access token). It is used only by `POST /api/auth/refresh` (and is read during the Socket.IO handshake). Protected REST routes do **not** read the cookie — they require the `Authorization: Bearer` header. Browser clients must therefore send the access token returned in the login/register body as a header, not rely on the cookie.
 
-The JWT payload contains `{ userId, email, role }`, available to protected handlers via `res.locals.payload`.
+Tokens are issued on `/api/auth/register` and `/api/auth/login`. Access tokens expire in **30 minutes**; refresh tokens expire in **7 days**. Call `/api/auth/refresh` (using the refresh cookie) to obtain a new access token without re-authenticating.
+
+The JWT payload contains `{ userId, email, role }`. Protected handlers read the authenticated user id via `res.locals.userId`.
+
+---
+
+## Response Format
+
+Most REST endpoints wrap their successful payload in a **`{ result, message }` envelope** (`message` is omitted when empty, and `result` is omitted on message-only responses):
+
+```json
+{ "result": <data>, "message": "<optional human-readable string>" }
+```
+
+- **Single resource** — `result` is the object itself, e.g. `{ "result": { "id": "...", "name": "..." } }`.
+- **Collections** — most list endpoints nest the array under a named key inside `result` (e.g. `result.venues`, `result.routes`, `result.routeStops`, `result.conversationStarters`, `result.photos`, `result.partners`, `result.venuePartnerships`). A few return the array directly as `result` (Interests, User Interests, Thema Routes).
+- **Message-only responses** (e.g. logout, deletes) return just `{ "message": "..." }`.
+- **`204 No Content`** responses have no body.
+
+> **Exception:** `GET /api/matches/me` does not use the envelope — it returns `{ "matches": [...] }` directly.
+
+Error responses never use this envelope — see [Error Responses](#error-responses).
 
 ---
 
@@ -96,18 +117,21 @@ Create a new user account and return tokens.
 **Response `201`**
 ```json
 {
-  "user": {
-    "id": "uuid",
-    "email": "alice@example.com",
-    "name": "Alice",
-    "school": "EUR",
-    "campus": "Woudestein"
-  },
-  "token": "<access_jwt>"
+  "result": {
+    "user": {
+      "id": "uuid",
+      "email": "alice@example.com",
+      "name": "Alice",
+      "school": "EUR",
+      "campus": "Woudestein",
+      "role": "user"
+    },
+    "token": "<access_jwt>"
+  }
 }
 ```
 
-Sets `access_token` HTTP-only cookie.
+Sets the `access_token` HTTP-only cookie (a 7-day refresh token). New accounts always start with `role: "user"`.
 
 **Errors:** `400` validation failure · `409` email already registered · `500` server error
 
@@ -128,18 +152,22 @@ Authenticate and return tokens.
 **Response `200`**
 ```json
 {
-  "user": {
-    "id": "uuid",
-    "email": "alice@example.com",
-    "name": "Alice",
-    "school": "EUR",
-    "campus": "Woudestein"
-  },
-  "token": "<access_jwt>"
+  "result": {
+    "user": {
+      "id": "uuid",
+      "email": "alice@example.com",
+      "name": "Alice",
+      "role": "user",
+      "school": "EUR",
+      "campus": "Woudestein",
+      "createdAt": "2026-06-14 10:00:00"
+    },
+    "token": "<access_jwt>"
+  }
 }
 ```
 
-Sets `access_token` HTTP-only cookie.
+Sets the `access_token` HTTP-only cookie (a 7-day refresh token).
 
 **Errors:** `400` validation failure · `401` invalid credentials · `500` server error
 
@@ -155,12 +183,23 @@ Exchange the stored refresh cookie for a new access token.
 **Response `200`**
 ```json
 {
-  "token": "<new_access_jwt>",
-  "message": "Token refreshed"
+  "result": {
+    "user": {
+      "id": "uuid",
+      "email": "alice@example.com",
+      "name": "Alice",
+      "role": "user",
+      "school": "EUR",
+      "campus": "Woudestein",
+      "createdAt": "2026-06-14 10:00:00"
+    },
+    "token": "<new_access_jwt>"
+  },
+  "message": "Token refreshed successfully"
 }
 ```
 
-**Errors:** `401` missing or expired refresh token
+**Errors:** `401` missing or expired refresh token · `404` user not found
 
 ---
 
@@ -186,12 +225,14 @@ Return the authenticated user's profile.
 **Response `200`**
 ```json
 {
-  "user": {
+  "result": {
     "id": "uuid",
     "email": "alice@example.com",
     "name": "Alice",
+    "role": "user",
     "school": "EUR",
-    "campus": "Woudestein"
+    "campus": "Woudestein",
+    "createdAt": "2026-06-14 10:00:00"
   }
 }
 ```
@@ -238,15 +279,16 @@ Update the authenticated user's profile fields.
 }
 ```
 
-At least one field must be provided. Unknown fields are ignored.
+At least one field must be provided. Unknown fields are ignored. Only `name`, `school`, and `campus` can be changed here.
 
 **Response `200`**
 ```json
 {
-  "user": {
+  "result": {
     "id": "uuid",
     "email": "alice@example.com",
     "name": "Alice",
+    "role": "user",
     "school": "EUR",
     "campus": "Woudestein"
   }
@@ -270,7 +312,7 @@ List all interests. No auth required.
 **Response `200`**
 ```json
 {
-  "interests": [
+  "result": [
     { "id": "uuid", "name": "photography" },
     { "id": "uuid", "name": "hiking" }
   ]
@@ -285,7 +327,7 @@ Fetch a single interest by ID. No auth required.
 
 **Response `200`**
 ```json
-{ "interest": { "id": "uuid", "name": "photography" } }
+{ "result": { "id": "uuid", "name": "photography" } }
 ```
 
 **Errors:** `404` not found
@@ -307,7 +349,7 @@ Interest names are normalised to lowercase.
 
 **Response `201`**
 ```json
-{ "interest": { "id": "uuid", "name": "photography" } }
+{ "result": { "id": "uuid", "name": "photography" } }
 ```
 
 **Errors:** `400` validation failure · `409` name already exists · `500` server error
@@ -327,7 +369,7 @@ Update an interest.
 
 **Response `200`**
 ```json
-{ "interest": { "id": "uuid", "name": "street photography" } }
+{ "result": { "id": "uuid", "name": "street photography" } }
 ```
 
 **Errors:** `400` no fields provided or validation failure · `404` not found · `409` name already taken · `500` server error
@@ -369,7 +411,7 @@ List the authenticated user's interests.
 **Response `200`**
 ```json
 {
-  "userInterests": [
+  "result": [
     { "userId": "uuid", "interestId": "uuid", "interestName": "photography" }
   ]
 }
@@ -387,7 +429,7 @@ Fetch a single user interest by interest ID.
 
 **Response `200`**
 ```json
-{ "userInterest": { "userId": "uuid", "interestId": "uuid", "interestName": "photography" } }
+{ "result": { "userId": "uuid", "interestId": "uuid", "interestName": "photography" } }
 ```
 
 **Errors:** `400` invalid id · `401` unauthenticated · `404` not found
@@ -400,21 +442,48 @@ Add one or more interests to the authenticated user. The total after adding must
 
 **Auth required:** yes
 
-**Request body**
+**Request body** — either a single `interestId` or an array of `interestIds` (1–5, unique values):
 ```json
 { "interestIds": ["uuid", "uuid"] }
+```
+```json
+{ "interestId": "uuid" }
 ```
 
 **Response `201`**
 ```json
 {
-  "userInterests": [
+  "result": [
     { "userId": "uuid", "interestId": "uuid", "interestName": "photography" }
   ]
 }
 ```
 
 **Errors:** `400` would exceed 5 interests or `interestId` does not exist · `401` unauthenticated · `409` interest already added · `500` server error
+
+---
+
+#### `PATCH /api/user-interests`
+
+Replace the authenticated user's **entire** interest set in one call. The existing interests are deleted and the provided ones inserted (within a transaction).
+
+**Auth required:** yes
+
+**Request body** — exactly **3 to 5** unique interest ids:
+```json
+{ "interestIds": ["uuid", "uuid", "uuid"] }
+```
+
+**Response `200`**
+```json
+{
+  "result": [
+    { "userId": "uuid", "interestId": "uuid", "interestName": "photography" }
+  ]
+}
+```
+
+**Errors:** `400` fewer than 3 / more than 5 ids, duplicate ids, or an `interestId` does not exist · `401` unauthenticated · `409` duplicate interest · `500` server error
 
 ---
 
@@ -433,7 +502,7 @@ If the new `interestId` equals the current one the request is a no-op and return
 
 **Response `200`**
 ```json
-{ "userInterest": { "userId": "uuid", "interestId": "uuid", "interestName": "hiking" } }
+{ "result": { "userId": "uuid", "interestId": "uuid", "interestName": "hiking" } }
 ```
 
 **Errors:** `400` `interestId` does not exist · `401` unauthenticated · `404` current interest not found · `409` new interest already added · `500` server error
@@ -465,19 +534,21 @@ List all venues. No auth required.
 **Response `200`**
 ```json
 {
-  "venues": [
-    {
-      "id": "uuid",
-      "name": "The Grand Café",
-      "venueType": "bar",
-      "address": "Coolsingel 1, Rotterdam",
-      "description": "Classic brown café",
-      "latitude": 51.922,
-      "longitude": 4.479,
-      "suggestedOrder": 1,
-      "vibe": "cosy"
-    }
-  ]
+  "result": {
+    "venues": [
+      {
+        "id": "uuid",
+        "name": "The Grand Café",
+        "venueType": "bar",
+        "address": "Coolsingel 1, Rotterdam",
+        "description": "Classic brown café",
+        "latitude": 51.922,
+        "longitude": 4.479,
+        "suggestedOrder": 1,
+        "vibe": "cosy"
+      }
+    ]
+  }
 }
 ```
 
@@ -489,7 +560,7 @@ Fetch a single venue. No auth required.
 
 **Response `200`**
 ```json
-{ "venue": { "id": "uuid", "name": "The Grand Café", "..." : "..." } }
+{ "result": { "id": "uuid", "name": "The Grand Café", "..." : "..." } }
 ```
 
 **Errors:** `400` invalid id · `404` not found
@@ -529,7 +600,7 @@ Create a venue.
 
 **Response `201`**
 ```json
-{ "venue": { "id": "uuid", "..." : "..." } }
+{ "result": { "id": "uuid", "..." : "..." } }
 ```
 
 **Errors:** `400` validation failure · `500` server error
@@ -544,7 +615,7 @@ Update a venue. All fields optional.
 
 **Response `200`**
 ```json
-{ "venue": { "id": "uuid", "..." : "..." } }
+{ "result": { "id": "uuid", "..." : "..." } }
 ```
 
 **Errors:** `400` no fields provided or validation failure · `404` not found · `500` server error
@@ -728,17 +799,19 @@ List partners. No auth required.
 
 ```json
 {
-  "partners": [
-    {
-      "id": "uuid",
-      "userId": "uuid",
-      "organizationName": "Cafe Partner",
-      "contactEmail": "partner@example.com",
-      "partnershipType": "cafe",
-      "status": "prospect",
-      "createdAt": "2026-06-14T10:00:00.000Z"
-    }
-  ]
+  "result": {
+    "partners": [
+      {
+        "id": "uuid",
+        "userId": "uuid",
+        "organizationName": "Cafe Partner",
+        "contactEmail": "partner@example.com",
+        "partnershipType": "cafe",
+        "status": "prospect",
+        "createdAt": "2026-06-14T10:00:00.000Z"
+      }
+    ]
+  }
 }
 ```
 
@@ -750,7 +823,7 @@ List partners. No auth required.
 
 Fetch one partner and its venue partnerships. No auth required.
 
-**Response `200`** returns `partner` and `venuePartnerships`. The `password` field is never included.
+**Response `200`** — `result` contains `partner` and `venuePartnerships`: `{ "result": { "partner": {...}, "venuePartnerships": [...] } }`. The `password` field is never included.
 
 **Errors:** `400` invalid id · `404` not found · `500` server error
 
@@ -828,18 +901,20 @@ List venue partnerships. No auth required.
 
 ```json
 {
-  "venuePartnerships": [
-    {
-      "id": "uuid",
-      "venueId": "uuid",
-      "partnerId": "uuid",
-      "dealTitle": "Student coffee deal",
-      "dealDescription": "10% off for student groups",
-      "startsAt": "2026-06-14T10:00:00.000Z",
-      "endsAt": "2026-07-14T10:00:00.000Z",
-      "active": true
-    }
-  ]
+  "result": {
+    "venuePartnerships": [
+      {
+        "id": "uuid",
+        "venueId": "uuid",
+        "partnerId": "uuid",
+        "dealTitle": "Student coffee deal",
+        "dealDescription": "10% off for student groups",
+        "startsAt": "2026-06-14T10:00:00.000Z",
+        "endsAt": "2026-07-14T10:00:00.000Z",
+        "active": true
+      }
+    ]
+  }
 }
 ```
 
@@ -850,6 +925,33 @@ List venue partnerships. No auth required.
 #### `GET /api/venue-partnerships/:id`
 
 Fetch one venue partnership with safe venue and partner details. Partner passwords are never included.
+
+**Response `200`**
+```json
+{
+  "result": {
+    "id": "uuid",
+    "dealTitle": "Student coffee deal",
+    "dealDescription": "10% off for student groups",
+    "startsAt": "2026-06-14T10:00:00.000Z",
+    "endsAt": "2026-07-14T10:00:00.000Z",
+    "active": true,
+    "venue": {
+      "id": "uuid",
+      "name": "The Grand Café",
+      "address": "Coolsingel 1, Rotterdam",
+      "venueType": "bar"
+    },
+    "partner": {
+      "id": "uuid",
+      "organizationName": "Cafe Partner",
+      "contactEmail": "partner@example.com",
+      "partnershipType": "cafe",
+      "status": "active"
+    }
+  }
+}
+```
 
 **Errors:** `400` invalid id · `404` not found · `500` server error
 
@@ -927,7 +1029,7 @@ List all thema routes. No auth required.
 **Response `200`**
 ```json
 {
-  "themaRoutes": [
+  "result": [
     {
       "id": "uuid",
       "name": "Classic Pub Crawl",
@@ -949,7 +1051,7 @@ Fetch a single thema route by ID. No auth required.
 
 **Response `200`**
 ```json
-{ "themaRoute": { "id": "uuid", "name": "Classic Pub Crawl", "description": "...", "mood": "casual", "active": true } }
+{ "result": { "id": "uuid", "name": "Classic Pub Crawl", "description": "...", "mood": "casual", "active": true } }
 ```
 
 **Errors:** `400` invalid id · `404` not found
@@ -981,7 +1083,7 @@ Create a new thema route.
 
 **Response `201`**
 ```json
-{ "themaRoute": { "id": "uuid", "name": "Classic Pub Crawl", "..." : "..." } }
+{ "result": { "id": "uuid", "name": "Classic Pub Crawl", "..." : "..." } }
 ```
 
 **Errors:** `400` validation failure · `401` unauthenticated · `409` name already exists · `500` server error
@@ -1006,7 +1108,7 @@ At least one field must be provided.
 
 **Response `200`**
 ```json
-{ "themaRoute": { "id": "uuid", "name": "Updated Name", "..." : "..." } }
+{ "result": { "id": "uuid", "name": "Updated Name", "..." : "..." } }
 ```
 
 **Errors:** `400` no fields provided or validation failure · `401` unauthenticated · `404` not found · `409` name already taken · `500` server error
@@ -1031,7 +1133,7 @@ Base path: `/api/routes`
 
 A route is a concrete pub-hop path through a city. It optionally belongs to a thema route (`themeId`) and is composed of ordered [route stops](#route-stops).
 
-> **Response envelope:** Route and route-stop endpoints wrap their payload in a `result` field: `{ "result": <data>, "message": <optional string> }`. List endpoints place the collection under a named key inside `result` (e.g. `result.routes`).
+> **Response envelope:** Like most endpoints, route and route-stop responses use the global [`{ result, message }` envelope](#response-format), with list collections under a named key inside `result` (e.g. `result.routes`, `result.routeStops`).
 
 ---
 
@@ -1280,15 +1382,17 @@ List conversation starters, optionally filtered. No auth required.
 **Response `200`**
 ```json
 {
-  "conversationStarters": [
-    {
-      "id": "uuid",
-      "interestsId": "uuid",
-      "interestName": "icebreaker",
-      "prompt": "What would your perfect Saturday look like?",
-      "triggerMinute": 10
-    }
-  ]
+  "result": {
+    "conversationStarters": [
+      {
+        "id": "uuid",
+        "interestsId": "uuid",
+        "interestName": "icebreaker",
+        "prompt": "What would your perfect Saturday look like?",
+        "triggerMinute": 10
+      }
+    ]
+  }
 }
 ```
 
@@ -1302,7 +1406,7 @@ Fetch a single conversation starter. No auth required.
 
 **Response `200`**
 ```json
-{ "conversationStarter": { "id": "uuid", "..." : "..." } }
+{ "result": { "id": "uuid", "..." : "..." } }
 ```
 
 **Errors:** `404` not found
@@ -1334,7 +1438,7 @@ Create a conversation starter.
 
 **Response `201`**
 ```json
-{ "conversationStarter": { "id": "uuid", "..." : "..." } }
+{ "result": { "id": "uuid", "..." : "..." } }
 ```
 
 **Errors:** `400` validation failure or interestsId not found · `500` server error
@@ -1349,7 +1453,7 @@ Update a conversation starter. All fields optional.
 
 **Response `200`**
 ```json
-{ "conversationStarter": { "id": "uuid", "..." : "..." } }
+{ "result": { "id": "uuid", "..." : "..." } }
 ```
 
 **Errors:** `400` no fields or validation failure · `404` not found · `500` server error
@@ -1400,6 +1504,8 @@ Return the authenticated user's match history, ordered by most recent.
 }
 ```
 
+> Unlike the other REST endpoints, this response is **not** wrapped in the `result` envelope — the array is returned directly under `matches`.
+
 **Errors:** `401` unauthenticated
 
 ---
@@ -1419,7 +1525,7 @@ Return the authenticated user's current active or setup session.
 **Response `200`**
 ```json
 {
-  "session": {
+  "result": {
     "id": "uuid",
     "groupId": "uuid",
     "routeId": "uuid",
@@ -1445,62 +1551,64 @@ Fetch full session details. Caller must be a group member.
 **Response `200`**
 ```json
 {
-  "session": {
-    "id": "uuid",
-    "groupId": "uuid",
-    "routeId": "uuid",
-    "themeId": "uuid",
-    "selectedTimeSlot": "2026-06-10T19:00",
-    "status": "active",
-    "currentStopIndex": 1,
-    "startedAt": "2026-06-10T19:05:00.000Z",
-    "completedAt": null
-  },
-  "group": {
-    "id": "uuid",
-    "groupName": "Night Owls",
-    "groupSize": 4,
-    "selectedTimeSlot": "2026-06-10T19:00",
-    "matchStatus": "matched"
-  },
-  "members": [
-    {
-      "userId": "uuid",
-      "role": "leader",
-      "joinedAt": "2026-06-10T18:50:00.000Z",
-      "name": "Alice",
-      "school": "EUR",
-      "campus": "Woudestein"
-    }
-  ],
-  "route": {
-    "id": "uuid",
-    "name": "Rotterdam Nights",
-    "area": "City Centre",
-    "city": "Rotterdam",
-    "routeType": "social"
-  },
-  "stops": [
-    {
+  "result": {
+    "session": {
       "id": "uuid",
-      "routeStopId": "uuid",
-      "timerState": "idle",
-      "arrivedAt": null,
-      "timerStartedAt": null,
-      "timerFinishedAt": null,
-      "completedAt": null,
-      "routeOrder": 1,
-      "plannedDurationMinutes": 30,
-      "walkLabel": "5 min walk",
-      "venueId": "uuid",
-      "venueName": "The Grand Café",
-      "venueType": "bar",
-      "venueAddress": "Coolsingel 1, Rotterdam",
-      "latitude": 51.922,
-      "longitude": 4.479,
-      "vibe": "cosy"
-    }
-  ]
+      "groupId": "uuid",
+      "routeId": "uuid",
+      "themeId": "uuid",
+      "selectedTimeSlot": "2026-06-10T19:00",
+      "status": "active",
+      "currentStopIndex": 1,
+      "startedAt": "2026-06-10T19:05:00.000Z",
+      "completedAt": null
+    },
+    "group": {
+      "id": "uuid",
+      "groupName": "Night Owls",
+      "groupSize": 4,
+      "selectedTimeSlot": "2026-06-10T19:00",
+      "matchStatus": "matched"
+    },
+    "members": [
+      {
+        "userId": "uuid",
+        "role": "leader",
+        "joinedAt": "2026-06-10T18:50:00.000Z",
+        "name": "Alice",
+        "school": "EUR",
+        "campus": "Woudestein"
+      }
+    ],
+    "route": {
+      "id": "uuid",
+      "name": "Rotterdam Nights",
+      "area": "City Centre",
+      "city": "Rotterdam",
+      "routeType": "social"
+    },
+    "stops": [
+      {
+        "id": "uuid",
+        "routeStopId": "uuid",
+        "timerState": "not_started",
+        "arrivedAt": null,
+        "timerStartedAt": null,
+        "timerFinishedAt": null,
+        "completedAt": null,
+        "routeOrder": 1,
+        "plannedDurationMinutes": 30,
+        "walkLabel": "5 min walk",
+        "venueId": "uuid",
+        "venueName": "The Grand Café",
+        "venueType": "bar",
+        "venueAddress": "Coolsingel 1, Rotterdam",
+        "latitude": 51.922,
+        "longitude": 4.479,
+        "vibe": "cosy"
+      }
+    ]
+  }
 }
 ```
 
@@ -1519,8 +1627,8 @@ Immediately activate a session that is in `setup` status.
 **Response `200`**
 ```json
 {
-  "message": "Session activated",
-  "sessionId": "uuid"
+  "result": { "sessionId": "uuid" },
+  "message": "Session activated"
 }
 ```
 
@@ -1545,10 +1653,12 @@ const socket = io("http://localhost:8000", {
 })
 ```
 
-The server also accepts the token from:
+The server also reads the token from these fallbacks, in order:
 - `socket.handshake.auth.token`
 - `Authorization: Bearer <token>` header
 - `access_token` cookie
+
+> The handshake expects an **access token** (it is verified with the access-token secret). The `access_token` cookie set by the REST login holds a *refresh* token, so the cookie fallback will not authenticate a socket on its own — prefer passing the access token via `auth.token`.
 
 On successful authentication `socket.data` contains `{ userId, email }`.
 
@@ -2132,7 +2242,7 @@ socket.emit("stop:finish", { sessionId, stopId }, (ack) => {
 
 - **Automatic state restore.** On reconnect, if the user is still in a party the server immediately re-emits `party:updated`, so your party UI heals itself. Keep your `party:updated` listener attached across reconnects.
 - **Backgrounding.** Mobile OSes suspend sockets when the app is backgrounded. Listen for app-state changes and call `socket.connect()` on resume; Socket.IO replays the handshake (and your `auth.token`) automatically.
-- **Token expiry mid-session.** Access tokens last 1 hour. If a reconnect fails with `connect_error`, refresh the token, set `socket.auth = { token: newToken }`, and reconnect.
+- **Token expiry mid-session.** Access tokens last 30 minutes. If a reconnect fails with `connect_error`, refresh the token, set `socket.auth = { token: newToken }`, and reconnect.
 - **Cleanup.** When the user logs out or the screen unmounts, remove listeners and disconnect to avoid leaks:
 
 ```js
