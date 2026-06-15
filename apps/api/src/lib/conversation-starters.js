@@ -4,8 +4,18 @@ import {
   conversationStarters,
   gameSessions,
   groupMembers,
+  interests,
   userInterests,
 } from "../db/schema.js"
+
+// Starter rows joined with their interest name so clients can label prompts.
+const starterColumns = {
+  id: conversationStarters.id,
+  interestsId: conversationStarters.interestsId,
+  interestName: interests.name,
+  prompt: conversationStarters.prompt,
+  triggerMinute: conversationStarters.triggerMinute,
+}
 
 /**
  * Pick one conversation starter for a session at the given trigger minute.
@@ -65,8 +75,9 @@ export function pickStarterForSession(sessionId, triggerMinute, shownStarterIds)
     if (excluded.length > 0) conditions.push(notInArray(conversationStarters.id, excluded))
 
     const candidates = db
-      .select()
+      .select(starterColumns)
       .from(conversationStarters)
+      .leftJoin(interests, eq(conversationStarters.interestsId, interests.id))
       .where(and(...conditions))
       .all()
 
@@ -83,8 +94,9 @@ export function pickStarterForSession(sessionId, triggerMinute, shownStarterIds)
   if (excluded.length > 0) generalConditions.push(notInArray(conversationStarters.id, excluded))
 
   const generalAtMinute = db
-    .select()
+    .select(starterColumns)
     .from(conversationStarters)
+    .leftJoin(interests, eq(conversationStarters.interestsId, interests.id))
     .where(and(...generalConditions))
     .all()
 
@@ -97,8 +109,9 @@ export function pickStarterForSession(sessionId, triggerMinute, shownStarterIds)
   if (excluded.length > 0) anyGeneralConditions.push(notInArray(conversationStarters.id, excluded))
 
   const anyGeneral = db
-    .select()
+    .select(starterColumns)
     .from(conversationStarters)
+    .leftJoin(interests, eq(conversationStarters.interestsId, interests.id))
     .where(and(...anyGeneralConditions))
     .all()
 

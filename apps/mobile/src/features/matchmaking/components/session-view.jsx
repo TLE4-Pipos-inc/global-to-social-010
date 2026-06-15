@@ -103,8 +103,9 @@ export function SessionView() {
           <ThemedText type="subtitle">Conversation starter</ThemedText>
           <View style={styles.starterCard}>
             <ThemedText style={styles.starterMeta}>
-              {latestStarter.starter?.category &&
-                `${latestStarter.starter.category}`}
+              {latestStarter.starter?.interestName
+                ? `${latestStarter.starter.interestName}`
+                : "General"}
               {` · ${formatMMSS(starterRemaining)}`}
             </ThemedText>
             <ThemedText type="defaultSemiBold">
