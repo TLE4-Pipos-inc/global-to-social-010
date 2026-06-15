@@ -37,6 +37,7 @@ const styles = StyleSheet.create({
     lightFilled: {
         height: 52,
         borderRadius: 12,
+        paddingHorizontal: 20,
         backgroundColor: Colors.lightGreenColor,
         justifyContent: "center",
         alignItems: "center",
@@ -45,6 +46,7 @@ const styles = StyleSheet.create({
     lightOutline: {
         height: 52,
         borderRadius: 12,
+        paddingHorizontal: 20,
         borderWidth: 1,
         borderColor: Colors.lightGreenColor,
         justifyContent: "center",
@@ -55,6 +57,7 @@ const styles = StyleSheet.create({
     darkFilled: {
         height: 52,
         borderRadius: 12,
+        paddingHorizontal: 20,
         backgroundColor: Colors.darkGreenColor,
         justifyContent: "center",
         alignItems: "center",
@@ -63,6 +66,7 @@ const styles = StyleSheet.create({
     darkOutline: {
         height: 52,
         borderRadius: 12,
+        paddingHorizontal: 20,
         borderWidth: 1,
         borderColor: Colors.darkGreenColor,
         justifyContent: "center",
@@ -91,6 +95,7 @@ const styles = StyleSheet.create({
     destructiveOutline: {
         height: 52,
         borderRadius: 12,
+        paddingHorizontal: 20,
         borderWidth: 1,
         borderColor: Colors.dangerColor,
         justifyContent: "center",

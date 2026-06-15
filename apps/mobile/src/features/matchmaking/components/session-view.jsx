@@ -1,80 +1,28 @@
-import { useEffect, useRef, useState } from "react"
-import { ScrollView, StyleSheet, View } from "react-native"
+import { useState } from "react"
+import { Pressable, ScrollView, StyleSheet, View } from "react-native"
+import { ChevronDown, ChevronUp } from "lucide-react-native"
 import { ThemedText } from "@/components/themed-text"
 import {
   PrimaryLightButton,
-  PrimaryDarkButton,
   DestructiveOutlineButton,
 } from "@/components/buttons"
 import { Colors } from "@/constants/theme"
 import { useMatchmaking } from "@/features/matchmaking/socket-context"
 import { useBusyAction } from "@/features/matchmaking/use-busy-action"
-
-const STATUS_LABEL = {
-  not_started: "Not started",
-  running: "In progress",
-  finished: "Completed",
-}
+import {
+  useActiveStop,
+  formatMMSS,
+} from "@/features/matchmaking/use-active-stop"
 
 const STARTER_COUNTDOWN_SECONDS = 5 * 60
 
-/** Re-renders every `intervalMs` so timestamp-based countdowns stay live. */
-function useNow(intervalMs = 1000) {
-  const [now, setNow] = useState(() => Date.now())
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), intervalMs)
-    return () => clearInterval(id)
-  }, [intervalMs])
-  return now
-}
-
-/** Formats seconds as "M:SS", clamping negatives to 0:00. */
-function formatMMSS(totalSeconds) {
-  const safe = Math.max(0, Math.floor(totalSeconds))
-  const minutes = Math.floor(safe / 60)
-  const seconds = safe % 60
-  return `${minutes}:${String(seconds).padStart(2, "0")}`
-}
-
 export function SessionView() {
-  const {
-    match,
-    stopStates,
-    startStop,
-    finishStop,
-    starters,
-    resetMatchmaking,
-  } = useMatchmaking()
+  const { match, startStop, finishStop, starters, resetMatchmaking } =
+    useMatchmaking()
   const [busy, run] = useBusyAction()
-  const now = useNow()
+  const { now, stops, currentStop, currentState } = useActiveStop()
 
   const session = match?.session
-  const route = match?.route
-  const stops = match?.stops ?? []
-
-  // stopStates only carries a status string, so record when each stop began
-  // running to drive the duration countdown (client-side, approximate).
-  const startedAtRef = useRef({})
-  useEffect(() => {
-    startedAtRef.current = {}
-  }, [session?.id])
-  useEffect(() => {
-    for (const [stopId, state] of Object.entries(stopStates)) {
-      if (state === "running" && !startedAtRef.current[stopId]) {
-        startedAtRef.current[stopId] = Date.now()
-      } else if (state !== "running") {
-        delete startedAtRef.current[stopId]
-      }
-    }
-  }, [stopStates])
-
-  // Only the first not-yet-finished stop is shown at a time.
-  const currentStop = stops.find(
-    (stop) => (stopStates[stop.id] ?? "not_started") !== "finished"
-  )
-  const currentState = currentStop
-    ? (stopStates[currentStop.id] ?? "not_started")
-    : null
 
   const latestStarter = currentStop
     ? starters.find((starter) => starter.stopId === currentStop.id)
@@ -84,86 +32,51 @@ export function SessionView() {
     ? STARTER_COUNTDOWN_SECONDS - (now - latestStarter.receivedAt) / 1000
     : 0
 
-  const stopRemaining =
-    currentStop && currentState === "running"
-      ? currentStop.plannedDurationMinutes * 60 -
-        (now - (startedAtRef.current[currentStop.id] ?? now)) / 1000
-      : 0
-
   return (
     <ScrollView contentContainerStyle={styles.content}>
-      <ThemedText type="title">{route?.name ?? "Your pub hop"}</ThemedText>
-      <ThemedText style={styles.muted}>
-        Start the timer when you arrive at each stop. A conversation starter
-        appears here while the stop is running.
-      </ThemedText>
+      {stops.length === 0 && (
+        <ThemedText style={styles.mutedSmall}>
+          No stops on this route.
+        </ThemedText>
+      )}
+      {stops.length > 0 && !currentStop && (
+        <ThemedText style={styles.mutedSmall}>All stops complete.</ThemedText>
+      )}
 
       {showStarter && (
-        <View style={styles.section}>
-          <ThemedText type="subtitle">Conversation starter</ThemedText>
-          <View style={styles.starterCard}>
-            <ThemedText style={styles.starterMeta}>
-              {latestStarter.starter?.interestName
-                ? `${latestStarter.starter.interestName}`
-                : "General"}
-              {` · ${formatMMSS(starterRemaining)}`}
-            </ThemedText>
-            <ThemedText type="defaultSemiBold">
+        <View style={styles.starterCard}>
+          <ThemedText style={styles.starterInterest}>
+            {latestStarter.starter?.interestName ?? "General"}
+          </ThemedText>
+          <View style={styles.starterBody}>
+            <ThemedText type="defaultSemiBold" style={styles.starterPrompt}>
               {latestStarter.starter?.prompt}
+            </ThemedText>
+          </View>
+          <View style={styles.starterFooter}>
+            <ThemedText style={styles.footerTime}>
+              {formatMMSS(starterRemaining)}
             </ThemedText>
           </View>
         </View>
       )}
 
-      <View style={styles.section}>
-        <ThemedText type="subtitle">Stops</ThemedText>
-        {stops.length === 0 && (
-          <ThemedText style={styles.mutedSmall}>
-            No stops on this route.
-          </ThemedText>
-        )}
-        {stops.length > 0 && !currentStop && (
-          <ThemedText style={styles.mutedSmall}>All stops complete.</ThemedText>
-        )}
-        {currentStop && (
-          <View style={styles.stopCard}>
-            <View style={styles.stopHeader}>
-              <ThemedText type="defaultSemiBold">
-                Stop {currentStop.order}
-              </ThemedText>
-              <ThemedText style={styles.badge}>
-                {STATUS_LABEL[currentState]}
-              </ThemedText>
-            </View>
-            <ThemedText style={styles.mutedSmall}>
-              Planned {currentStop.plannedDurationMinutes} min
-            </ThemedText>
-            {currentState === "running" && (
-              <ThemedText style={styles.countdown}>
-                {stopRemaining <= 0
-                  ? "Time's up"
-                  : `Time left ${formatMMSS(stopRemaining)}`}
-              </ThemedText>
-            )}
-            {currentState === "not_started" && (
-              <PrimaryLightButton
-                title={busy ? "Working…" : "Start stop"}
-                disabled={busy || !session}
-                onPress={() => run(() => startStop(session.id, currentStop.id))}
-              />
-            )}
-            {currentState === "running" && (
-              <PrimaryDarkButton
-                title={busy ? "Working…" : "Finish stop"}
-                disabled={busy || !session}
-                onPress={() =>
-                  run(() => finishStop(session.id, currentStop.id))
-                }
-              />
-            )}
-          </View>
-        )}
-      </View>
+      {currentStop && <InformationBox stop={currentStop} />}
+
+      {currentState === "not_started" && (
+        <PrimaryLightButton
+          title={busy ? "Working…" : "Start stop"}
+          disabled={busy || !session}
+          onPress={() => run(() => startStop(session.id, currentStop.id))}
+        />
+      )}
+      {currentState === "running" && (
+        <PrimaryLightButton
+          title={busy ? "Working…" : "Finish stop"}
+          disabled={busy || !session}
+          onPress={() => run(() => finishStop(session.id, currentStop.id))}
+        />
+      )}
 
       <DestructiveOutlineButton
         title="Finish & exit"
@@ -174,20 +87,52 @@ export function SessionView() {
   )
 }
 
+/** Collapsible card revealing venue details for the active stop. */
+function InformationBox({ stop }) {
+  const [open, setOpen] = useState(false)
+  const Chevron = open ? ChevronDown : ChevronUp
+  const details = [
+    ["Type", stop.venueType],
+    ["Address", stop.address],
+    ["Vibe", stop.vibe],
+  ].filter(([, value]) => Boolean(value))
+
+  return (
+    <View style={styles.stopCard}>
+      <Pressable style={styles.infoHeader} onPress={() => setOpen((v) => !v)}>
+        <ThemedText type="subtitle">Information</ThemedText>
+        <Chevron size={22} color={Colors.darkGreenColor} />
+      </Pressable>
+      {open && (
+        <View style={styles.infoBody}>
+          {details.map(([label, value]) => (
+            <ThemedText key={label} style={styles.infoLine}>
+              <ThemedText style={styles.infoLabel}>{label}: </ThemedText>
+              {value}
+            </ThemedText>
+          ))}
+          {stop.description && (
+            <ThemedText style={styles.infoLine}>{stop.description}</ThemedText>
+          )}
+          {details.length === 0 && !stop.description && (
+            <ThemedText style={styles.mutedSmall}>
+              No venue details available.
+            </ThemedText>
+          )}
+        </View>
+      )}
+    </View>
+  )
+}
+
 const styles = StyleSheet.create({
   content: {
     padding: 24,
     gap: 18,
   },
-  muted: {
-    color: "#555",
-  },
   mutedSmall: {
     color: "#777",
     fontSize: 13,
-  },
-  section: {
-    gap: 12,
   },
   stopCard: {
     gap: 8,
@@ -195,29 +140,56 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 16,
   },
-  stopHeader: {
+  infoHeader: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+    justifyContent: "space-between",
   },
-  badge: {
-    fontSize: 12,
+  infoBody: {
+    gap: 6,
+  },
+  infoLine: {
+    fontSize: 14,
+  },
+  infoLabel: {
     fontWeight: "700",
-    color: Colors.darkGreenColor,
   },
   starterCard: {
-    gap: 4,
-    backgroundColor: "rgba(84,140,47,0.10)",
-    borderRadius: 12,
-    padding: 14,
+    borderWidth: 2,
+    borderColor: Colors.lightGreenColor,
+    borderRadius: 16,
+    backgroundColor: Colors.background,
+    overflow: "hidden",
   },
-  starterMeta: {
+  starterInterest: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
     fontSize: 12,
-    color: "#777",
+    fontWeight: "700",
+    color: Colors.lightGreenColor,
   },
-  countdown: {
+  starterBody: {
+    minHeight: 160,
+    paddingHorizontal: 24,
+    paddingVertical: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  starterPrompt: {
+    textAlign: "center",
+    fontSize: 18,
+  },
+  starterFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: Colors.orangeColor,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  footerTime: {
     fontSize: 16,
     fontWeight: "700",
-    color: Colors.darkGreenColor,
+    color: "#fff",
   },
 })
