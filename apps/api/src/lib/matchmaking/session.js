@@ -11,6 +11,7 @@ import {
   sessionStops,
   userInterests,
   users,
+  venues,
 } from "../../db/schema.js"
 
 /**
@@ -225,9 +226,15 @@ export function createMatchedSession({ parties, players, selectedTimeSlot, match
         id: routeStops.id,
         routeOrder: routeStops.routeOrder,
         venueId: routeStops.venueId,
+        venueName: venues.name,
+        venueType: venues.venueType,
+        address: venues.address,
+        description: venues.description,
+        vibe: venues.vibe,
         plannedDurationMinutes: routeStops.plannedDurationMinutes,
       })
       .from(routeStops)
+      .leftJoin(venues, eq(venues.id, routeStops.venueId))
       .where(eq(routeStops.routeId, route.id))
       .orderBy(routeStops.routeOrder)
       .all()
@@ -288,6 +295,11 @@ export function createMatchedSession({ parties, players, selectedTimeSlot, match
         routeStopId: row.routeStopId,
         order: stops[idx].routeOrder,
         venueId: stops[idx].venueId,
+        venueName: stops[idx].venueName,
+        venueType: stops[idx].venueType,
+        address: stops[idx].address,
+        description: stops[idx].description,
+        vibe: stops[idx].vibe,
         plannedDurationMinutes: stops[idx].plannedDurationMinutes,
       })),
       members: membersResult,
