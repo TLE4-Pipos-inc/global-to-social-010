@@ -1697,6 +1697,77 @@ Remove the party from the matchmaking queue.
 
 ---
 
+#### `party:options`
+
+Leader only. Configure the party as a browseable **team**: set its visibility and/or its
+max team size. Only allowed while the party is `idle` (configure before queueing).
+
+- `visibility`: `"public"` lists the team in `party:browse`; `"private"` (default) keeps it
+  invite-code-only. Turning a team public with no `maxSize` defaults `maxSize` to the max group
+  size (8).
+- `maxSize`: the desired final team size. Clamped to `[max(currentMembers, 4), 8]`. A public team
+  fills toward this number from the random queue; it also caps manual joins.
+
+**Payload** (both fields optional)
+```json
+{ "visibility": "public", "maxSize": 6 }
+```
+
+**Ack** — same shape as `party:create` (the serialized party now includes `visibility` and `maxSize`).
+
+---
+
+#### `party:browse`
+
+List public teams with open slots (both still-assembling and actively-searching), each annotated
+with **your** compatibility against the current members. Never exposes invite codes.
+
+**Payload:** none
+
+**Ack**
+```json
+{
+  "ok": true,
+  "teams": [
+    {
+      "id": "uuid",
+      "leaderId": "uuid",
+      "status": "queued",
+      "visibility": "public",
+      "selectedTimeSlot": "2026-06-10T19:00",
+      "maxSize": 6,
+      "memberCount": 3,
+      "openSlots": 3,
+      "compatibility": 0.75,
+      "members": [{ "userId": "uuid", "name": "Alice", "school": "EUR", "campus": "Woudestein" }]
+    }
+  ]
+}
+```
+
+`compatibility` is `0..1` (higher = more shared interests). Teams are returned most-compatible first.
+
+---
+
+#### `party:join-public`
+
+Join a public team directly from the browser, by id. Works whether the team is still assembling
+or already searching; private teams must be joined with their invite code via `party:join`.
+
+**Payload**
+```json
+{ "partyId": "uuid" }
+```
+
+**Ack** — same shape as `party:create`. Fails if the team is full, private, or no longer accepting members.
+
+> **Queue auto-fill.** Once a public team is queued (`party:queue`), the matchmaker pulls compatible
+> players out of the normal random queue and into the team (they keep `status: "queued"` and receive
+> a `party:updated` as the team grows). The team forms a session — one `match:found` for everyone —
+> when it reaches its `maxSize`, or after the relax window (~90s) with whoever has joined (min 4).
+
+---
+
 #### `session:ready`
 
 Signal that the player is ready to start a session.
@@ -2073,6 +2144,7 @@ socket.disconnect()
 | You emit (client → server) | You listen for (server → client) |
 |----------------------------|----------------------------------|
 | `party:create`, `party:join`, `party:leave`, `party:kick`, `party:status` | `party:updated`, `party:dissolved` |
+| `party:options`, `party:browse`, `party:join-public` | `party:updated` |
 | `party:queue`, `party:unqueue` | `queue:update`, `match:found` |
 | `session:ready` | `session:started` |
 | `stop:start`, `stop:finish` | `stop:timer:started`, `stop:timer:finished`, `conversation:starter` |

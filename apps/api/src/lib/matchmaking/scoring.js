@@ -47,6 +47,27 @@ export function scorePair(a, b) {
 }
 
 /**
+ * Compatibility of a single user against an existing group, as the average of
+ * the user's pair score with each member. Used to annotate browseable public
+ * teams with "how compatible are you with this team" (0..1).
+ *
+ * @param {QueuedPlayer} user
+ * @param {QueuedPlayer[]} members
+ * @returns {number}
+ */
+export function scoreUserAgainstGroup(user, members) {
+  if (!user || !members || members.length === 0) return 0
+  let total = 0
+  let counted = 0
+  for (const m of members) {
+    if (m.userId === user.userId) continue
+    total += scorePair(user, m)
+    counted++
+  }
+  return counted === 0 ? 0 : total / counted
+}
+
+/**
  * Average pair score across every distinct pair in the cluster.
  *
  * @param {QueuedPlayer[]} cluster
