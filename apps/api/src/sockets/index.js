@@ -402,7 +402,7 @@ function handleBrowse(socket, queue) {
 
 function handleJoinPublic(io, socket, queue, payload) {
   const userId = socket.data.userId
-  const partyId = String(payload?.partyId ?? "")
+  const partyId = String(payload?.partyId ?? "").trim()
   if (!partyId) throw httpError("INVALID_TEAM", "partyId is required")
 
   const profile = loadPlayerProfile(userId)
