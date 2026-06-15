@@ -364,7 +364,7 @@ router.patch<{ id: string }>("/:id", requireAuth, async (req, res) => {
   }
 })
 
-router.delete<{ id: string }>("/:id", requireAuth, (req, res) => {
+router.delete<{ id: string }>("/:id", requireAuth, async (req, res) => {
   const params = PhotoParamsSchema.safeParse(req.params)
 
   if (!params.success) {
@@ -386,7 +386,7 @@ router.delete<{ id: string }>("/:id", requireAuth, (req, res) => {
 
   try {
     db.delete(photos).where(eq(photos.id, params.data.id)).run()
-    void removeStoredPhotoFile(existingPhoto.localUri)
+    await removeStoredPhotoFile(existingPhoto.localUri)
     return sendSuccess(res, 204, { message: "Photo deleted successfully" })
   } catch (error) {
     console.error(error)
