@@ -39,3 +39,35 @@ export function isUniquePartnerUserError(error: unknown): boolean {
     error.message.includes("partners.user_id")
   )
 }
+
+export function isUniqueCollageSessionError(error: unknown): boolean {
+  return (
+    isSqliteError(error) &&
+    error.message.includes("UNIQUE constraint failed") &&
+    error.message.includes("collages.session_id")
+  )
+}
+
+export function isUniqueCollageShareTokenError(error: unknown): boolean {
+  return (
+    isSqliteError(error) &&
+    error.message.includes("UNIQUE constraint failed") &&
+    error.message.includes("collages.share_token")
+  )
+}
+
+export function isUniqueCollagePhotoOrderError(error: unknown): boolean {
+  return (
+    isSqliteError(error) &&
+    error.message.includes("UNIQUE constraint failed") &&
+    error.message.includes("collage_photos.collage_id, collage_photos.display_order")
+  )
+}
+
+export function isUniqueCollagePhotoPhotoError(error: unknown): boolean {
+  return (
+    isSqliteError(error) &&
+    error.message.includes("UNIQUE constraint failed") &&
+    error.message.includes("collage_photos.collage_id, collage_photos.photo_id")
+  )
+}
