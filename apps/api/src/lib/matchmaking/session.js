@@ -7,12 +7,44 @@ import {
   groupMembers,
   playerGroups,
   routeStops,
+  routeThemes,
   routes,
   sessionStops,
   userInterests,
   users,
   venues,
 } from "../../db/schema.js"
+
+/**
+ * Whether a route theme row exists. Used to validate a leader-chosen themeId
+ * before queueing.
+ *
+ * @param {string} themeId
+ * @returns {boolean}
+ */
+export function routeThemeExists(themeId) {
+  return Boolean(
+    db.select({ id: routeThemes.id }).from(routeThemes).where(eq(routeThemes.id, themeId)).get(),
+  )
+}
+
+/**
+ * Whether the theme has at least one active route to run a session on. Queueing
+ * a theme with no active route would only fail later at match time, so we guard
+ * up front (see NO_ROUTE_FOR_THEME).
+ *
+ * @param {string} themeId
+ * @returns {boolean}
+ */
+export function themeHasActiveRoute(themeId) {
+  return Boolean(
+    db
+      .select({ id: routes.id })
+      .from(routes)
+      .where(and(eq(routes.themeId, themeId), eq(routes.active, true)))
+      .get(),
+  )
+}
 
 /**
  * Fetch the data we need to score a user when they enter the queue.
@@ -105,8 +137,12 @@ export function removePersistedParty(partyId) {
  * @param {import("./scoring.js").QueuedPlayer[]} params.players  All players across all parties
  * @param {string} params.selectedTimeSlot
  * @param {number} params.matchScore
+ * @param {string|null} [params.themeId]  Chosen route theme. When set, the
+ *   session route is picked only from active routes of that theme; if none
+ *   exist the match fails with a NO_ROUTE_FOR_THEME error. When null, any
+ *   active route is eligible (and zero routes falls back to a no-session group).
  */
-export function createMatchedSession({ parties, players, selectedTimeSlot, matchScore }) {
+export function createMatchedSession({ parties, players, selectedTimeSlot, matchScore, themeId = null }) {
   if (players.length < 4 || players.length > 8) {
     throw new Error(
       `Matched group must have 4..8 players, got ${players.length}`,
@@ -123,10 +159,23 @@ export function createMatchedSession({ parties, players, selectedTimeSlot, match
         themeId: routes.themeId,
       })
       .from(routes)
-      .where(eq(routes.active, true))
+      .where(
+        themeId
+          ? and(eq(routes.active, true), eq(routes.themeId, themeId))
+          : eq(routes.active, true),
+      )
       .orderBy(sql`RANDOM()`)
       .limit(1)
       .get()
+
+    // An explicitly chosen theme must resolve to a route. The queue-time guard
+    // makes this rare (a route deactivated mid-wait), but never silently match
+    // a group onto a different theme — fail so the socket layer can recover.
+    if (themeId && !route) {
+      const err = new Error("No active route is available for the selected theme")
+      err.code = "NO_ROUTE_FOR_THEME"
+      throw err
+    }
 
     const leadParty = parties[0]
     const groupId = leadParty.id
