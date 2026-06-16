@@ -26,6 +26,13 @@ export const UpdateUserSchema = UserSchema.partial().pick({
   campus: true,
 })
 
+export const AdminUpdateUserSchema = UserSchema.partial().pick({
+  name: true,
+  school: true,
+  campus: true,
+  role: true,
+})
+
 export const UserResponseSchema = UserSchema.extend({
   id: z.uuidv4(),
   createdAt: z.string(),
@@ -39,6 +46,7 @@ export const LoginResponseSchema = z.object({
   token: z.string(),
 })
 
+export type AdminUpdateUser = z.infer<typeof AdminUpdateUserSchema>
 export type UserRole = z.infer<typeof UserRoleSchema>
 export type User = z.infer<typeof UserSchema>
 export type UserRegister = z.infer<typeof UserRegisterSchema>

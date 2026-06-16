@@ -5,7 +5,12 @@
  * No DB and no server are required — we test the PartyQueue directly.
  */
 import assert from "node:assert/strict"
-import { PartyQueue, requiredScoreForWait, tryFormGroup } from "../../src/lib/matchmaking/queue.js"
+import {
+  PartyQueue,
+  requiredScoreForWait,
+  serializePublicParty,
+  tryFormGroup,
+} from "../../src/lib/matchmaking/queue.js"
 
 const config = {
   MIN_GROUP_SIZE: 4,
@@ -300,6 +305,195 @@ test("tryFormGroup prefers compatible parties over incompatible ones", () => {
   assert.ok(group)
   const ids = group.players.map((m) => m.userId).sort()
   assert.deepEqual(ids, ["c1", "c2", "c3", "seed"], "fills with compatible parties only")
+})
+
+// --- public teams + queue auto-fill ---------------------------------------
+
+test("going public defaults maxSize to the max group size", () => {
+  const q = new PartyQueue(config)
+  q.createParty(player("a"))
+  q.setPartyOptions("a", { visibility: "public" })
+  const p = q.getPartyOfUser("a")
+  assert.equal(p.visibility, "public")
+  assert.equal(p.maxSize, config.MAX_GROUP_SIZE)
+})
+
+test("setPartyOptions is leader-only and clamps maxSize", () => {
+  const q = new PartyQueue(config)
+  const p = q.createParty(player("a"))
+  q.joinByInvite(p.inviteCode, player("b"))
+  assert.throws(() => q.setPartyOptions("b", { maxSize: 6 }), /leader/)
+
+  q.setPartyOptions("a", { maxSize: 99 })
+  assert.equal(q.getPartyOfUser("a").maxSize, config.MAX_GROUP_SIZE) // clamped down
+  q.setPartyOptions("a", { maxSize: 1 })
+  assert.equal(q.getPartyOfUser("a").maxSize, config.MIN_GROUP_SIZE) // clamped up to MIN
+})
+
+test("team settings cannot change after queueing", () => {
+  const q = new PartyQueue(config)
+  q.createParty(player("a"))
+  q.setPartyOptions("a", { visibility: "public", maxSize: 6 })
+  q.queueParty("a", "19:00")
+  assert.throws(() => q.setPartyOptions("a", { maxSize: 8 }), /before queueing/)
+})
+
+test("joinByPartyId: public only, fills to maxSize then full", () => {
+  const q = new PartyQueue(config)
+  const t = q.createParty(player("a"))
+  assert.throws(() => q.joinByPartyId(t.id, player("z")), /private/)
+
+  q.setPartyOptions("a", { visibility: "public", maxSize: 4 })
+  q.joinByPartyId(t.id, player("b"))
+  q.joinByPartyId(t.id, player("c"))
+  q.joinByPartyId(t.id, player("d"))
+  assert.equal(q.getPartyOfUser("a").members.length, 4)
+  assert.throws(() => q.joinByPartyId(t.id, player("e")), /full/)
+})
+
+test("listJoinableTeams shows public teams with open slots only", () => {
+  const q = new PartyQueue(config)
+  q.createParty(player("pub"))
+  q.setPartyOptions("pub", { visibility: "public", maxSize: 4 })
+  q.createParty(player("priv")) // stays private
+
+  let list = q.listJoinableTeams()
+  assert.equal(list.length, 1)
+  assert.equal(list[0].leaderId, "pub")
+
+  q.joinByPartyId(list[0].id, player("x"))
+  q.joinByPartyId(list[0].id, player("y"))
+  q.joinByPartyId(list[0].id, player("z"))
+  assert.equal(q.listJoinableTeams().length, 0) // now full
+})
+
+test("serializePublicParty annotates compatibility and hides the invite code", () => {
+  const q = new PartyQueue(config)
+  const shared = ["music", "sports"]
+  const t = q.createParty(player("a", { interestIds: shared }))
+  q.joinByInvite(t.inviteCode, player("b", { interestIds: shared }))
+  q.setPartyOptions("a", { visibility: "public", maxSize: 6 })
+
+  const team = q.listJoinableTeams()[0]
+  const view = serializePublicParty(team, { userId: "req", interestIds: shared }, config)
+  assert.equal(view.inviteCode, undefined)
+  assert.equal(view.memberCount, 2)
+  assert.equal(view.openSlots, 4)
+  assert.equal(view.compatibility, 0.75) // 2 shared interests -> 0.75 with each member
+})
+
+test("a public team is filled from the queue and forms at max size", () => {
+  const q = new PartyQueue(config)
+  let matched = null
+  q.on("match", (m) => (matched = m))
+
+  const host = q.createParty(player("h1"))
+  q.joinByInvite(host.inviteCode, player("h2"))
+  q.setPartyOptions("h1", { visibility: "public", maxSize: 4 })
+  q.queueParty("h1", "19:00")
+  assert.equal(matched, null, "2/4 -> not full yet")
+
+  q.createParty(player("s1"))
+  q.queueParty("s1", "19:00") // absorbed -> 3/4, still holds
+  assert.equal(matched, null)
+  q.createParty(player("s2"))
+  q.queueParty("s2", "19:00") // absorbed -> 4/4 -> forms
+
+  assert.ok(matched, "host forms once filled to max")
+  assert.equal(matched.parties.length, 1, "the host is the sole party")
+  assert.equal(matched.parties[0].leaderId, "h1")
+  assert.equal(matched.players.length, 4)
+})
+
+test("a public team below max holds, then forms after the relax window", () => {
+  const c = { ...config, RELAX_AFTER_MS: 30_000 }
+  const q = new PartyQueue(c)
+  let matched = null
+  q.on("match", (m) => (matched = m))
+
+  const host = q.createParty(player("h1"))
+  q.joinByInvite(host.inviteCode, player("h2"))
+  q.joinByInvite(host.inviteCode, player("h3"))
+  q.setPartyOptions("h1", { visibility: "public", maxSize: 6 })
+  q.queueParty("h1", "20:00")
+
+  q.createParty(player("s1"))
+  q.queueParty("s1", "20:00") // -> 4/6, >= MIN but not full -> holds
+  assert.equal(matched, null, "4/6 within window -> hold for more")
+  assert.equal(q.getPartyOfUser("h1").members.length, 4)
+
+  backdateWait(q, "h1", 31_000)
+  q.evaluateSlot("20:00")
+  assert.ok(matched, "forms with whoever's aboard after relaxing")
+  assert.equal(matched.players.length, 4)
+  assert.equal(matched.parties.length, 1)
+})
+
+test("queue-fill skips incompatible players until the window relaxes", () => {
+  const c = { ...config, IDEAL_SCORE_THRESHOLD: 0.6, RELAX_AFTER_MS: 30_000 }
+  const q = new PartyQueue(c)
+  let matched = null
+  q.on("match", (m) => (matched = m))
+
+  const shared = ["music", "sports"]
+  const host = q.createParty(player("h1", { interestIds: shared }))
+  q.joinByInvite(host.inviteCode, player("h2", { interestIds: shared }))
+  q.setPartyOptions("h1", { visibility: "public", maxSize: 4 })
+  q.queueParty("h1", "21:00")
+
+  q.createParty(loner("x1"))
+  q.queueParty("x1", "21:00")
+  q.createParty(loner("x2"))
+  q.queueParty("x2", "21:00")
+  assert.equal(q.getPartyOfUser("h1").members.length, 2, "incompatible not absorbed yet")
+  assert.equal(matched, null)
+
+  backdateWait(q, "h1", 31_000)
+  q.evaluateSlot("21:00")
+  assert.equal(matched?.players.length, 4, "bar hits 0 -> fills as a last resort")
+})
+
+test("compatible solos still form their own group while an incompatible public team waits", () => {
+  const c = { ...config, IDEAL_SCORE_THRESHOLD: 0.6, RELAX_AFTER_MS: 30_000 }
+  const q = new PartyQueue(c)
+  let matched = null
+  q.on("match", (m) => (matched = m))
+
+  q.createParty(loner("host"))
+  q.setPartyOptions("host", { visibility: "public", maxSize: 8 })
+  q.queueParty("host", "23:00")
+
+  const shared = ["music", "sports"]
+  for (const id of ["a", "b", "c", "d"]) {
+    q.createParty(player(id, { interestIds: shared }))
+    q.queueParty(id, "23:00")
+  }
+
+  assert.ok(matched, "the compatible solos form via the classic matcher (phase 2)")
+  const ids = matched.players.map((m) => m.userId).sort()
+  assert.deepEqual(ids, ["a", "b", "c", "d"])
+  assert.equal(q.getPartyOfUser("host").members.length, 1, "public host is untouched")
+})
+
+test("party:absorbed reports the absorbed users and dissolved parties", () => {
+  const q = new PartyQueue(config)
+  let absorbed = null
+  q.on("party:absorbed", (e) => (absorbed = e))
+
+  const host = q.createParty(player("h1"))
+  q.joinByInvite(host.inviteCode, player("h2"))
+  q.setPartyOptions("h1", { visibility: "public", maxSize: 6 })
+  q.queueParty("h1", "19:30")
+
+  const solo = q.createParty(player("s1"))
+  q.queueParty("s1", "19:30")
+
+  assert.ok(absorbed)
+  assert.deepEqual(absorbed.absorbedUserIds, ["s1"])
+  assert.deepEqual(absorbed.dissolvedPartyIds, [solo.id])
+  assert.equal(absorbed.host.leaderId, "h1")
+  // The solo's user is now routed to the host party.
+  assert.equal(q.getPartyOfUser("s1").id, host.id)
 })
 
 console.log(`\n${passed} passed, ${failed} failed`)

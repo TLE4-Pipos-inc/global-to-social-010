@@ -1,4 +1,5 @@
 import { Suspense, useEffect } from "react"
+import { useNavigation } from "expo-router"
 import { ActivityIndicator, Alert, StyleSheet, View } from "react-native"
 import { ThemedText } from "@/components/themed-text"
 import { ThemedView } from "@/components/themed-view"
@@ -9,6 +10,11 @@ import { SearchingView } from "@/features/matchmaking/components/searching-view"
 import { LobbyView } from "@/features/matchmaking/components/lobby-view"
 import { SessionView } from "@/features/matchmaking/components/session-view"
 import { useLocalSearchParams } from "expo-router"
+import {
+  SessionHeaderTitle,
+  SessionStopCounter,
+  SessionTimer,
+} from "@/features/matchmaking/components/session-header"
 
 function derivePhase({ match, party, sessionStarted }) {
   if (match && sessionStarted) return "session"
@@ -19,6 +25,7 @@ function derivePhase({ match, party, sessionStarted }) {
 
 export default function Matching() {
   const { id } = useLocalSearchParams()
+  const navigation = useNavigation()
   const mm = useMatchmaking()
   const { status, match, party, sessionStarted, lastError, clearError } = mm
 
@@ -30,6 +37,25 @@ export default function Matching() {
   }, [lastError, clearError])
 
   const phase = derivePhase({ match, party, sessionStarted })
+
+  // During a session, the app header carries the live stop counter, location
+  // title, and timer; other phases fall back to the static "Matching" title.
+  useEffect(() => {
+    if (phase === "session") {
+      navigation.setOptions({
+        headerTitle: () => <SessionHeaderTitle />,
+        headerLeft: () => <SessionStopCounter />,
+        headerRight: () => <SessionTimer />,
+      })
+    } else {
+      navigation.setOptions({
+        headerTitle: undefined,
+        headerLeft: undefined,
+        headerRight: undefined,
+      })
+    }
+  }, [phase, navigation])
+
   return (
     <ThemedView style={styles.container}>
       <ConnectionBanner status={status} />

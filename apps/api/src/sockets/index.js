@@ -1,6 +1,6 @@
 import { Server } from "socket.io"
 import { verifyAccess } from "@/lib/jwt-helper"
-import { PartyQueue, serializeParty } from "@/lib/matchmaking/queue.js"
+import { PartyQueue, serializeParty, serializePublicParty } from "@/lib/matchmaking/queue.js"
 import {
   activateSession,
   createMatchedSession,
@@ -26,6 +26,9 @@ export const SOCKET_EVENTS = Object.freeze({
   PARTY_STATUS: "party:status",
   PARTY_QUEUE: "party:queue",
   PARTY_UNQUEUE: "party:unqueue",
+  PARTY_SET_OPTIONS: "party:options",
+  PARTY_BROWSE: "party:browse",
+  PARTY_JOIN_PUBLIC: "party:join-public",
   SESSION_READY: "session:ready",
   STOP_START: "stop:start",
   STOP_FINISH: "stop:finish",
@@ -117,6 +120,15 @@ export function attachSocketServer(httpServer, opts = {}) {
     socket.on(SOCKET_EVENTS.PARTY_UNQUEUE, (_payload, ack) =>
       safe(socket, ack, () => handleUnqueue(io, socket, queue)),
     )
+    socket.on(SOCKET_EVENTS.PARTY_SET_OPTIONS, (payload, ack) =>
+      safe(socket, ack, () => handleSetOptions(io, socket, queue, payload)),
+    )
+    socket.on(SOCKET_EVENTS.PARTY_BROWSE, (_payload, ack) =>
+      safe(socket, ack, () => handleBrowse(socket, queue)),
+    )
+    socket.on(SOCKET_EVENTS.PARTY_JOIN_PUBLIC, (payload, ack) =>
+      safe(socket, ack, () => handleJoinPublic(io, socket, queue, payload)),
+    )
     socket.on(SOCKET_EVENTS.SESSION_READY, (payload, ack) =>
       safe(socket, ack, () => handleSessionReady(io, socket, queue, sessionParties, payload)),
     )
@@ -180,6 +192,32 @@ export function attachSocketServer(httpServer, opts = {}) {
       }
       io.to(userRoom(player.userId)).emit(SOCKET_EVENTS.MATCH_FOUND, payload)
     }
+  })
+
+  // --- ABSORPTION HANDLER -------------------------------------------------
+  // Fires when the matchmaker pulls queued players into a public host team
+  // during a tick (no socket handler is on the stack to do the room plumbing).
+  queue.on("party:absorbed", ({ host, absorbedUserIds, dissolvedPartyIds }) => {
+    const data = serializeParty(host)
+
+    for (const userId of absorbedUserIds) {
+      for (const sid of io.sockets.adapter.rooms.get(userRoom(userId)) ?? []) {
+        const s = io.sockets.sockets.get(sid)
+        if (!s) continue
+        s.join(partyRoom(host.id))
+        for (const dpid of dissolvedPartyIds) s.leave(partyRoom(dpid))
+      }
+    }
+
+    // Each absorbed party was dissolved into the host; drop any persisted row.
+    // Runs inside a matchmaker tick, so never let a DB error escape the handler.
+    try {
+      for (const dpid of dissolvedPartyIds) removePersistedParty(dpid)
+    } catch (err) {
+      console.error("Failed to remove absorbed party rows:", err)
+    }
+
+    io.to(partyRoom(host.id)).emit(SOCKET_EVENTS.PARTY_UPDATED, data)
   })
 
   return { io, queue, scheduler }
@@ -301,12 +339,16 @@ function handleQueue(io, socket, queue, payload) {
 
   // Persist parties that satisfy the existing group_size constraint (4..8).
   // Smaller parties will be written to the DB when the match is confirmed.
-  persistQueuedParty({
-    partyId: party.id,
-    members: party.members,
-    leaderId: party.leaderId,
-    selectedTimeSlot: party.selectedTimeSlot,
-  })
+  // Public teams are skipped: their membership keeps growing via queue-fill,
+  // so they are persisted in full at form time (createMatchedSession) instead.
+  if (party.visibility !== "public") {
+    persistQueuedParty({
+      partyId: party.id,
+      members: party.members,
+      leaderId: party.leaderId,
+      selectedTimeSlot: party.selectedTimeSlot,
+    })
+  }
 
   const data = serializeParty(party)
   io.to(partyRoom(party.id)).emit(SOCKET_EVENTS.PARTY_UPDATED, data)
@@ -326,6 +368,51 @@ function handleUnqueue(io, socket, queue) {
   // Remove the persisted row if it was written at queue time (no-op if it wasn't).
   removePersistedParty(party.id)
 
+  const data = serializeParty(party)
+  io.to(partyRoom(party.id)).emit(SOCKET_EVENTS.PARTY_UPDATED, data)
+  return { ok: true, party: data }
+}
+
+function handleSetOptions(io, socket, queue, payload) {
+  const leaderId = socket.data.userId
+  const opts = {}
+  if (payload?.visibility !== undefined) opts.visibility = payload.visibility
+  if (payload?.maxSize !== undefined) opts.maxSize = payload.maxSize
+
+  const party = queue.setPartyOptions(leaderId, opts)
+  const data = serializeParty(party)
+  io.to(partyRoom(party.id)).emit(SOCKET_EVENTS.PARTY_UPDATED, data)
+  return { ok: true, party: data }
+}
+
+function handleBrowse(socket, queue) {
+  const userId = socket.data.userId
+  const profile = loadPlayerProfile(userId)
+  if (!profile) throw httpError("USER_NOT_FOUND", "User profile no longer exists")
+
+  const requester = { userId: profile.id, interestIds: profile.interestIds ?? [] }
+  const teams = queue
+    .listJoinableTeams()
+    .map((team) => serializePublicParty(team, requester))
+    // Most compatible first so the browser overview is useful by default.
+    .sort((a, b) => b.compatibility - a.compatibility)
+
+  return { ok: true, teams }
+}
+
+function handleJoinPublic(io, socket, queue, payload) {
+  const userId = socket.data.userId
+  const partyId = String(payload?.partyId ?? "").trim()
+  if (!partyId) throw httpError("INVALID_TEAM", "partyId is required")
+
+  const profile = loadPlayerProfile(userId)
+  if (!profile) throw httpError("USER_NOT_FOUND", "User profile no longer exists")
+
+  const party = queue.joinByPartyId(partyId, toQueuedPlayer(profile))
+  // Join every socket this user owns to the party room so all their tabs sync.
+  for (const sid of io.sockets.adapter.rooms.get(userRoom(userId)) ?? []) {
+    io.sockets.sockets.get(sid)?.join(partyRoom(party.id))
+  }
   const data = serializeParty(party)
   io.to(partyRoom(party.id)).emit(SOCKET_EVENTS.PARTY_UPDATED, data)
   return { ok: true, party: data }
