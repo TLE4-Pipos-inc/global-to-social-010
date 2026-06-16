@@ -17,7 +17,8 @@ const router = express.Router()
 
 function routeExists(routeId: string): boolean {
   return Boolean(
-    db.select({ id: routes.id })
+    db
+      .select({ id: routes.id })
       .from(routes)
       .where(eq(routes.id, routeId))
       .get()
@@ -26,7 +27,8 @@ function routeExists(routeId: string): boolean {
 
 function venueExists(venueId: string): boolean {
   return Boolean(
-    db.select({ id: venues.id })
+    db
+      .select({ id: venues.id })
       .from(venues)
       .where(eq(venues.id, venueId))
       .get()
@@ -34,7 +36,9 @@ function venueExists(venueId: string): boolean {
 }
 
 function getRouteStopConflictMessage(error: unknown): string {
-  const message = String((error as Record<string, unknown> | null | undefined)?.message ?? "")
+  const message = String(
+    (error as Record<string, unknown> | null | undefined)?.message ?? ""
+  )
 
   if (
     message.includes("route_order") ||
@@ -65,6 +69,32 @@ function validateReferences(routeId?: string, venueId?: string) {
   return null
 }
 
+// router.get("/", (req, res) => {
+//   const parsed = RouteStopQuerySchema.safeParse(req.query)
+//
+//   if (!parsed.success) {
+//     return sendError(res, 400, {
+//       message: "Invalid route stop query",
+//       errors: z.flattenError(parsed.error).fieldErrors,
+//     })
+//   }
+//
+//   const filters: SQL[] = []
+//
+//   if (parsed.data.routeId !== undefined) {
+//     filters.push(eq(routeStops.routeId, parsed.data.routeId))
+//   }
+//
+//   if (parsed.data.venueId !== undefined) {
+//     filters.push(eq(routeStops.venueId, parsed.data.venueId))
+//   }
+//
+//   const query = db.select().from(routeStops)
+//   const items = filters.length ? query.where(and(...filters)).all() : query.all()
+//
+//   return sendSuccess(res, 200, { result: { routeStops: items } })
+// })
+
 router.get("/", (req, res) => {
   const parsed = RouteStopQuerySchema.safeParse(req.query)
 
@@ -85,8 +115,30 @@ router.get("/", (req, res) => {
     filters.push(eq(routeStops.venueId, parsed.data.venueId))
   }
 
-  const query = db.select().from(routeStops)
-  const items = filters.length ? query.where(and(...filters)).all() : query.all()
+  const query = db
+    .select({
+      id: routeStops.id,
+      routeId: routeStops.routeId,
+      venueId: routeStops.venueId,
+      routeOrder: routeStops.routeOrder,
+      plannedDurationMinutes: routeStops.plannedDurationMinutes,
+      walkLabel: routeStops.walkLabel,
+
+      venueName: venues.name,
+      venueType: venues.venueType,
+      venueAddress: venues.address,
+      venueDescription: venues.description,
+      venueLatitude: venues.latitude,
+      venueLongitude: venues.longitude,
+      venueSuggestedOrder: venues.suggestedOrder,
+      venueVibe: venues.vibe,
+    })
+    .from(routeStops)
+    .leftJoin(venues, eq(routeStops.venueId, venues.id))
+
+  const items = filters.length
+    ? query.where(and(...filters)).all()
+    : query.all()
 
   return sendSuccess(res, 200, { result: { routeStops: items } })
 })
@@ -115,7 +167,10 @@ router.post("/", requireAuth, async (req, res) => {
     })
   }
 
-  const referenceError = validateReferences(parsed.data.routeId, parsed.data.venueId)
+  const referenceError = validateReferences(
+    parsed.data.routeId,
+    parsed.data.venueId
+  )
   if (referenceError) {
     return sendError(res, 400, { message: referenceError })
   }
@@ -127,11 +182,15 @@ router.post("/", requireAuth, async (req, res) => {
     return sendSuccess(res, 201, { result })
   } catch (error) {
     if (isUniqueRouteStopError(error)) {
-      return sendError(res, 409, { message: getRouteStopConflictMessage(error) })
+      return sendError(res, 409, {
+        message: getRouteStopConflictMessage(error),
+      })
     }
 
     if (isForeignKeyError(error)) {
-      return sendError(res, 400, { message: "routeId or venueId does not exist" })
+      return sendError(res, 400, {
+        message: "routeId or venueId does not exist",
+      })
     }
 
     console.error(error)
@@ -163,7 +222,10 @@ router.patch<{ id: string }>("/:id", requireAuth, async (req, res) => {
     return sendError(res, 400, { message: "No fields provided" })
   }
 
-  const referenceError = validateReferences(parsed.data.routeId, parsed.data.venueId)
+  const referenceError = validateReferences(
+    parsed.data.routeId,
+    parsed.data.venueId
+  )
   if (referenceError) {
     return sendError(res, 400, { message: referenceError })
   }
@@ -178,11 +240,15 @@ router.patch<{ id: string }>("/:id", requireAuth, async (req, res) => {
     return sendSuccess(res, 200, { result })
   } catch (error) {
     if (isUniqueRouteStopError(error)) {
-      return sendError(res, 409, { message: getRouteStopConflictMessage(error) })
+      return sendError(res, 409, {
+        message: getRouteStopConflictMessage(error),
+      })
     }
 
     if (isForeignKeyError(error)) {
-      return sendError(res, 400, { message: "routeId or venueId does not exist" })
+      return sendError(res, 400, {
+        message: "routeId or venueId does not exist",
+      })
     }
 
     console.error(error)
@@ -208,7 +274,9 @@ router.delete<{ id: string }>("/:id", requireAuth, (req, res) => {
     .get()
 
   if (existingSessionStop) {
-    return sendError(res, 409, { message: "Route stop is currently used by a session" })
+    return sendError(res, 409, {
+      message: "Route stop is currently used by a session",
+    })
   }
 
   try {
