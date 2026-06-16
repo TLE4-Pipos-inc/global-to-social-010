@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { Pressable, ScrollView, StyleSheet, View } from "react-native"
+import MapView, { Marker, Polyline } from "react-native-maps"
 import { ChevronDown, ChevronUp } from "lucide-react-native"
 import { ThemedText } from "@/components/themed-text"
 import {
@@ -13,6 +14,7 @@ import {
   useActiveStop,
   formatMMSS,
 } from "@/features/matchmaking/use-active-stop"
+import { useOSRMRoute } from "@/features/matchmaking/use-osrm-route"
 
 const STARTER_COUNTDOWN_SECONDS = 5 * 60
 
@@ -96,6 +98,7 @@ function InformationBox({ stop }) {
     ["Address", stop.address],
     ["Vibe", stop.vibe],
   ].filter(([, value]) => Boolean(value))
+  const { route } = useOSRMRoute(Number(stop.latitude), Number(stop.longitude))
 
   return (
     <View style={styles.stopCard}>
@@ -118,6 +121,32 @@ function InformationBox({ stop }) {
             <ThemedText style={styles.mutedSmall}>
               No venue details available.
             </ThemedText>
+          )}
+          {stop.latitude && stop.longitude && (
+            <View style={{ marginTop: 12 }}>
+              <MapView
+                style={styles.miniMap}
+                initialRegion={{
+                  latitude: Number(stop.latitude),
+                  longitude: Number(stop.longitude),
+                  latitudeDelta: 0.01,
+                  longitudeDelta: 0.01,
+                }}
+                showsUserLocation={true}
+                loadingEnabled={true}
+              >
+                {route.length > 0 && (
+                  <Polyline coordinates={route} strokeWidth={5} strokeColor="blue" />
+                )}
+                <Marker
+                  coordinate={{
+                    latitude: Number(stop.latitude),
+                    longitude: Number(stop.longitude),
+                  }}
+                  title={stop.name || "Destination"}
+                />
+              </MapView>
+            </View>
           )}
         </View>
       )}
@@ -191,5 +220,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
     color: "#fff",
+  },
+  miniMap: {
+    width: "100%",
+    height: 180,
+    borderRadius: 12,
+    overflow: "hidden",
   },
 })

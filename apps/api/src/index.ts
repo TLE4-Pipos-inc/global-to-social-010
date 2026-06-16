@@ -17,6 +17,8 @@ import themaRouteRouter from "@/routes/thema-route"
 import routesRouter from "@/routes/routes"
 import routeStopsRouter from "@/routes/route-stops"
 import photosRouter from "@/routes/photos"
+import collagesRouter from "@/routes/collages"
+import collagePhotosRouter from "@/routes/collage-photos"
 import partnersRouter from "@/routes/partners"
 import venuePartnershipsRouter, { dealsRouter } from "@/routes/venue-partnerships"
 // ConnectDB();
@@ -55,6 +57,8 @@ app.use("/api/thema-route", themaRouteRouter)
 app.use("/api/routes", routesRouter)
 app.use("/api/route-stops", routeStopsRouter)
 app.use("/api/photos", photosRouter)
+app.use("/api/collages", collagesRouter)
+app.use("/api/collage-photos", collagePhotosRouter)
 app.use("/api/partners", partnersRouter)
 app.use("/api/venue-partnerships", venuePartnershipsRouter)
 app.use("/api/deals", dealsRouter)
