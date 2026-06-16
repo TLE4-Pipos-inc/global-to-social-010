@@ -1,36 +1,31 @@
 import { Pressable, StyleSheet, View } from "react-native"
 import { PrimaryLightOutlineButton } from "@/components/buttons"
 import { router } from "expo-router"
-import { ThemedText } from "@/components/themed-text"
-import { Colors } from "@/constants/theme"
-import { useInterestQuery } from "@/features/intrests/hooks/query"
-
-import { fetchWithAuth } from "@/lib/api"
-import { useState } from "react"
 import { useThemeQuery } from "@/features/themes/hooks/query"
 
 export default function Theme() {
   const { data } = useThemeQuery()
-
   const themes = data?.result ?? []
 
   return (
     <View>
-      <View style={styles.Button}>
+      <View style={styles.buttonContainer}>
         {themes.map((theme) => (
-          <Pressable key={theme.id}>
-            <PrimaryLightOutlineButton
-              title={theme.name}
-              onPress={() => {
-                router.push({
-                  pathname: "/routes",
-                  params: {
-                    id: theme.id,
-                  },
-                })
-              }}
-            ></PrimaryLightOutlineButton>
-          </Pressable>
+          <View key={theme.id} style={styles.buttonWrapper}>
+            <Pressable>
+              <PrimaryLightOutlineButton
+                title={theme.name}
+                onPress={() => {
+                  router.push({
+                    pathname: "/routes",
+                    params: {
+                      id: theme.id,
+                    },
+                  })
+                }}
+              />
+            </Pressable>
+          </View>
         ))}
       </View>
     </View>
@@ -38,8 +33,15 @@ export default function Theme() {
 }
 
 const styles = StyleSheet.create({
-  Button: {
+  buttonContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    paddingTop: 100,
     padding: 20,
-    gap: 20,
+  },
+  buttonWrapper: {
+    width: "48%",
+    marginBottom: 20,
   },
 })
