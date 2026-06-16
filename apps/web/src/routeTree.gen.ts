@@ -9,11 +9,15 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PartnerRouteRouteImport } from './routes/partner/route'
 import { Route as InterestsRouteRouteImport } from './routes/interests/route'
 import { Route as ConversationStartersRouteRouteImport } from './routes/conversation-starters/route'
+import { Route as AdminRouteRouteImport } from './routes/admin/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PartnerIndexRouteImport } from './routes/partner/index'
 import { Route as InterestsIndexRouteImport } from './routes/interests/index'
 import { Route as ConversationStartersIndexRouteImport } from './routes/conversation-starters/index'
+import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as InterestsCreateRouteImport } from './routes/interests/create'
 import { Route as ConversationStartersCreateRouteImport } from './routes/conversation-starters/create'
 import { Route as authRegisterRouteImport } from './routes/(auth)/register'
@@ -24,13 +28,21 @@ import { Route as InterestsIdRouteRouteImport } from './routes/interests/$id/rou
 import { Route as ConversationStartersIdRouteRouteImport } from './routes/conversation-starters/$id/route'
 import { Route as InterestsIdIndexRouteImport } from './routes/interests/$id/index'
 import { Route as ConversationStartersIdIndexRouteImport } from './routes/conversation-starters/$id/index'
+import { Route as PartnerDealsCreateRouteImport } from './routes/partner/deals/create'
 import { Route as InterestsIdEditRouteImport } from './routes/interests/$id/edit'
 import { Route as ConversationStartersIdEditRouteImport } from './routes/conversation-starters/$id/edit'
+import { Route as PartnerVenueVenueIdEditRouteImport } from './routes/partner/venue/$venueId/edit'
+import { Route as PartnerDealsDealIdEditRouteImport } from './routes/partner/deals/$dealId/edit'
 import { Route as InterestsIdConversationStartersCreateRouteImport } from './routes/interests/$id/conversation-starters/create'
 import { Route as InterestsIdConversationStartersStarterIdRouteRouteImport } from './routes/interests/$id/conversation-starters/$starterId/route'
 import { Route as InterestsIdConversationStartersStarterIdIndexRouteImport } from './routes/interests/$id/conversation-starters/$starterId/index'
 import { Route as InterestsIdConversationStartersStarterIdEditRouteImport } from './routes/interests/$id/conversation-starters/$starterId/edit'
 
+const PartnerRouteRoute = PartnerRouteRouteImport.update({
+  id: '/partner',
+  path: '/partner',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const InterestsRouteRoute = InterestsRouteRouteImport.update({
   id: '/interests',
   path: '/interests',
@@ -42,10 +54,20 @@ const ConversationStartersRouteRoute =
     path: '/conversation-starters',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AdminRouteRoute = AdminRouteRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const PartnerIndexRoute = PartnerIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PartnerRouteRoute,
 } as any)
 const InterestsIndexRoute = InterestsIndexRouteImport.update({
   id: '/',
@@ -58,6 +80,11 @@ const ConversationStartersIndexRoute =
     path: '/',
     getParentRoute: () => ConversationStartersRouteRoute,
   } as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const InterestsCreateRoute = InterestsCreateRouteImport.update({
   id: '/create',
   path: '/create',
@@ -111,6 +138,11 @@ const ConversationStartersIdIndexRoute =
     path: '/',
     getParentRoute: () => ConversationStartersIdRouteRoute,
   } as any)
+const PartnerDealsCreateRoute = PartnerDealsCreateRouteImport.update({
+  id: '/deals/create',
+  path: '/deals/create',
+  getParentRoute: () => PartnerRouteRoute,
+} as any)
 const InterestsIdEditRoute = InterestsIdEditRouteImport.update({
   id: '/edit',
   path: '/edit',
@@ -122,6 +154,16 @@ const ConversationStartersIdEditRoute =
     path: '/edit',
     getParentRoute: () => ConversationStartersIdRouteRoute,
   } as any)
+const PartnerVenueVenueIdEditRoute = PartnerVenueVenueIdEditRouteImport.update({
+  id: '/venue/$venueId/edit',
+  path: '/venue/$venueId/edit',
+  getParentRoute: () => PartnerRouteRoute,
+} as any)
+const PartnerDealsDealIdEditRoute = PartnerDealsDealIdEditRouteImport.update({
+  id: '/deals/$dealId/edit',
+  path: '/deals/$dealId/edit',
+  getParentRoute: () => PartnerRouteRoute,
+} as any)
 const InterestsIdConversationStartersCreateRoute =
   InterestsIdConversationStartersCreateRouteImport.update({
     id: '/conversation-starters/create',
@@ -149,8 +191,10 @@ const InterestsIdConversationStartersStarterIdEditRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteRouteWithChildren
   '/conversation-starters': typeof ConversationStartersRouteRouteWithChildren
   '/interests': typeof InterestsRouteRouteWithChildren
+  '/partner': typeof PartnerRouteRouteWithChildren
   '/conversation-starters/$id': typeof ConversationStartersIdRouteRouteWithChildren
   '/interests/$id': typeof InterestsIdRouteRouteWithChildren
   '/account': typeof authAccountRoute
@@ -159,14 +203,19 @@ export interface FileRoutesByFullPath {
   '/register': typeof authRegisterRoute
   '/conversation-starters/create': typeof ConversationStartersCreateRoute
   '/interests/create': typeof InterestsCreateRoute
+  '/admin/': typeof AdminIndexRoute
   '/conversation-starters/': typeof ConversationStartersIndexRoute
   '/interests/': typeof InterestsIndexRoute
+  '/partner/': typeof PartnerIndexRoute
   '/conversation-starters/$id/edit': typeof ConversationStartersIdEditRoute
   '/interests/$id/edit': typeof InterestsIdEditRoute
+  '/partner/deals/create': typeof PartnerDealsCreateRoute
   '/conversation-starters/$id/': typeof ConversationStartersIdIndexRoute
   '/interests/$id/': typeof InterestsIdIndexRoute
   '/interests/$id/conversation-starters/$starterId': typeof InterestsIdConversationStartersStarterIdRouteRouteWithChildren
   '/interests/$id/conversation-starters/create': typeof InterestsIdConversationStartersCreateRoute
+  '/partner/deals/$dealId/edit': typeof PartnerDealsDealIdEditRoute
+  '/partner/venue/$venueId/edit': typeof PartnerVenueVenueIdEditRoute
   '/interests/$id/conversation-starters/$starterId/edit': typeof InterestsIdConversationStartersStarterIdEditRoute
   '/interests/$id/conversation-starters/$starterId/': typeof InterestsIdConversationStartersStarterIdIndexRoute
 }
@@ -178,21 +227,28 @@ export interface FileRoutesByTo {
   '/register': typeof authRegisterRoute
   '/conversation-starters/create': typeof ConversationStartersCreateRoute
   '/interests/create': typeof InterestsCreateRoute
+  '/admin': typeof AdminIndexRoute
   '/conversation-starters': typeof ConversationStartersIndexRoute
   '/interests': typeof InterestsIndexRoute
+  '/partner': typeof PartnerIndexRoute
   '/conversation-starters/$id/edit': typeof ConversationStartersIdEditRoute
   '/interests/$id/edit': typeof InterestsIdEditRoute
+  '/partner/deals/create': typeof PartnerDealsCreateRoute
   '/conversation-starters/$id': typeof ConversationStartersIdIndexRoute
   '/interests/$id': typeof InterestsIdIndexRoute
   '/interests/$id/conversation-starters/create': typeof InterestsIdConversationStartersCreateRoute
+  '/partner/deals/$dealId/edit': typeof PartnerDealsDealIdEditRoute
+  '/partner/venue/$venueId/edit': typeof PartnerVenueVenueIdEditRoute
   '/interests/$id/conversation-starters/$starterId/edit': typeof InterestsIdConversationStartersStarterIdEditRoute
   '/interests/$id/conversation-starters/$starterId': typeof InterestsIdConversationStartersStarterIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteRouteWithChildren
   '/conversation-starters': typeof ConversationStartersRouteRouteWithChildren
   '/interests': typeof InterestsRouteRouteWithChildren
+  '/partner': typeof PartnerRouteRouteWithChildren
   '/conversation-starters/$id': typeof ConversationStartersIdRouteRouteWithChildren
   '/interests/$id': typeof InterestsIdRouteRouteWithChildren
   '/(auth)/account': typeof authAccountRoute
@@ -201,14 +257,19 @@ export interface FileRoutesById {
   '/(auth)/register': typeof authRegisterRoute
   '/conversation-starters/create': typeof ConversationStartersCreateRoute
   '/interests/create': typeof InterestsCreateRoute
+  '/admin/': typeof AdminIndexRoute
   '/conversation-starters/': typeof ConversationStartersIndexRoute
   '/interests/': typeof InterestsIndexRoute
+  '/partner/': typeof PartnerIndexRoute
   '/conversation-starters/$id/edit': typeof ConversationStartersIdEditRoute
   '/interests/$id/edit': typeof InterestsIdEditRoute
+  '/partner/deals/create': typeof PartnerDealsCreateRoute
   '/conversation-starters/$id/': typeof ConversationStartersIdIndexRoute
   '/interests/$id/': typeof InterestsIdIndexRoute
   '/interests/$id/conversation-starters/$starterId': typeof InterestsIdConversationStartersStarterIdRouteRouteWithChildren
   '/interests/$id/conversation-starters/create': typeof InterestsIdConversationStartersCreateRoute
+  '/partner/deals/$dealId/edit': typeof PartnerDealsDealIdEditRoute
+  '/partner/venue/$venueId/edit': typeof PartnerVenueVenueIdEditRoute
   '/interests/$id/conversation-starters/$starterId/edit': typeof InterestsIdConversationStartersStarterIdEditRoute
   '/interests/$id/conversation-starters/$starterId/': typeof InterestsIdConversationStartersStarterIdIndexRoute
 }
@@ -216,8 +277,10 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
     | '/conversation-starters'
     | '/interests'
+    | '/partner'
     | '/conversation-starters/$id'
     | '/interests/$id'
     | '/account'
@@ -226,14 +289,19 @@ export interface FileRouteTypes {
     | '/register'
     | '/conversation-starters/create'
     | '/interests/create'
+    | '/admin/'
     | '/conversation-starters/'
     | '/interests/'
+    | '/partner/'
     | '/conversation-starters/$id/edit'
     | '/interests/$id/edit'
+    | '/partner/deals/create'
     | '/conversation-starters/$id/'
     | '/interests/$id/'
     | '/interests/$id/conversation-starters/$starterId'
     | '/interests/$id/conversation-starters/create'
+    | '/partner/deals/$dealId/edit'
+    | '/partner/venue/$venueId/edit'
     | '/interests/$id/conversation-starters/$starterId/edit'
     | '/interests/$id/conversation-starters/$starterId/'
   fileRoutesByTo: FileRoutesByTo
@@ -245,20 +313,27 @@ export interface FileRouteTypes {
     | '/register'
     | '/conversation-starters/create'
     | '/interests/create'
+    | '/admin'
     | '/conversation-starters'
     | '/interests'
+    | '/partner'
     | '/conversation-starters/$id/edit'
     | '/interests/$id/edit'
+    | '/partner/deals/create'
     | '/conversation-starters/$id'
     | '/interests/$id'
     | '/interests/$id/conversation-starters/create'
+    | '/partner/deals/$dealId/edit'
+    | '/partner/venue/$venueId/edit'
     | '/interests/$id/conversation-starters/$starterId/edit'
     | '/interests/$id/conversation-starters/$starterId'
   id:
     | '__root__'
     | '/'
+    | '/admin'
     | '/conversation-starters'
     | '/interests'
+    | '/partner'
     | '/conversation-starters/$id'
     | '/interests/$id'
     | '/(auth)/account'
@@ -267,22 +342,29 @@ export interface FileRouteTypes {
     | '/(auth)/register'
     | '/conversation-starters/create'
     | '/interests/create'
+    | '/admin/'
     | '/conversation-starters/'
     | '/interests/'
+    | '/partner/'
     | '/conversation-starters/$id/edit'
     | '/interests/$id/edit'
+    | '/partner/deals/create'
     | '/conversation-starters/$id/'
     | '/interests/$id/'
     | '/interests/$id/conversation-starters/$starterId'
     | '/interests/$id/conversation-starters/create'
+    | '/partner/deals/$dealId/edit'
+    | '/partner/venue/$venueId/edit'
     | '/interests/$id/conversation-starters/$starterId/edit'
     | '/interests/$id/conversation-starters/$starterId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRouteRoute: typeof AdminRouteRouteWithChildren
   ConversationStartersRouteRoute: typeof ConversationStartersRouteRouteWithChildren
   InterestsRouteRoute: typeof InterestsRouteRouteWithChildren
+  PartnerRouteRoute: typeof PartnerRouteRouteWithChildren
   authAccountRoute: typeof authAccountRoute
   authLoginRoute: typeof authLoginRoute
   authLogoutRoute: typeof authLogoutRoute
@@ -291,6 +373,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/partner': {
+      id: '/partner'
+      path: '/partner'
+      fullPath: '/partner'
+      preLoaderRoute: typeof PartnerRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/interests': {
       id: '/interests'
       path: '/interests'
@@ -305,12 +394,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConversationStartersRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/partner/': {
+      id: '/partner/'
+      path: '/'
+      fullPath: '/partner/'
+      preLoaderRoute: typeof PartnerIndexRouteImport
+      parentRoute: typeof PartnerRouteRoute
     }
     '/interests/': {
       id: '/interests/'
@@ -325,6 +428,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/conversation-starters/'
       preLoaderRoute: typeof ConversationStartersIndexRouteImport
       parentRoute: typeof ConversationStartersRouteRoute
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
     }
     '/interests/create': {
       id: '/interests/create'
@@ -396,6 +506,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConversationStartersIdIndexRouteImport
       parentRoute: typeof ConversationStartersIdRouteRoute
     }
+    '/partner/deals/create': {
+      id: '/partner/deals/create'
+      path: '/deals/create'
+      fullPath: '/partner/deals/create'
+      preLoaderRoute: typeof PartnerDealsCreateRouteImport
+      parentRoute: typeof PartnerRouteRoute
+    }
     '/interests/$id/edit': {
       id: '/interests/$id/edit'
       path: '/edit'
@@ -409,6 +526,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/conversation-starters/$id/edit'
       preLoaderRoute: typeof ConversationStartersIdEditRouteImport
       parentRoute: typeof ConversationStartersIdRouteRoute
+    }
+    '/partner/venue/$venueId/edit': {
+      id: '/partner/venue/$venueId/edit'
+      path: '/venue/$venueId/edit'
+      fullPath: '/partner/venue/$venueId/edit'
+      preLoaderRoute: typeof PartnerVenueVenueIdEditRouteImport
+      parentRoute: typeof PartnerRouteRoute
+    }
+    '/partner/deals/$dealId/edit': {
+      id: '/partner/deals/$dealId/edit'
+      path: '/deals/$dealId/edit'
+      fullPath: '/partner/deals/$dealId/edit'
+      preLoaderRoute: typeof PartnerDealsDealIdEditRouteImport
+      parentRoute: typeof PartnerRouteRoute
     }
     '/interests/$id/conversation-starters/create': {
       id: '/interests/$id/conversation-starters/create'
@@ -440,6 +571,18 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AdminRouteRouteChildren {
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteRouteChildren: AdminRouteRouteChildren = {
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
+  AdminRouteRouteChildren,
+)
 
 interface ConversationStartersIdRouteRouteChildren {
   ConversationStartersIdEditRoute: typeof ConversationStartersIdEditRoute
@@ -529,10 +672,30 @@ const InterestsRouteRouteWithChildren = InterestsRouteRoute._addFileChildren(
   InterestsRouteRouteChildren,
 )
 
+interface PartnerRouteRouteChildren {
+  PartnerIndexRoute: typeof PartnerIndexRoute
+  PartnerDealsCreateRoute: typeof PartnerDealsCreateRoute
+  PartnerDealsDealIdEditRoute: typeof PartnerDealsDealIdEditRoute
+  PartnerVenueVenueIdEditRoute: typeof PartnerVenueVenueIdEditRoute
+}
+
+const PartnerRouteRouteChildren: PartnerRouteRouteChildren = {
+  PartnerIndexRoute: PartnerIndexRoute,
+  PartnerDealsCreateRoute: PartnerDealsCreateRoute,
+  PartnerDealsDealIdEditRoute: PartnerDealsDealIdEditRoute,
+  PartnerVenueVenueIdEditRoute: PartnerVenueVenueIdEditRoute,
+}
+
+const PartnerRouteRouteWithChildren = PartnerRouteRoute._addFileChildren(
+  PartnerRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRouteRoute: AdminRouteRouteWithChildren,
   ConversationStartersRouteRoute: ConversationStartersRouteRouteWithChildren,
   InterestsRouteRoute: InterestsRouteRouteWithChildren,
+  PartnerRouteRoute: PartnerRouteRouteWithChildren,
   authAccountRoute: authAccountRoute,
   authLoginRoute: authLoginRoute,
   authLogoutRoute: authLogoutRoute,

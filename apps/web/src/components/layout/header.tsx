@@ -5,6 +5,7 @@ import { Button } from "#/components/ui/button"
 function Header() {
   const isLoggedIn = useIsAuthenticated()
   const isAdmin = useHasRole(["admin"])
+  const isPartner = useHasRole(["partner"])
 
   return (
     <header className="flex items-center gap-4 bg-highlight p-4">
@@ -12,12 +13,30 @@ function Header() {
         <img src="/logo.png" alt="" className="h-10 w-auto" />
       </Link>
       {isAdmin && (
+        <>
+          <Button
+            variant="link"
+            render={<Link to="/interests" />}
+            nativeButton={false}
+          >
+            Interests
+          </Button>
+          <Button
+            variant="link"
+            render={<Link to="/admin" />}
+            nativeButton={false}
+          >
+            Admin
+          </Button>
+        </>
+      )}
+      {(isPartner || isAdmin) && (
         <Button
           variant="link"
-          render={<Link to="/interests" />}
+          render={<Link to="/partner" />}
           nativeButton={false}
         >
-          Interests
+          Partner Dashboard
         </Button>
       )}
       <div className="ml-auto justify-self-end">

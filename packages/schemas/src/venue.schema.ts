@@ -13,5 +13,10 @@ export const VenueCreateSchema = z.object({
 
 export const VenueUpdateSchema = VenueCreateSchema.partial()
 
+export const VenueResponseSchema = VenueCreateSchema.extend({
+  id: z.string(),
+})
+
 export type VenueCreate = z.infer<typeof VenueCreateSchema>
 export type VenueUpdate = z.infer<typeof VenueUpdateSchema>
+export type VenueResponse = z.infer<typeof VenueResponseSchema>

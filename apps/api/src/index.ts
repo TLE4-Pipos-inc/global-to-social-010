@@ -20,7 +20,7 @@ import photosRouter from "@/routes/photos"
 import collagesRouter from "@/routes/collages"
 import collagePhotosRouter from "@/routes/collage-photos"
 import partnersRouter from "@/routes/partners"
-import venuePartnershipsRouter from "@/routes/venue-partnerships"
+import venuePartnershipsRouter, { dealsRouter } from "@/routes/venue-partnerships"
 // ConnectDB();
 
 const app = express()
@@ -61,6 +61,7 @@ app.use("/api/collages", collagesRouter)
 app.use("/api/collage-photos", collagePhotosRouter)
 app.use("/api/partners", partnersRouter)
 app.use("/api/venue-partnerships", venuePartnershipsRouter)
+app.use("/api/deals", dealsRouter)
 
 app.get("/api/status", (_req, res) => {
   res.json({ message: "API is running" })
