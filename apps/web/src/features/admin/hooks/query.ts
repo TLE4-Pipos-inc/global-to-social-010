@@ -75,7 +75,9 @@ export function useUpdateUser(id: string) {
 async function getPartnerByUserId(
   userId: string
 ): Promise<{ result: { partners: PartnerResponse[] } }> {
-  const res = await fetch(`/api/partners?userId=${encodeURIComponent(userId)}`)
+  const res = await fetchWithAuth(
+    `/api/partners?userId=${encodeURIComponent(userId)}`
+  )
 
   if (!res.ok) {
     await formatErrorResponse(res)
@@ -135,7 +137,7 @@ async function findPartnership(
   partnerId: string,
   venueId: string
 ): Promise<VenuePartnershipResponse | null> {
-  const res = await fetch(
+  const res = await fetchWithAuth(
     `/api/venue-partnerships?partnerId=${encodeURIComponent(partnerId)}`
   )
 
@@ -175,10 +177,21 @@ export function useLinkUserToVenue() {
       // Reuse an existing partnership instead of hitting the unique constraint.
       const existingPartnership = await findPartnership(partner.id, venueId)
       if (!existingPartnership) {
-        await createPartnership({ venueId, partnerId: partner.id })
+        try {
+          await createPartnership({ venueId, partnerId: partner.id })
+        } catch (error) {
+          // Another concurrent link may have created it first; treat the
+          // unique-constraint failure as success if it now exists.
+          const partnershipAfterConflict = await findPartnership(
+            partner.id,
+            venueId
+          )
+          if (!partnershipAfterConflict) throw error
+        }
       }
 
-      if (currentRole !== "partner") {
+      // Only promote plain users; never demote an admin to partner.
+      if (currentRole === "user") {
         await updateUser({ id: userId, data: { role: "partner" } })
       }
     },

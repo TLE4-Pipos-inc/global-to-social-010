@@ -3,7 +3,7 @@ import express from "express"
 import { AdminUpdateUserSchema, UpdateUserSchema } from "@pub-hopper/schemas"
 import { db } from "@/db/client"
 import { users } from "@/db/schema"
-import { requireAuth } from "@/middleware/auth"
+import { requireAdmin, requireAuth } from "@/middleware/auth"
 import z from "zod"
 import { sendError, sendSuccess } from "@/lib/response"
 
@@ -19,7 +19,7 @@ const safeUserColumns = {
   createdAt: users.createdAt,
 }
 
-router.get("/", requireAuth, (_req, res) => {
+router.get("/", requireAuth, requireAdmin, (_req, res) => {
   const items = db.select(safeUserColumns).from(users).all()
   return sendSuccess(res, 200, { result: { users: items } })
 })
@@ -59,7 +59,7 @@ router.patch("/me", requireAuth, async (req, res) => {
   }
 })
 
-router.patch<{ id: string }>("/:id", requireAuth, async (req, res) => {
+router.patch<{ id: string }>("/:id", requireAuth, requireAdmin, async (req, res) => {
   const parsed = AdminUpdateUserSchema.safeParse(req.body)
 
   if (!parsed.success) {

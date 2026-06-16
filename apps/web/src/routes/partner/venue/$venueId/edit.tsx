@@ -3,6 +3,10 @@ import { FieldGroup } from "#/components/ui/field"
 import { Button } from "#/components/ui/button"
 import { Spinner } from "#/components/ui/spinner"
 import { usePartnerForm } from "#/features/partner/hooks/form"
+import {
+  useGetMyPartner,
+  useGetPartnerPartnerships,
+} from "#/features/partner/hooks/query"
 import { useGetVenueById, useUpdateVenue } from "#/features/venue/hooks/query"
 import { VenueUpdateSchema } from "@pub-hopper/schemas"
 import { toast } from "sonner"
@@ -11,11 +15,41 @@ export const Route = createFileRoute("/partner/venue/$venueId/edit")({
   component: RouteComponent,
 })
 
+function NotFound({ message }: { message: string }) {
+  return (
+    <>
+      <div className="flex items-end justify-between py-2">
+        <Button variant="outline" render={<Link to="/partner" />} nativeButton={false}>
+          Back to dashboard
+        </Button>
+      </div>
+      <p className="text-muted-foreground">{message}</p>
+    </>
+  )
+}
+
 function RouteComponent() {
+  const partner = useGetMyPartner()
+
+  if (!partner.data) {
+    return <NotFound message="No partner profile is linked to your account yet." />
+  }
+
+  return <VenueEditLoader partnerId={partner.data.id} />
+}
+
+function VenueEditLoader({ partnerId }: { partnerId: string }) {
   const { venueId } = Route.useParams()
   const navigate = Route.useNavigate()
+  const partnerships = useGetPartnerPartnerships(partnerId)
   const getVenue = useGetVenueById(venueId)
   const updateVenue = useUpdateVenue(venueId)
+
+  // Only allow editing venues this partner is linked to (guards URL tampering).
+  const ownsVenue = partnerships.data.some((p) => p.venueId === venueId)
+  if (!ownsVenue) {
+    return <NotFound message="Venue not found." />
+  }
 
   const venue = getVenue.data.result
 

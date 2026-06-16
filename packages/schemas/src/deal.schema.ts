@@ -45,7 +45,23 @@ export const DealUpdateSchema = z
     endsAt: NullableDateTimeSchema,
     active: z.boolean().optional(),
   })
-  .superRefine(validateDateOrder)
+  .superRefine((data, ctx) => {
+    // On partial updates, both dates must be sent together so the order
+    // invariant can't be bypassed by patching only one of them.
+    const touchesStartsAt = data.startsAt !== undefined
+    const touchesEndsAt = data.endsAt !== undefined
+
+    if (touchesStartsAt !== touchesEndsAt) {
+      ctx.addIssue({
+        code: "custom",
+        path: [touchesStartsAt ? "endsAt" : "startsAt"],
+        message: "startsAt and endsAt must be updated together",
+      })
+      return
+    }
+
+    validateDateOrder(data, ctx)
+  })
 
 export const DealParamsSchema = z.object({
   id: z.string().trim().min(1),

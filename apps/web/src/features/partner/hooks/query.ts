@@ -19,7 +19,9 @@ import {
 async function getPartnerByUserId(
   userId: string
 ): Promise<{ result: { partners: PartnerResponse[] } }> {
-  const res = await fetch(`/api/partners?userId=${encodeURIComponent(userId)}`)
+  const res = await fetchWithAuth(
+    `/api/partners?userId=${encodeURIComponent(userId)}`
+  )
 
   if (!res.ok) {
     await formatErrorResponse(res)
@@ -47,7 +49,7 @@ export function useGetMyPartner() {
 async function getPartnerPartnerships(
   partnerId: string
 ): Promise<{ result: { venuePartnerships: VenuePartnershipResponse[] } }> {
-  const res = await fetch(
+  const res = await fetchWithAuth(
     `/api/venue-partnerships?partnerId=${encodeURIComponent(partnerId)}`
   )
 
@@ -74,7 +76,9 @@ export function useGetPartnerPartnerships(partnerId: string) {
 async function getPartnerDeals(
   partnerId: string
 ): Promise<{ result: { deals: DealResponse[] } }> {
-  const res = await fetch(`/api/deals?partnerId=${encodeURIComponent(partnerId)}`)
+  const res = await fetchWithAuth(
+    `/api/deals?partnerId=${encodeURIComponent(partnerId)}`
+  )
 
   if (!res.ok) {
     await formatErrorResponse(res)

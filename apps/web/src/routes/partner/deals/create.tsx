@@ -42,6 +42,21 @@ function CreateDealForm({ partnerId }: { partnerId: string }) {
   const createDeal = useCreateDeal()
   const partnerships = useGetPartnerPartnerships(partnerId)
 
+  if (partnerships.data.length === 0) {
+    return (
+      <>
+        <div className="flex items-end justify-between py-2">
+          <Button variant="outline" render={<Link to="/partner" />} nativeButton={false}>
+            Back to dashboard
+          </Button>
+        </div>
+        <p className="text-muted-foreground">
+          You need to be linked to a venue before creating a deal.
+        </p>
+      </>
+    )
+  }
+
   // Pre-select the venue when the partner is linked to exactly one.
   const defaultPartnershipId =
     partnerships.data.length === 1 ? partnerships.data[0].id : ""
