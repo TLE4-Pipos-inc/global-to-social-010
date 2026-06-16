@@ -343,7 +343,7 @@ router.get("/me/groups/photos", requireAuth, (req, res) => {
     console.error(error)
     return sendError(res, 500, { message: "Could not fetch user group photos" })
   }
-
+})
 
 router.patch("/me", requireAuth, async (req, res) => {
   const parsed = UpdateUserSchema.safeParse(req.body)
