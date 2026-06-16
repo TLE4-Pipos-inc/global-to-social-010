@@ -5,6 +5,7 @@ import {
   gameSessions,
   groupJoinMatches,
   groupMembers,
+  photos,
   playerGroups,
   routeStops,
   routes,
@@ -367,7 +368,26 @@ export function startStopTimer(stopId) {
 }
 
 /**
- * Transition a stop timer from `running` -> `finished`.
+ * Transition a stop timer from `running` -> `awaiting_photo`.
+ *
+ * Pressing "end stop" no longer finishes it outright: the stop first waits for
+ * a randomly chosen member to submit the group selfie. `finishStopTimer` then
+ * completes the transition once that photo lands.
+ *
+ * @param {string} stopId
+ * @returns {boolean}  true if the row was updated
+ */
+export function beginStopPhoto(stopId) {
+  const result = db
+    .update(sessionStops)
+    .set({ timerState: "awaiting_photo" })
+    .where(and(eq(sessionStops.id, stopId), eq(sessionStops.timerState, "running")))
+    .run()
+  return result.changes > 0
+}
+
+/**
+ * Transition a stop timer from `awaiting_photo` -> `finished`.
  *
  * @param {string} stopId
  * @returns {boolean}  true if the row was updated
@@ -380,9 +400,28 @@ export function finishStopTimer(stopId) {
       timerFinishedAt: sql`CURRENT_TIMESTAMP`,
       completedAt: sql`CURRENT_TIMESTAMP`,
     })
-    .where(and(eq(sessionStops.id, stopId), eq(sessionStops.timerState, "running")))
+    .where(and(eq(sessionStops.id, stopId), eq(sessionStops.timerState, "awaiting_photo")))
     .run()
   return result.changes > 0
+}
+
+/**
+ * Return true if a stored photo with `photoId` is linked to `sessionStopId`.
+ *
+ * Used to confirm the group selfie was actually persisted (and tied to the
+ * session through this stop) before the stop is allowed to finish.
+ *
+ * @param {string} photoId
+ * @param {string} sessionStopId
+ * @returns {boolean}
+ */
+export function photoBelongsToStop(photoId, sessionStopId) {
+  const row = db
+    .select({ id: photos.id })
+    .from(photos)
+    .where(and(eq(photos.id, photoId), eq(photos.sessionStopId, sessionStopId)))
+    .get()
+  return !!row
 }
 
 /**

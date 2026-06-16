@@ -2126,7 +2126,9 @@ On success the server broadcasts [`stop:timer:started`](#stoptimerstarted) to th
 
 #### `stop:finish`
 
-Finish the timer for a stop. The caller must be a session member and the stop's timer must currently be `running`. Finishing the stop stops its conversation starter stream.
+Request to end a stop. The caller must be a session member and the stop's timer must currently be `running`. This **does not finish the stop immediately**: it moves the stop into `awaiting_photo`, stops its conversation starter stream, and spotlights a **random connected member** to take a group selfie. The stop only finishes once that photo is uploaded and confirmed via [`stop:photo:submit`](#stopphotosubmit).
+
+The server broadcasts [`stop:photo:requested`](#stopphotorequested) to the session room with the chosen member. If the chosen member disconnects or does not submit within 60 seconds, the spotlight rotates to another connected member (a fresh `stop:photo:requested` is emitted).
 
 **Payload**
 ```json
@@ -2135,12 +2137,32 @@ Finish the timer for a stop. The caller must be a session member and the stop's 
 
 **Ack**
 ```json
-{ "ok": true, "stopId": "uuid", "sessionId": "uuid" }
+{ "ok": true, "stopId": "uuid", "sessionId": "uuid", "awaitingPhoto": true, "chosenUserId": "uuid" }
 ```
 
-On success the server broadcasts [`stop:timer:finished`](#stoptimerfinished) to the session room.
+`chosenUserId` is `null` if no member was connected at pick time (the server keeps retrying).
 
 **Error codes:** `INVALID_STOP`, `INVALID_SESSION`, `STOP_NOT_FOUND`, `INVALID_STATE` (timer not `running`), `NOT_MEMBER`, `FINISH_FAILED`
+
+---
+
+#### `stop:photo:submit`
+
+Confirm the group selfie and finish the stop. Upload the photo first via [`POST /api/photos`](#post-apiphotos) with `sessionStopId` set to this stop (a `proofType` of `group_selfie` is recommended), then emit this event with the returned `photoId`.
+
+The caller **must be the currently spotlighted member** (the `chosenUserId` from `stop:photo:requested`), the stop must be in `awaiting_photo`, and a stored photo with the given `photoId` must be linked to this `stopId`. On success the stop transitions to `finished` and the server broadcasts [`stop:timer:finished`](#stoptimerfinished) to the session room.
+
+**Payload**
+```json
+{ "sessionId": "uuid", "stopId": "uuid", "photoId": "uuid" }
+```
+
+**Ack**
+```json
+{ "ok": true, "stopId": "uuid", "sessionId": "uuid", "photoId": "uuid" }
+```
+
+**Error codes:** `INVALID_STOP`, `INVALID_SESSION`, `INVALID_PHOTO`, `STOP_NOT_FOUND`, `INVALID_STATE` (stop not `awaiting_photo`), `NOT_MEMBER`, `NO_PHOTO_REQUEST`, `NOT_CHOSEN`, `PHOTO_NOT_FOUND`, `FINISH_FAILED`
 
 ---
 
@@ -2238,12 +2260,22 @@ Fired to the session room when a player starts a stop's timer via [`stop:start`]
 
 ---
 
-#### `stop:timer:finished`
+#### `stop:photo:requested`
 
-Fired to the session room when a player finishes a stop's timer via [`stop:finish`](#stopfinish).
+Fired to the session room after [`stop:finish`](#stopfinish) moves the stop into `awaiting_photo`. `chosenUserId` is the member spotlighted to take the group selfie that ends the stop. If that member goes quiet or disconnects, the server re-emits this event with a new `chosenUserId`.
 
 ```json
-{ "stopId": "uuid", "sessionId": "uuid" }
+{ "sessionId": "uuid", "stopId": "uuid", "chosenUserId": "uuid" }
+```
+
+---
+
+#### `stop:timer:finished`
+
+Fired to the session room when a stop is finished — after the spotlighted member's group selfie is confirmed via [`stop:photo:submit`](#stopphotosubmit). Includes the `photoId` that ended the stop.
+
+```json
+{ "stopId": "uuid", "sessionId": "uuid", "photoId": "uuid" }
 ```
 
 ---
@@ -2433,11 +2465,42 @@ socket.on("conversation:starter", ({ starter, triggerMinute }) => {
   showStarterCard(starter.prompt, triggerMinute)
 })
 
-// leave the stop / move on
+// tap "end stop": this does NOT finish it — it spotlights a random member
+// to take the group selfie that ends the stop.
 socket.emit("stop:finish", { sessionId, stopId }, (ack) => {
   if (!ack.ok) return toast(ack.error.message)
 })
 ```
+
+#### Ending a stop with the group selfie
+
+`stop:finish` moves the stop into `awaiting_photo` and the server emits `stop:photo:requested` naming the spotlighted member. Show a camera prompt to that member; everyone else sees a "waiting for <name>" state. The chosen member uploads the photo via REST, then confirms it over the socket:
+
+```js
+// everyone listens: who has to take the photo?
+socket.on("stop:photo:requested", ({ stopId, chosenUserId }) => {
+  if (chosenUserId === myUserId) openCameraForStop(stopId)
+  else showWaitingForPhoto(stopId, chosenUserId)
+})
+
+// the spotlighted member: upload via REST, then confirm over the socket
+async function submitGroupSelfie(sessionId, stopId, imageBase64) {
+  const res = await fetch(`${API}/api/photos`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ sessionStopId: stopId, imageBase64, proofType: "group_selfie" }),
+  })
+  const { result } = await res.json()
+  socket.emit("stop:photo:submit", { sessionId, stopId, photoId: result.id }, (ack) => {
+    if (!ack.ok) return toast(ack.error.message)
+  })
+}
+
+// once the photo is confirmed the stop is finished for the whole group
+socket.on("stop:timer:finished", ({ stopId }) => markStopDone(stopId))
+```
+
+> If the spotlighted member disconnects or doesn't submit within 60s, the server re-emits `stop:photo:requested` with a new `chosenUserId`. Keep the listener attached so the UI follows the spotlight.
 
 > You can also fetch the full session state over REST at any time with [`GET /api/sessions/:id`](#get-apisessionsid) — useful for cold-starting a screen or recovering after the app was backgrounded.
 
@@ -2465,7 +2528,7 @@ socket.disconnect()
 | `party:options`, `party:browse`, `party:join-public` | `party:updated` |
 | `party:queue`, `party:unqueue` | `queue:update`, `match:found` |
 | `session:ready` | `session:started` |
-| `stop:start`, `stop:finish` | `stop:timer:started`, `stop:timer:finished`, `conversation:starter` |
+| `stop:start`, `stop:finish`, `stop:photo:submit` | `stop:timer:started`, `stop:photo:requested`, `stop:timer:finished`, `conversation:starter` |
 | _(any failing emit)_ | `error:matchmaking` |
 
 ---
