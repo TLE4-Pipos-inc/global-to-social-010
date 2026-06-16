@@ -2480,7 +2480,7 @@ socket.emit("stop:finish", { sessionId, stopId }, (ack) => {
 // everyone listens: who has to take the photo?
 socket.on("stop:photo:requested", ({ stopId, chosenUserId }) => {
   if (chosenUserId === myUserId) openCameraForStop(stopId)
-  else showWaitingForPhoto(stopId, chosenUserId)
+  else if (chosenUserId != null) showWaitingForPhoto(stopId, chosenUserId)
 })
 
 // the spotlighted member: upload via REST, then confirm over the socket
