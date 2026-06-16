@@ -1,4 +1,3 @@
-import bcrypt from "bcrypt"
 import { and, eq, ne, type SQL } from "drizzle-orm"
 import express from "express"
 import { v4 as uuidv4 } from "uuid"
@@ -64,11 +63,6 @@ function validatePartnerUser(userId: string | null | undefined, excludePartnerId
   return null
 }
 
-async function hashPassword(password: string): Promise<string> {
-  const saltRounds = Number(process.env.SALT_ROUNDS ?? 12)
-  return bcrypt.hash(password, saltRounds)
-}
-
 router.get("/", (req, res) => {
   const parsed = PartnerQuerySchema.safeParse(req.query)
 
@@ -124,11 +118,6 @@ router.get<{ id: string }>("/:id", (req, res) => {
       id: venuePartnerships.id,
       venueId: venuePartnerships.venueId,
       partnerId: venuePartnerships.partnerId,
-      dealTitle: venuePartnerships.dealTitle,
-      dealDescription: venuePartnerships.dealDescription,
-      startsAt: venuePartnerships.startsAt,
-      endsAt: venuePartnerships.endsAt,
-      active: venuePartnerships.active,
     })
     .from(venuePartnerships)
     .where(eq(venuePartnerships.partnerId, params.data.id))
@@ -152,15 +141,12 @@ router.post("/", requireAuth, async (req, res) => {
     return sendError(res, userError.statusCode, { message: userError.message })
   }
 
-  const { password, ...partnerData } = parsed.data
-
   try {
     const [result] = await db
       .insert(partners)
       .values({
         id: uuidv4(),
-        ...partnerData,
-        password: await hashPassword(password),
+        ...parsed.data,
       })
       .returning(safePartnerColumns)
 
@@ -217,16 +203,10 @@ router.patch<{ id: string }>("/:id", requireAuth, async (req, res) => {
     return sendError(res, userError.statusCode, { message: userError.message })
   }
 
-  const { password, ...partnerData } = parsed.data
-  const updateData = {
-    ...partnerData,
-    ...(password ? { password: await hashPassword(password) } : {}),
-  }
-
   try {
     const [result] = await db
       .update(partners)
-      .set(updateData)
+      .set(parsed.data)
       .where(eq(partners.id, params.data.id))
       .returning(safePartnerColumns)
 

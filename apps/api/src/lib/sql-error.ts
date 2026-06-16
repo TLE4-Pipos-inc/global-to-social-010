@@ -39,3 +39,12 @@ export function isUniquePartnerUserError(error: unknown): boolean {
     error.message.includes("partners.user_id")
   )
 }
+
+export function isUniqueVenuePartnershipError(error: unknown): boolean {
+  return (
+    isSqliteError(error) &&
+    error.message.includes("UNIQUE constraint failed") &&
+    error.message.includes("venue_partnerships.venue_id") &&
+    error.message.includes("venue_partnerships.partner_id")
+  )
+}

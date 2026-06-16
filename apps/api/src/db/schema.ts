@@ -147,7 +147,6 @@ export const venues = sqliteTable("venues", {
 export const partners = sqliteTable("partners", {
   id: text("id").primaryKey(),
   userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
-  password: text("password").notNull(),
   organizationName: text("organization_name").notNull(),
   contactEmail: text("contact_email"),
   partnershipType: text("partnership_type").notNull(),
@@ -167,13 +166,30 @@ export const venuePartnerships = sqliteTable(
     partnerId: text("partner_id")
       .notNull()
       .references(() => partners.id, { onDelete: "cascade" }),
-    dealTitle: text("deal_title").notNull(),
-    dealDescription: text("deal_description"),
+  },
+  (table) => [
+    index("idx_venue_partnerships_venue").on(table.venueId),
+    uniqueIndex("venue_partnerships_venue_partner_unique").on(
+      table.venueId,
+      table.partnerId,
+    ),
+  ],
+);
+
+export const deals = sqliteTable(
+  "deals",
+  {
+    id: text("id").primaryKey(),
+    partnershipId: text("partnership_id")
+      .notNull()
+      .references(() => venuePartnerships.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    description: text("description"),
     startsAt: text("starts_at"),
     endsAt: text("ends_at"),
     active: integer("active", { mode: "boolean" }).notNull().default(true),
   },
-  (table) => [index("idx_venue_partnerships_venue").on(table.venueId)],
+  (table) => [index("idx_deals_partnership").on(table.partnershipId)],
 );
 
 export const routeStops = sqliteTable(
@@ -406,7 +422,7 @@ export const partnersRelations = relations(partners, ({ one, many }) => ({
   venuePartnerships: many(venuePartnerships),
 }));
 
-export const venuePartnershipsRelations = relations(venuePartnerships, ({ one }) => ({
+export const venuePartnershipsRelations = relations(venuePartnerships, ({ one, many }) => ({
   venue: one(venues, {
     fields: [venuePartnerships.venueId],
     references: [venues.id],
@@ -414,6 +430,14 @@ export const venuePartnershipsRelations = relations(venuePartnerships, ({ one })
   partner: one(partners, {
     fields: [venuePartnerships.partnerId],
     references: [partners.id],
+  }),
+  deals: many(deals),
+}));
+
+export const dealsRelations = relations(deals, ({ one }) => ({
+  partnership: one(venuePartnerships, {
+    fields: [deals.partnershipId],
+    references: [venuePartnerships.id],
   }),
 }));
 
