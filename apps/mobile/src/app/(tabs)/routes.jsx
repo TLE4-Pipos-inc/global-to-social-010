@@ -9,38 +9,47 @@ export default function Routes() {
   const { id } = useLocalSearchParams()
 
   const { data } = useRouteQuery(id)
+  const { data: stopData } = useStopQuery()
 
-  const routes = data?.result?.routes ?? []
+  const allRoutes = data?.result?.routes ?? []
+
+  const routes = allRoutes.filter((route) => route.themeId === id)
 
   const selectedRoute = routes[0]
 
-  const { data: stopData } = useStopQuery(selectedRoute?.id)
+  const allStops = stopData?.result?.routeStops ?? []
 
-  const stops = stopData?.result?.routeStops ?? []
+  const stops = allStops.filter((stop) => stop.routeId === selectedRoute?.id)
+
+  console.log("Gekozen theme id:", id)
+  console.log("Gefilterde routes:", routes)
+
+  console.log("Alle stops:", allStops)
+  console.log("Selected route id:", selectedRoute?.id)
+  console.log("Eerste stop:", allStops[0])
 
   return (
-    <ScrollView>
-      <View>
-        <View style={styles.Button}>
-          {routes.map((route) => (
-            <View key={route.id}>
-              <ThemedText>{route.name}</ThemedText>
-              <ThemedText>{route.area}</ThemedText>
-              <ThemedText>{route.city}</ThemedText>
-            </View>
-          ))}
-
-          {/*{stops.map((stop) => (*/}
-          {/*  <View key={stop.id}>*/}
-          {/*    <ThemedText>Stop {stop.routeOrder}</ThemedText>*/}
-          {/*    <ThemedText>Venue ID: {stop.venueId}</ThemedText>*/}
-          {/*    <ThemedText>Duur: {stop.plannedDurationMinutes} min</ThemedText>*/}
-          {/*    <ThemedText>{stop.walkLabel}</ThemedText>*/}
-          {/*  </View>*/}
-          {/*))}*/}
-        </View>
+    <View>
+      <View style={styles.Button}>
+        {routes.map((route) => (
+          <View key={route.id}>
+            <ThemedText>{route.name}</ThemedText>
+            <ThemedText>{route.area}</ThemedText>
+            <ThemedText>{route.city}</ThemedText>
+          </View>
+        ))}
       </View>
-    </ScrollView>
+
+      <View>
+        {stops.map((stop) => (
+          <View key={stop.id}>
+            <ThemedText>Stop {stop.routeOrder}</ThemedText>
+            <ThemedText>{stop.walkLabel}</ThemedText>
+            <ThemedText>{stop.plannedDurationMinutes} min</ThemedText>
+          </View>
+        ))}
+      </View>
+    </View>
   )
 }
 
