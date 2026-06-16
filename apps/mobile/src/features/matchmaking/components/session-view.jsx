@@ -8,6 +8,7 @@ import {
   DestructiveOutlineButton,
 } from "@/components/buttons"
 import { Colors } from "@/constants/theme"
+import { useAccountQuery } from "@/features/auth"
 import { useMatchmaking } from "@/features/matchmaking/socket-context"
 import { useBusyAction } from "@/features/matchmaking/use-busy-action"
 import {
@@ -15,12 +16,16 @@ import {
   formatMMSS,
 } from "@/features/matchmaking/use-active-stop"
 import { useOSRMRoute } from "@/features/matchmaking/use-osrm-route"
+import { StopPhotoPrompt } from "@/features/matchmaking/components/stop-photo-prompt"
+import { SessionCollage } from "@/features/matchmaking/components/session-collage"
 
 const STARTER_COUNTDOWN_SECONDS = 5 * 60
 
 export function SessionView() {
-  const { match, startStop, finishStop, starters, resetMatchmaking } =
+  const { match, startStop, finishStop, starters, resetMatchmaking, photoRequest } =
     useMatchmaking()
+  const { data: account } = useAccountQuery()
+  const myId = account?.result?.id ?? account?.id ?? account?.user?.id
   const [busy, run] = useBusyAction()
   const { now, stops, currentStop, currentState } = useActiveStop()
 
@@ -42,7 +47,7 @@ export function SessionView() {
         </ThemedText>
       )}
       {stops.length > 0 && !currentStop && (
-        <ThemedText style={styles.mutedSmall}>All stops complete.</ThemedText>
+        <SessionCollage stops={stops} />
       )}
 
       {showStarter && (
@@ -77,6 +82,14 @@ export function SessionView() {
           title={busy ? "Working…" : "Finish stop"}
           disabled={busy || !session}
           onPress={() => run(() => finishStop(session.id, currentStop.id))}
+        />
+      )}
+      {currentState === "awaiting_photo" && (
+        <StopPhotoPrompt
+          stop={currentStop}
+          photoRequest={photoRequest}
+          myId={myId}
+          match={match}
         />
       )}
 

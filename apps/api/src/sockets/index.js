@@ -6,6 +6,7 @@ import {
   beginStopPhoto,
   createMatchedSession,
   finishStopTimer,
+  getActiveSessionIdsForUser,
   getSessionStop,
   isSessionMember,
   loadPlayerProfile,
@@ -53,7 +54,7 @@ export const SOCKET_EVENTS = Object.freeze({
  * How long a chosen member has to submit the group selfie before the spotlight
  * rotates to another connected member (re-pick on no-show / disconnect).
  */
-const PHOTO_REQUEST_TIMEOUT_MS = 60_000
+const PHOTO_REQUEST_TIMEOUT_MS = 5 * 60_000
 
 /**
  * Wire Socket.IO onto an existing HTTP server.
@@ -112,6 +113,14 @@ export function attachSocketServer(httpServer, opts = {}) {
     if (existingParty) {
       socket.join(partyRoom(existingParty.id))
       socket.emit(SOCKET_EVENTS.PARTY_UPDATED, serializeParty(existingParty))
+    }
+
+    // Re-join any in-progress session rooms. Socket.IO drops room membership on
+    // disconnect, so a member who briefly dropped (e.g. Android pausing the app
+    // to open the camera) would otherwise stop receiving stop broadcasts and
+    // hang on the current stop while everyone else advances.
+    for (const sessionId of getActiveSessionIdsForUser(userId)) {
+      socket.join(sessionRoom(sessionId))
     }
 
     socket.on(SOCKET_EVENTS.PARTY_CREATE, (payload, ack) =>
@@ -577,11 +586,10 @@ function handleStopPhotoSubmit(io, socket, photoRequests, payload) {
 
   const pending = photoRequests.get(stopId)
   if (!pending) throw httpError("NO_PHOTO_REQUEST", "No active photo request for this stop")
-  // Only the spotlighted member may finish the stop. (chosenUserId can be null
-  // if nobody was connected at pick time — then any member may rescue the stop.)
-  if (pending.chosenUserId && pending.chosenUserId !== userId) {
-    throw httpError("NOT_CHOSEN", "Only the chosen member can submit the group selfie")
-  }
+  // The spotlight (`pending.chosenUserId`) is only a UX hint for who we *ask*.
+  // Any session member's valid photo finishes the stop — otherwise a spotlight
+  // rotation while the chosen member is mid-capture would reject their upload and
+  // leave the stop stuck in `awaiting_photo` forever.
 
   // Confirm the photo was actually persisted for this stop (and thus linked to
   // the session through it) before allowing the stop to finish.

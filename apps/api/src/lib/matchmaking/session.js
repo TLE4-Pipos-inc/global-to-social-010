@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm"
+import { and, eq, isNull, sql } from "drizzle-orm"
 import { v4 as uuidv4 } from "uuid"
 import { db } from "../../db/client.js"
 import {
@@ -330,6 +330,29 @@ export function getSessionStop(sessionId, stopId) {
     .innerJoin(routeStops, eq(routeStops.id, sessionStops.routeStopId))
     .where(and(eq(sessionStops.id, stopId), eq(sessionStops.sessionId, sessionId)))
     .get()
+}
+
+/**
+ * Return the ids of every not-yet-completed game session the user belongs to.
+ *
+ * Used on (re)connect to re-join a member's session room — Socket.IO drops room
+ * membership when a socket disconnects (e.g. Android pausing the app to open the
+ * camera), so without this a reconnected member stops receiving stop broadcasts.
+ *
+ * @param {string} userId
+ * @returns {string[]}
+ */
+export function getActiveSessionIdsForUser(userId) {
+  return db
+    .select({ id: gameSessions.id })
+    .from(gameSessions)
+    .innerJoin(
+      groupMembers,
+      and(eq(groupMembers.groupId, gameSessions.groupId), eq(groupMembers.userId, userId)),
+    )
+    .where(isNull(gameSessions.completedAt))
+    .all()
+    .map((row) => row.id)
 }
 
 /**
