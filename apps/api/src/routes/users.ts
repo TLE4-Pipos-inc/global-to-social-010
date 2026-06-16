@@ -110,6 +110,8 @@ function removeInternalGroupMemoryFields(groupMemory: GroupMemory) {
 
 router.get("/me/groups/photos", requireAuth, (req, res) => {
   const userId = res.locals.userId
+
+  try {
   const parsed = UserGroupPhotosQuerySchema.safeParse(req.query)
 
   if (!parsed.success) {
@@ -323,6 +325,10 @@ router.get("/me/groups/photos", requireAuth, (req, res) => {
     .map(removeInternalGroupMemoryFields)
 
   return sendSuccess(res, 200, { result: { groups } })
+  } catch (error) {
+    console.error(error)
+    return sendError(res, 500, { message: "Could not fetch user group photos" })
+  }
 })
 
 router.patch("/me", requireAuth, async (req, res) => {
