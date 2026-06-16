@@ -1,8 +1,8 @@
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query"
 import { fetchWithAuth } from "@/lib/api"
 
-async function fetchRoutes() {
-  const res = await fetchWithAuth("/api/routes")
+async function fetchStops() {
+  const res = await fetchWithAuth("/api/route-stops")
 
   if (!res.ok) {
     const errorData = await res.json()
@@ -12,12 +12,12 @@ async function fetchRoutes() {
   return res.json()
 }
 
-export const RouteQueryOptions = queryOptions({
-  queryKey: ["route"],
-  queryFn: fetchRoutes,
+export const StopQueryOptions = queryOptions({
+  queryKey: ["stop"],
+  queryFn: fetchStops,
   staleTime: 6000,
 })
 
-export function useRouteQuery() {
-  return useSuspenseQuery(RouteQueryOptions)
+export function useStopQuery() {
+  return useSuspenseQuery(StopQueryOptions)
 }

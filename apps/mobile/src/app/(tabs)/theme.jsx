@@ -4,12 +4,12 @@ import { router } from "expo-router"
 import { ThemedText } from "@/components/themed-text"
 import { Colors } from "@/constants/theme"
 import { useInterestQuery } from "@/features/intrests/hooks/query"
-import { useThemeQuery } from "@/features/themes/hooks/query"
+
 import { fetchWithAuth } from "@/lib/api"
 import { useState } from "react"
+import { useThemeQuery } from "@/features/themes/hooks/query"
 
 export default function Theme() {
-  const [errorMessage, setErrorMessage] = useState("")
   const { data } = useThemeQuery()
 
   const themes = data?.result ?? []
