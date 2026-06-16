@@ -1,4 +1,5 @@
 export * from "./user.schema.ts"
+export * from "./user-group-photo.schema.ts"
 export * from "./conversation-starter.schema.ts"
 export * from "./interest.schema.ts"
 export * from "./user-interest.schema.ts"
