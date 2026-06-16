@@ -50,6 +50,26 @@ router.get("/", (req, res) => {
   return sendSuccess(res, 200, { result: { routes: items } })
 })
 
+router.get<{ themeId: string }>("/theme/:themeId", (req, res) => {
+  const themeId = req.params.themeId.trim()
+
+  if (!themeId) {
+    return sendError(res, 400, { message: "themeId is required" })
+  }
+
+  if (!routeThemeExists(themeId)) {
+    return sendError(res, 404, { message: "Theme not found" })
+  }
+
+  const items = db
+    .select()
+    .from(routes)
+    .where(eq(routes.themeId, themeId))
+    .all()
+
+  return sendSuccess(res, 200, { result: { routes: items } })
+})
+
 router.get<{ id: string }>("/:id", (req, res) => {
   const route = db
     .select()
