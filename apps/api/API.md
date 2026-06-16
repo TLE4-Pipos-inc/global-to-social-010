@@ -266,6 +266,96 @@ Base path: `/api/users`
 
 ---
 
+#### `GET /api/users/me/groups/photos`
+
+Fetch the authenticated user's group memories for the profile page. The response is grouped per `playerGroup`, then per `gameSession`, then per photo. These photos are group/session memories, not personal user uploads, because the current schema only links photos to session stops and optionally to a group.
+
+Access is based on `groupMembers.userId = authenticatedUser.id`. The endpoint only follows photos through `groupMembers -> playerGroups -> gameSessions -> sessionStops -> photos`. `photos.uploadedByGroupId` is not used as the access-control source.
+
+**Auth required:** yes
+
+**Query parameters**
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `status` | string | Optional session status filter, e.g. `completed` |
+| `groupId` | string | Optional group filter. Returns `404` if the authenticated user is not a member of that group. |
+| `sessionId` | string | Optional session filter |
+| `includeEmptyGroups` | boolean | Optional. Defaults to `false`; set to `true` to include groups without visible photos. |
+
+Groups are sorted by most recent matching session `selectedTimeSlot`, falling back to the group `selectedTimeSlot`. Sessions are sorted newest first. Photos inside a session are sorted by `createdAt` ascending and are deduplicated by `photo.id`.
+
+**Response `200`**
+```json
+{
+  "result": {
+    "groups": [
+      {
+        "group": {
+          "id": "group-id",
+          "groupName": "Wijnhaven Social Crew",
+          "groupSize": 4,
+          "selectedTimeSlot": "2026-06-10T18:00:00.000Z",
+          "matchStatus": "completed"
+        },
+        "member": {
+          "role": "member",
+          "joinedAt": "2026-06-10T17:30:00.000Z"
+        },
+        "sessions": [
+          {
+            "id": "session-id",
+            "status": "completed",
+            "selectedTimeSlot": "2026-06-10T18:00:00.000Z",
+            "startedAt": "2026-06-10T18:05:00.000Z",
+            "completedAt": "2026-06-10T21:00:00.000Z",
+            "route": {
+              "id": "route-id",
+              "name": "Witte de With Bar Route",
+              "area": "Witte de Withkwartier",
+              "city": "Rotterdam"
+            },
+            "collage": {
+              "id": "collage-id",
+              "title": "Summer Night Memories",
+              "collageUrl": "https://example.com/collage.jpg",
+              "shareToken": "share-token"
+            },
+            "photos": [
+              {
+                "id": "photo-id",
+                "photoUrl": "https://example.com/photo.jpg",
+                "localUri": null,
+                "proofType": "venue_proof",
+                "createdAt": "2026-06-10T19:00:00.000Z",
+                "venue": {
+                  "id": "venue-id",
+                  "name": "Witte Aap",
+                  "address": "Witte de Withstraat 78, Rotterdam"
+                },
+                "stop": {
+                  "sessionStopId": "session-stop-id",
+                  "routeStopId": "route-stop-id",
+                  "routeOrder": 1
+                }
+              }
+            ]
+          }
+        ],
+        "photoCount": 1,
+        "sessionCount": 1
+      }
+    ]
+  }
+}
+```
+
+If the user exists but has no groups with visible photos, the response is `200` with `groups: []`. Groups without photos are hidden by default and can be included with `includeEmptyGroups=true`. Sessions without photos are returned with `photos: []` only when their group is included.
+
+**Errors:** `400` invalid query · `401` unauthenticated · `404` user not found or filtered group not found · `500` server error
+
+---
+
 #### `PATCH /api/users/me`
 
 Update the authenticated user's profile fields.
