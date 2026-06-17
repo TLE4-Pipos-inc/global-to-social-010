@@ -28,9 +28,6 @@ const allowedMimeTypes = new Map([
   ["image/webp", "webp"],
   ["image/gif", "gif"],
 ])
-const extensionMimeTypes = new Map(
-  [...allowedMimeTypes].map(([mime, ext]) => [ext, mime])
-)
 
 type StoredPhoto = {
   localUri: string
@@ -191,45 +188,6 @@ router.get<{ id: string }>("/:id/file", async (req, res) => {
   }
 
   return res.sendFile(path.resolve(photo.localUri))
-})
-
-// Returns the stored image inline as a base64 data URI. Native clients (the
-// mobile collage) load this through the authenticated JSON fetch and render it
-// directly, sidestepping image loaders that can't reach the raw `/file` URL.
-router.get<{ id: string }>("/:id/base64", async (req, res) => {
-  const params = PhotoParamsSchema.safeParse(req.params)
-
-  if (!params.success) {
-    return sendError(res, 400, {
-      message: "Invalid photo params",
-      errors: z.flattenError(params.error).fieldErrors,
-    })
-  }
-
-  const photo = db
-    .select()
-    .from(photos)
-    .where(eq(photos.id, params.data.id))
-    .get()
-
-  if (!photo) {
-    return sendError(res, 404, { message: "Photo not found" })
-  }
-
-  if (!isStoredPhotoPath(photo.localUri)) {
-    return sendError(res, 404, { message: "Stored photo file not found" })
-  }
-
-  try {
-    const buffer = await fs.readFile(path.resolve(photo.localUri))
-    const extension = path.extname(photo.localUri).slice(1).toLowerCase()
-    const mimeType = extensionMimeTypes.get(extension) ?? "image/jpeg"
-    const dataUri = `data:${mimeType};base64,${buffer.toString("base64")}`
-    return sendSuccess(res, 200, { result: { id: photo.id, dataUri } })
-  } catch (error) {
-    console.error(error)
-    return sendError(res, 500, { message: "Could not read photo file" })
-  }
 })
 
 router.get<{ id: string }>("/:id", (req, res) => {

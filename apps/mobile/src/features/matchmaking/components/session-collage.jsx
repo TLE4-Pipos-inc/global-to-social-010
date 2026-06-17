@@ -1,20 +1,28 @@
 import { useEffect, useState } from "react"
-import { ActivityIndicator, StyleSheet, View } from "react-native"
-import { Image } from "expo-image"
+import {
+  ActivityIndicator,
+  Dimensions,
+  Image,
+  StyleSheet,
+  View,
+} from "react-native"
 import { ThemedText } from "@/components/themed-text"
 import { Colors } from "@/constants/theme"
 import { fetchWithAuth } from "@/lib/api"
+import { API_URL } from "@/constants/api"
+
+// SessionView wraps the collage in a ScrollView with 24px padding; two columns
+// plus an 8px gutter share the remaining width. A fixed numeric column width
+// (rather than a percentage) keeps tiles laid out correctly on the new
+// architecture, where percentage width + aspectRatio could collapse to 0 height.
+const COLUMN_GAP = 8
+const COLUMN_WIDTH = (Dimensions.get("window").width - 24 * 2 - COLUMN_GAP) / 2
 
 /**
- * End-of-crawl screen: a grid of every group selfie taken during the session.
- *
- * Photos are fetched per session stop (`?sessionStopId=`) rather than by group:
- * a stop only finishes after the server verifies a photo with that exact
- * `sessionStopId`, so this is guaranteed to find every selfie in crawl order.
- *
- * Each image is then pulled as a base64 data URI through the authenticated JSON
- * fetch and rendered directly — loading the raw `/file` URL in `expo-image`
- * proved unreliable on device, so we decode the bytes ourselves.
+ * End-of-crawl screen: a masonry grid of every group selfie taken during the
+ * session. Photos are fetched per session stop (`?sessionStopId=`) rather than
+ * by group — a stop only finishes once the server verifies a photo with that
+ * exact `sessionStopId`, so this finds every selfie, in crawl order.
  */
 export function SessionCollage({ stops = [] }) {
   const [state, setState] = useState({ status: "loading", photos: [] })
@@ -32,7 +40,6 @@ export function SessionCollage({ stops = [] }) {
         return
       }
       try {
-        // 1. Collect every photo id for this crawl, in crawl order.
         const perStop = await Promise.all(
           ids.map(async (id) => {
             const response = await fetchWithAuth(
@@ -40,29 +47,15 @@ export function SessionCollage({ stops = [] }) {
             )
             if (!response.ok) throw new Error("Could not load photos")
             const { result } = await response.json()
-            return (result?.photos ?? []).sort((a, b) =>
-              String(a.createdAt).localeCompare(String(b.createdAt)),
-            )
+            // Crawl order across stops, createdAt order within a stop.
+            return (result?.photos ?? [])
+              .filter((p) => p.photoUrl)
+              .sort((a, b) =>
+                String(a.createdAt).localeCompare(String(b.createdAt)),
+              )
           }),
         )
-
-        // 2. Pull each image as a base64 data URI for direct rendering.
-        const withData = await Promise.all(
-          perStop.flat().map(async (photo) => {
-            const response = await fetchWithAuth(
-              `/api/photos/${encodeURIComponent(photo.id)}/base64`,
-            )
-            if (!response.ok) return null
-            const { result } = await response.json()
-            return result?.dataUri
-              ? { id: photo.id, dataUri: result.dataUri }
-              : null
-          }),
-        )
-
-        if (active) {
-          setState({ status: "ready", photos: withData.filter(Boolean) })
-        }
+        if (active) setState({ status: "ready", photos: perStop.flat() })
       } catch {
         if (active) setState({ status: "error", photos: [] })
       }
@@ -72,6 +65,10 @@ export function SessionCollage({ stops = [] }) {
       active = false
     }
   }, [stopIds])
+
+  // Split into two columns so varied heights stack without leaving gaps.
+  const columns = [[], []]
+  state.photos.forEach((photo, index) => columns[index % 2].push(photo))
 
   return (
     <View style={styles.container}>
@@ -98,17 +95,41 @@ export function SessionCollage({ stops = [] }) {
 
       {state.status === "ready" && state.photos.length > 0 && (
         <View style={styles.grid}>
-          {state.photos.map((photo) => (
-            <Image
-              key={photo.id}
-              style={styles.tile}
-              contentFit="cover"
-              source={{ uri: photo.dataUri }}
-            />
+          {columns.map((column, columnIndex) => (
+            <View key={columnIndex} style={styles.column}>
+              {column.map((photo) => (
+                <CollagePhoto
+                  key={photo.id}
+                  uri={`${API_URL}${photo.photoUrl}`}
+                />
+              ))}
+            </View>
           ))}
         </View>
       )}
     </View>
+  )
+}
+
+/**
+ * A single collage tile that sizes its height to the photo's real proportions,
+ * so portraits and landscapes aren't squashed into squares.
+ */
+function CollagePhoto({ uri }) {
+  // Default to square until the natural dimensions arrive via onLoad.
+  const [height, setHeight] = useState(COLUMN_WIDTH)
+
+  return (
+    <Image
+      source={{ uri }}
+      resizeMode="cover"
+      onLoad={({ nativeEvent: { source } }) => {
+        if (source?.width && source?.height) {
+          setHeight((COLUMN_WIDTH * source.height) / source.width)
+        }
+      }}
+      style={[styles.tile, { height }]}
+    />
   )
 }
 
@@ -130,13 +151,14 @@ const styles = StyleSheet.create({
   },
   grid: {
     flexDirection: "row",
-    flexWrap: "wrap",
     justifyContent: "space-between",
-    gap: 8,
+  },
+  column: {
+    width: COLUMN_WIDTH,
+    gap: COLUMN_GAP,
   },
   tile: {
-    width: "48%",
-    aspectRatio: 1,
+    width: COLUMN_WIDTH,
     borderRadius: 12,
     backgroundColor: Colors.offWhite,
   },

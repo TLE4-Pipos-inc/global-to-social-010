@@ -1,5 +1,6 @@
 import { useState } from "react"
-import { Pressable, ScrollView, StyleSheet, View } from "react-native"
+import { Alert, Pressable, ScrollView, StyleSheet, View } from "react-native"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
 import MapView, { Marker, Polyline } from "react-native-maps"
 import { ChevronDown, ChevronUp } from "lucide-react-native"
 import { ThemedText } from "@/components/themed-text"
@@ -26,6 +27,7 @@ export function SessionView() {
     useMatchmaking()
   const { data: account } = useAccountQuery()
   const myId = account?.result?.id ?? account?.id ?? account?.user?.id
+  const insets = useSafeAreaInsets()
   const [busy, run] = useBusyAction()
   const { now, stops, currentStop, currentState } = useActiveStop()
 
@@ -39,9 +41,25 @@ export function SessionView() {
     ? STARTER_COUNTDOWN_SECONDS - (now - latestStarter.receivedAt) / 1000
     : 0
 
+  function confirmFinishAndExit() {
+    Alert.alert(
+      "Finish & exit?",
+      "This leaves the session and returns you to matchmaking.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Finish & exit",
+          style: "destructive",
+          onPress: resetMatchmaking,
+        },
+      ],
+    )
+  }
+
   return (
-    <ScrollView contentContainerStyle={styles.content}>
-      {stops.length === 0 && (
+    <View style={styles.screen}>
+      <ScrollView contentContainerStyle={styles.content}>
+        {stops.length === 0 && (
         <ThemedText style={styles.mutedSmall}>
           No stops on this route.
         </ThemedText>
@@ -92,13 +110,16 @@ export function SessionView() {
           match={match}
         />
       )}
+      </ScrollView>
 
-      <DestructiveOutlineButton
-        title="Finish & exit"
-        disabled={busy}
-        onPress={resetMatchmaking}
-      />
-    </ScrollView>
+      <View style={[styles.footer, { paddingBottom: 24 + insets.bottom }]}>
+        <DestructiveOutlineButton
+          title="Finish & exit"
+          disabled={busy}
+          onPress={confirmFinishAndExit}
+        />
+      </View>
+    </View>
   )
 }
 
@@ -168,6 +189,17 @@ function InformationBox({ stop }) {
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+  },
+  footer: {
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    paddingBottom: 24,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.offWhite,
+    backgroundColor: Colors.background,
+  },
   content: {
     padding: 24,
     gap: 18,
