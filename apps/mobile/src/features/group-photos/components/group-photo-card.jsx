@@ -1,5 +1,5 @@
-import { Image } from "expo-image"
-import { StyleSheet, View } from "react-native"
+import { Image, StyleSheet, View } from "react-native"
+import { API_URL } from "@/constants/api"
 import { ThemedText } from "@/components/themed-text"
 import { Colors } from "@/constants/theme"
 
@@ -7,6 +7,7 @@ function getPhotoUri(photo) {
   const source = photo?.photoUrl ?? photo?.localUri ?? null
 
   if (!source) return null
+  if (source.startsWith("/")) return `${API_URL}${source}`
 
   return source
 }
@@ -27,8 +28,8 @@ export function GroupPhotoCard({ photo }) {
       <Image
         source={{ uri }}
         style={styles.image}
-        contentFit="cover"
-        accessibleLabel={photo?.venue?.name || "Group memory photo"}
+        resizeMode="cover"
+        accessibilityLabel={photo?.venue?.name || "Group memory photo"}
       />
       {photo?.venue?.name ? (
         <View style={styles.caption}>
