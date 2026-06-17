@@ -17,7 +17,7 @@ async function fetchUserGroupPhotos() {
 export const userGroupPhotosQueryOptions = queryOptions({
   queryKey: ["group-photos", "current-user"],
   queryFn: fetchUserGroupPhotos,
-  staleTime: 6000,
+  staleTime: 1,
 })
 
 export function useUserGroupPhotosQuery() {
