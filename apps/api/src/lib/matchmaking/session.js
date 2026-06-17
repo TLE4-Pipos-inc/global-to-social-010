@@ -1,19 +1,71 @@
-import { and, eq, isNull, sql } from "drizzle-orm"
+import { and, eq, inArray, isNull, sql } from "drizzle-orm"
 import { v4 as uuidv4 } from "uuid"
 import { db } from "../../db/client.js"
 import {
+  deals,
   gameSessions,
   groupJoinMatches,
   groupMembers,
   photos,
   playerGroups,
   routeStops,
+  routeThemes,
   routes,
   sessionStops,
   userInterests,
   users,
+  venuePartnerships,
   venues,
 } from "../../db/schema.js"
+import { isDealCurrentlyActive } from "../deals.js"
+
+/**
+ * Whether a route theme row exists. Used to validate a leader-chosen themeId
+ * before queueing.
+ *
+ * @param {string} themeId
+ * @returns {boolean}
+ */
+export function routeThemeExists(themeId) {
+  return Boolean(
+    db.select({ id: routeThemes.id }).from(routeThemes).where(eq(routeThemes.id, themeId)).get(),
+  )
+}
+
+/**
+ * Whether the theme has at least one active route to run a session on. Queueing
+ * a theme with no active route would only fail later at match time, so we guard
+ * up front (see NO_ROUTE_FOR_THEME).
+ *
+ * @param {string} themeId
+ * @returns {boolean}
+ */
+export function themeHasActiveRoute(themeId) {
+  return Boolean(
+    db
+      .select({ id: routes.id })
+      .from(routes)
+      .where(and(eq(routes.themeId, themeId), eq(routes.active, true)))
+      .get(),
+  )
+}
+
+/**
+ * Whether a specific route is queueable: it exists, is active, and (when a
+ * themeId is given) belongs to that theme. Used to validate a leader-chosen
+ * routeId before queueing, since routeId is now a hard matching constraint.
+ *
+ * @param {string} routeId
+ * @param {string|null} [themeId]  When set, the route must belong to this theme.
+ * @returns {boolean}
+ */
+export function isRouteQueueable(routeId, themeId = null) {
+  const conditions = [eq(routes.id, routeId), eq(routes.active, true)]
+  if (themeId) conditions.push(eq(routes.themeId, themeId))
+  return Boolean(
+    db.select({ id: routes.id }).from(routes).where(and(...conditions)).get(),
+  )
+}
 
 /**
  * Fetch the data we need to score a user when they enter the queue.
@@ -106,8 +158,19 @@ export function removePersistedParty(partyId) {
  * @param {import("./scoring.js").QueuedPlayer[]} params.players  All players across all parties
  * @param {string} params.selectedTimeSlot
  * @param {number} params.matchScore
+ * @param {string|null} [params.themeId]  Chosen route theme. When set (and no
+ *   routeId), the session route is picked only from active routes of that theme.
+ * @param {string|null} [params.routeId]  Chosen specific route. When set, the
+ *   session runs exactly this route (it must be active, and belong to themeId if
+ *   that is also set). Every party in the bucket chose the same route, so there
+ *   is no ambiguity. When null, falls back to themeId/any behaviour above.
+ *
+ *   If an explicitly chosen route/theme cannot resolve to an active route the
+ *   match fails with a NO_ROUTE_FOR_THEME error (e.g. the route was deactivated
+ *   mid-wait). When both are null, any active route is eligible (and zero routes
+ *   falls back to a no-session group).
  */
-export function createMatchedSession({ parties, players, selectedTimeSlot, matchScore }) {
+export function createMatchedSession({ parties, players, selectedTimeSlot, matchScore, themeId = null, routeId = null }) {
   if (players.length < 4 || players.length > 8) {
     throw new Error(
       `Matched group must have 4..8 players, got ${players.length}`,
@@ -115,6 +178,20 @@ export function createMatchedSession({ parties, players, selectedTimeSlot, match
   }
 
   return db.transaction((tx) => {
+    // routeId is a hard constraint: run that exact route. Otherwise narrow by
+    // theme if given, else any active route. RANDOM() only matters for the
+    // theme/any cases — a routeId match returns at most one row.
+    let routeWhere
+    if (routeId) {
+      routeWhere = themeId
+        ? and(eq(routes.active, true), eq(routes.id, routeId), eq(routes.themeId, themeId))
+        : and(eq(routes.active, true), eq(routes.id, routeId))
+    } else if (themeId) {
+      routeWhere = and(eq(routes.active, true), eq(routes.themeId, themeId))
+    } else {
+      routeWhere = eq(routes.active, true)
+    }
+
     const route = tx
       .select({
         id: routes.id,
@@ -124,10 +201,20 @@ export function createMatchedSession({ parties, players, selectedTimeSlot, match
         themeId: routes.themeId,
       })
       .from(routes)
-      .where(eq(routes.active, true))
+      .where(routeWhere)
       .orderBy(sql`RANDOM()`)
       .limit(1)
       .get()
+
+    // An explicitly chosen route/theme must resolve to an active route. The
+    // queue-time guard makes this rare (deactivated mid-wait), but never
+    // silently match a group onto a different route — fail so the socket layer
+    // can recover (release parties + surface NO_ROUTE_FOR_THEME).
+    if ((routeId || themeId) && !route) {
+      const err = new Error("No active route is available for the selected theme")
+      err.code = "NO_ROUTE_FOR_THEME"
+      throw err
+    }
 
     const leadParty = parties[0]
     const groupId = leadParty.id
@@ -235,12 +322,59 @@ export function createMatchedSession({ parties, players, selectedTimeSlot, match
         latitude: venues.latitude,
         longitude: venues.longitude,
         plannedDurationMinutes: routeStops.plannedDurationMinutes,
+        walkLabel: routeStops.walkLabel,
       })
       .from(routeStops)
       .leftJoin(venues, eq(venues.id, routeStops.venueId))
       .where(eq(routeStops.routeId, route.id))
       .orderBy(routeStops.routeOrder)
       .all()
+
+    // Resolve partner status + currently-active deals per venue on this route.
+    const venueIds = stops.map((stop) => stop.venueId).filter(Boolean)
+    const partnerVenueIds = new Set()
+    const dealsByVenue = new Map()
+    if (venueIds.length > 0) {
+      const partnerships = tx
+        .select({ venueId: venuePartnerships.venueId })
+        .from(venuePartnerships)
+        .where(inArray(venuePartnerships.venueId, venueIds))
+        .all()
+      for (const partnership of partnerships) {
+        partnerVenueIds.add(partnership.venueId)
+      }
+
+      const dealRows = tx
+        .select({
+          id: deals.id,
+          venueId: venuePartnerships.venueId,
+          title: deals.title,
+          description: deals.description,
+          startsAt: deals.startsAt,
+          endsAt: deals.endsAt,
+          active: deals.active,
+        })
+        .from(deals)
+        .innerJoin(
+          venuePartnerships,
+          eq(venuePartnerships.id, deals.partnershipId)
+        )
+        .where(inArray(venuePartnerships.venueId, venueIds))
+        .all()
+
+      for (const deal of dealRows) {
+        if (!isDealCurrentlyActive(deal)) continue
+        const list = dealsByVenue.get(deal.venueId) ?? []
+        list.push({
+          id: deal.id,
+          title: deal.title,
+          description: deal.description,
+          startsAt: deal.startsAt,
+          endsAt: deal.endsAt,
+        })
+        dealsByVenue.set(deal.venueId, list)
+      }
+    }
 
     const sessionId = uuidv4()
     tx.insert(gameSessions)
@@ -307,6 +441,9 @@ export function createMatchedSession({ parties, players, selectedTimeSlot, match
          latitude: stops[idx].latitude,
          longitude: stops[idx].longitude,
          plannedDurationMinutes: stops[idx].plannedDurationMinutes,
+         walkLabel: stops[idx].walkLabel,
+         isPartner: partnerVenueIds.has(stops[idx].venueId),
+         activeDeals: dealsByVenue.get(stops[idx].venueId) ?? [],
        })),
       members: membersResult,
     }

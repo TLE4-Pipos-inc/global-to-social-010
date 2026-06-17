@@ -11,6 +11,7 @@ export const Colors = {
   orangeColor: "#F9A620",
   offWhite: "#F1F1FF",
   dangerColor: "#D64545",
+  border: "#DDDDDD",
 }
 
 export const Fonts = {

@@ -17,7 +17,7 @@ export default function HomeScreen() {
           <View style={{ top: 10 }}>
             <PrimaryLightButton
               title="start now"
-              onPress={() => router.push("/interest")}
+              onPress={() => router.push("/theme")}
             />
           </View>
         </View>

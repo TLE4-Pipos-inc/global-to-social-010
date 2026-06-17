@@ -193,6 +193,17 @@ export function SocketProvider({ children }) {
   const actions = useMemo(
     () => ({
       createParty: () => emitWithAck(SOCKET_EVENTS.PARTY_CREATE),
+      // Solo fast path: create a one-person party and immediately queue it.
+      // Pass themeId+routeId to queue for a specific route ("Quick queue this
+      // route"); pass nothing for the "Match anywhere" path (any theme/route).
+      quickMatch: async (themeId = null, routeId = null) => {
+        await emitWithAck(SOCKET_EVENTS.PARTY_CREATE)
+        await emitWithAck(SOCKET_EVENTS.PARTY_QUEUE, {
+          selectedTimeSlot: MATCH_TIME_SLOT,
+          themeId,
+          routeId,
+        })
+      },
       joinParty: (inviteCode) =>
         emitWithAck(SOCKET_EVENTS.PARTY_JOIN, { inviteCode }),
       leaveParty: async () => {
@@ -202,8 +213,12 @@ export function SocketProvider({ children }) {
         return ack
       },
       kickMember: (userId) => emitWithAck(SOCKET_EVENTS.PARTY_KICK, { userId }),
-      queueParty: () =>
-        emitWithAck(SOCKET_EVENTS.PARTY_QUEUE, { selectedTimeSlot: MATCH_TIME_SLOT }),
+      queueParty: (themeId = null, routeId = null) =>
+        emitWithAck(SOCKET_EVENTS.PARTY_QUEUE, {
+          selectedTimeSlot: MATCH_TIME_SLOT,
+          themeId,
+          routeId,
+        }),
       unqueueParty: () => emitWithAck(SOCKET_EVENTS.PARTY_UNQUEUE),
       // Named `readyUp` to avoid colliding with the `sessionReady` state value.
       readyUp: (sessionId) =>

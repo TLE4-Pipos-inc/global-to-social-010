@@ -1,8 +1,7 @@
 import { useState } from "react"
 import { Alert, Pressable, ScrollView, StyleSheet, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import MapView, { Marker, Polyline } from "react-native-maps"
-import { ChevronDown, ChevronUp } from "lucide-react-native"
+import { Check, ChevronDown, ChevronUp } from "lucide-react-native"
 import { ThemedText } from "@/components/themed-text"
 import {
   PrimaryLightButton,
@@ -16,9 +15,10 @@ import {
   useActiveStop,
   formatMMSS,
 } from "@/features/matchmaking/use-active-stop"
-import { useOSRMRoute } from "@/features/matchmaking/use-osrm-route"
 import { StopPhotoPrompt } from "@/features/matchmaking/components/stop-photo-prompt"
 import { SessionCollage } from "@/features/matchmaking/components/session-collage"
+import { StopMap } from "@/features/matchmaking/components/stop-map"
+import { StopDeals } from "@/features/matchmaking/components/stop-deals"
 
 const STARTER_COUNTDOWN_SECONDS = 5 * 60
 
@@ -86,7 +86,17 @@ export function SessionView() {
         </View>
       )}
 
-      {currentStop && <InformationBox stop={currentStop} />}
+      {currentStop && currentState === "not_started" && (
+        <StopMap stop={currentStop} />
+      )}
+
+      {currentStop && currentState !== "awaiting_photo" && (
+        <StopDeals deals={currentStop.activeDeals ?? []} />
+      )}
+
+      {currentStop && currentState !== "awaiting_photo" && (
+        <InformationBox stop={currentStop} />
+      )}
 
       {currentState === "not_started" && (
         <PrimaryLightButton
@@ -125,20 +135,29 @@ export function SessionView() {
 
 /** Collapsible card revealing venue details for the active stop. */
 function InformationBox({ stop }) {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(stop.isPartner)
   const Chevron = open ? ChevronDown : ChevronUp
   const details = [
     ["Type", stop.venueType],
     ["Address", stop.address],
     ["Vibe", stop.vibe],
   ].filter(([, value]) => Boolean(value))
-  const { route } = useOSRMRoute(Number(stop.latitude), Number(stop.longitude))
 
   return (
     <View style={styles.stopCard}>
       <Pressable style={styles.infoHeader} onPress={() => setOpen((v) => !v)}>
+        <View style={styles.infoHeaderSide}>
+          {stop.isPartner && (
+            <View style={styles.partnerBadge}>
+              <Check size={14} color="#fff" />
+              <ThemedText style={styles.partnerBadgeText}>Partner</ThemedText>
+            </View>
+          )}
+        </View>
         <ThemedText type="subtitle">Information</ThemedText>
-        <Chevron size={22} color={Colors.darkGreenColor} />
+        <View style={[styles.infoHeaderSide, styles.infoHeaderRight]}>
+          <Chevron size={22} color={Colors.darkGreenColor} />
+        </View>
       </Pressable>
       {open && (
         <View style={styles.infoBody}>
@@ -155,32 +174,6 @@ function InformationBox({ stop }) {
             <ThemedText style={styles.mutedSmall}>
               No venue details available.
             </ThemedText>
-          )}
-          {stop.latitude && stop.longitude && (
-            <View style={{ marginTop: 12 }}>
-              <MapView
-                style={styles.miniMap}
-                initialRegion={{
-                  latitude: Number(stop.latitude),
-                  longitude: Number(stop.longitude),
-                  latitudeDelta: 0.01,
-                  longitudeDelta: 0.01,
-                }}
-                showsUserLocation={true}
-                loadingEnabled={true}
-              >
-                {route.length > 0 && (
-                  <Polyline coordinates={route} strokeWidth={5} strokeColor="blue" />
-                )}
-                <Marker
-                  coordinate={{
-                    latitude: Number(stop.latitude),
-                    longitude: Number(stop.longitude),
-                  }}
-                  title={stop.name || "Destination"}
-                />
-              </MapView>
-            </View>
           )}
         </View>
       )}
@@ -218,6 +211,28 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+  },
+  infoHeaderSide: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  infoHeaderRight: {
+    justifyContent: "flex-end",
+  },
+  partnerBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: Colors.lightGreenColor,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  partnerBadgeText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "700",
   },
   infoBody: {
     gap: 6,
@@ -265,11 +280,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
     color: "#fff",
-  },
-  miniMap: {
-    width: "100%",
-    height: 180,
-    borderRadius: 12,
-    overflow: "hidden",
   },
 })

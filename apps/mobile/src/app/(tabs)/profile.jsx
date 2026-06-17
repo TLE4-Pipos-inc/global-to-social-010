@@ -1,10 +1,11 @@
 import { Image } from "expo-image"
 import { ThemedText } from "@/components/themed-text"
 import { ThemedView } from "@/components/themed-view"
-import { ActivityIndicator, StyleSheet, View } from "react-native"
+import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native"
 import { router } from "expo-router"
 import { Suspense } from "react"
 import { useAccountQuery, useLogoutMutation } from "@/features/auth"
+import { GroupPhotosSection } from "@/features/group-photos"
 import {
   PrimaryDarkOutlineButton,
   PrimaryLightButton,
@@ -17,13 +18,14 @@ function ProfileContent() {
   const user = accountQuery.data.result
 
   return (
-    <>
+    <ThemedView style={styles.screen}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
       <View style={styles.block}>
-        <Image
-          source={require("../../../assets/images/emptyprofile.png")}
-          style={styles.image}
-          accessibleLabel="Profile avatar"
-        />
+        {/*<Image*/}
+        {/*  source={require("../../../assets/images/emptyprofile.png")}*/}
+        {/*  style={styles.image}*/}
+        {/*  accessibleLabel="Profile avatar"*/}
+        {/*/>*/}
 
         <View style={styles.textContainer}>
           <View style={styles.imageRow}>
@@ -51,15 +53,17 @@ function ProfileContent() {
           <ThemedText type="text">
             {user.school || "No school selected"}
           </ThemedText>
-
-          <PrimaryLightButton
-            title="settings"
-            onPress={() => router.push("/(tabs)/settings")}
-          />
         </View>
       </View>
 
+      <GroupPhotosSection />
+
       <ThemedView style={styles.container}>
+        <PrimaryLightButton
+          title="settings"
+          onPress={() => router.push("/(tabs)/settings")}
+        />
+
         <PrimaryDarkOutlineButton
           title={logout.isPending ? "Logging out…" : "Log Out"}
           disabled={logout.isPending}
@@ -70,7 +74,8 @@ function ProfileContent() {
           }
         />
       </ThemedView>
-    </>
+      </ScrollView>
+    </ThemedView>
   )
 }
 
@@ -83,6 +88,15 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+  },
+
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 24,
+  },
+
   block: {
     flexDirection: "row",
     alignItems: "center",

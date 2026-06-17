@@ -73,7 +73,7 @@ Features live in `src/features/<feature-name>/`.
 src/features/
 └── auth/
     ├── hooks/
-    │   ├── query.js   ← data fetching (React Query)
+    │   ├── stop-stop-query.js   ← data fetching (React Query)
     │   └── form.js    ← form setup (TanStack Form)
     └── index.js       ← barrel export (re-export public API here)
 ```
@@ -83,7 +83,7 @@ When adding a new feature (e.g. `venues`), create this same structure:
 ```
 src/features/venues/
 ├── hooks/
-│   ├── query.js
+│   ├── stop-stop-query.js
 │   └── form.js        ← only if the feature has forms
 └── index.js
 ```
@@ -92,9 +92,9 @@ Screens in `src/app/` import from the feature barrel (`@/features/auth`), never 
 
 ---
 
-## Query Hooks — `hooks/query.js`
+## Query Hooks — `hooks/stop-stop-query.js`
 
-Every feature's `query.js` follows a three-layer pattern. Keep these three layers in this exact order and never collapse them.
+Every feature's `stop-stop-query.js` follows a three-layer pattern. Keep these three layers in this exact order and never collapse them.
 
 ### Layer 1 — Fetch function (plain async)
 
