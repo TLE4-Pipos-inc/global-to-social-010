@@ -29,4 +29,4 @@ COPY --from=builder /app/apps/web/dist /usr/share/nginx/html
 COPY apps/web/nginx.conf.template /etc/nginx/templates/default.conf.template
 # Only substitute API_URL so nginx runtime vars ($host, $remote_addr, …) are left intact
 ENV NGINX_ENVSUBST_FILTER=API_URL
-EXPOSE 80
+EXPOSE 8002
