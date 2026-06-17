@@ -15,6 +15,8 @@ import {
   useActiveStop,
   formatMMSS,
 } from "@/features/matchmaking/use-active-stop"
+import { useOSRMRoute } from "@/features/matchmaking/use-osrm-route"
+import { useStopPresence } from "@/features/matchmaking/use-stop-presence"
 import { StopPhotoPrompt } from "@/features/matchmaking/components/stop-photo-prompt"
 import { SessionCollage } from "@/features/matchmaking/components/session-collage"
 import { StopMap } from "@/features/matchmaking/components/stop-map"
@@ -32,6 +34,17 @@ export function SessionView() {
   const { now, stops, currentStop, currentState } = useActiveStop()
 
   const session = match?.session
+
+  // Geofence gate: members stream their location and the server reports who is
+  // within range. A stop only starts once everyone is present. Venues without
+  // coordinates can't be fenced, so they fall back to the prior behaviour.
+  const presence = useStopPresence({
+    session,
+    stop: currentStop,
+    active: currentState === "not_started",
+  })
+  const requiresPresence = currentStop?.latitude != null && currentStop?.longitude != null
+  const allPresent = !requiresPresence || (presence?.allPresent ?? false)
 
   const latestStarter = currentStop
     ? starters.find((starter) => starter.stopId === currentStop.id)
@@ -99,11 +112,20 @@ export function SessionView() {
       )}
 
       {currentState === "not_started" && (
-        <PrimaryLightButton
-          title={busy ? "Working…" : "Start stop"}
-          disabled={busy || !session}
-          onPress={() => run(() => startStop(session.id, currentStop.id))}
-        />
+        <>
+          {requiresPresence && !allPresent && (
+            <ThemedText style={styles.mutedSmall}>
+              {presence
+                ? `Waiting for all members — ${presence.present.length}/${presence.total} at this stop`
+                : "Waiting for all members to arrive…"}
+            </ThemedText>
+          )}
+          <PrimaryLightButton
+            title={busy ? "Working…" : "Start stop"}
+            disabled={busy || !session || !allPresent}
+            onPress={() => run(() => startStop(session.id, currentStop.id))}
+          />
+        </>
       )}
       {currentState === "running" && (
         <PrimaryLightButton
