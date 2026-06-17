@@ -31,13 +31,17 @@ function Interest() {
       const serverItems =
         userInterestData?.result || userInterestData?.interests || []
 
-      if (serverItems && serverItems.length > 0 && selectedInterest.length === 0) {
-        const ids = serverItems.map((it) => it.interestId ?? it.interest_id ?? it.id)
+      if (
+        serverItems &&
+        serverItems.length > 0 &&
+        selectedInterest.length === 0
+      ) {
+        const ids = serverItems.map(
+          (it) => it.interestId ?? it.interest_id ?? it.id
+        )
         setSelectedInterest(ids)
       }
-    } catch (e) {
-
-    }
+    } catch (e) {}
   }, [userInterestData])
 
   async function saveUserInterests() {
@@ -246,8 +250,8 @@ const styles = StyleSheet.create({
   },
 
   interestPillSelected: {
-    backgroundColor: "#548C2F",
-    borderColor: "#548C2F",
+    backgroundColor: "#008100",
+    borderColor: "#008100",
   },
 
   interestText: {

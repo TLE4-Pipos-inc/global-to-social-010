@@ -20,60 +20,59 @@ function ProfileContent() {
   return (
     <ThemedView style={styles.screen}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-      <View style={styles.block}>
-        {/*<Image*/}
-        {/*  source={require("../../../assets/images/emptyprofile.png")}*/}
-        {/*  style={styles.image}*/}
-        {/*  accessibleLabel="Profile avatar"*/}
-        {/*/>*/}
+        <View style={styles.block}>
+          {/*<Image*/}
+          {/*  source={require("../../../assets/images/emptyprofile.png")}*/}
+          {/*  style={styles.image}*/}
+          {/*  accessibleLabel="Profile avatar"*/}
+          {/*/>*/}
 
-        <View style={styles.textContainer}>
-          <View style={styles.imageRow}>
-            <Image
-              source={require("../../../assets/images/nl.png")}
-              style={styles.nationImage}
-              accessibleLabel="Netherlands flag"
-            />
+          <View style={styles.textContainer}>
+            <View style={styles.imageRow}>
+              <Image
+                source={require("../../../assets/images/nl.png")}
+                style={styles.nationImage}
+                accessibleLabel="Netherlands flag"
+              />
 
-            <Image
-              source={require("../../../assets/images/hrlogo.png")}
-              style={styles.hrImage}
-              accessibleLabel="Hogeschool Rotterdam logo"
-            />
+              <Image
+                source={require("../../../assets/images/hrlogo.png")}
+                style={styles.hrImage}
+                accessibleLabel="Hogeschool Rotterdam logo"
+              />
+            </View>
+
+            <ThemedText type="text" style={{ fontWeight: "bold" }}>
+              {user.name || "No name"}
+            </ThemedText>
+
+            <ThemedText type="text">
+              {user.campus || "No campus selected"}
+            </ThemedText>
+
+            <ThemedText type="text">
+              {user.school || "No school selected"}
+            </ThemedText>
           </View>
-
-          <ThemedText type="text" style={{ fontWeight: "bold" }}>
-            {user.name || "No name"}
-          </ThemedText>
-
-          <ThemedText type="text">
-            {user.campus || "No campus selected"}
-          </ThemedText>
-
-          <ThemedText type="text">
-            {user.school || "No school selected"}
-          </ThemedText>
         </View>
-      </View>
+        <ThemedView style={styles.container}>
+          <PrimaryLightButton
+            title="settings"
+            onPress={() => router.push("/(tabs)/settings")}
+          />
 
-      <GroupPhotosSection />
+          <PrimaryDarkOutlineButton
+            title={logout.isPending ? "Logging out…" : "Log Out"}
+            disabled={logout.isPending}
+            onPress={() =>
+              logout.mutate(undefined, {
+                onSettled: () => router.replace("/(auth)/login"),
+              })
+            }
+          />
+        </ThemedView>
 
-      <ThemedView style={styles.container}>
-        <PrimaryLightButton
-          title="settings"
-          onPress={() => router.push("/(tabs)/settings")}
-        />
-
-        <PrimaryDarkOutlineButton
-          title={logout.isPending ? "Logging out…" : "Log Out"}
-          disabled={logout.isPending}
-          onPress={() =>
-            logout.mutate(undefined, {
-              onSettled: () => router.replace("/(auth)/login"),
-            })
-          }
-        />
-      </ThemedView>
+        <GroupPhotosSection />
       </ScrollView>
     </ThemedView>
   )
@@ -138,8 +137,9 @@ const styles = StyleSheet.create({
 
   container: {
     flex: 1,
+    gap: 16,
     paddingHorizontal: 24,
-    paddingVertical: 32,
+    paddingTop: 32,
     backgroundColor: Colors.background,
     justifyContent: "space-between",
   },

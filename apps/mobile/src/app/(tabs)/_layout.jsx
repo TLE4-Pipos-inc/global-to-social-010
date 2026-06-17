@@ -1,6 +1,7 @@
-import { Tabs } from "expo-router"
+import { router, Tabs } from "expo-router"
 import { Home, Map, User } from "lucide-react-native"
 import { HapticTab } from "@/components/haptic-tab"
+import { HeaderBackButton } from "@/components/header-back-button"
 import { Colors, Fonts } from "@/constants/theme"
 
 export default function TabLayout() {
@@ -76,6 +77,9 @@ export default function TabLayout() {
         options={{
           href: null,
           title: "theme",
+          headerLeft: () => (
+            <HeaderBackButton onPress={() => router.navigate("/")} />
+          ),
         }}
       />
       <Tabs.Screen
@@ -83,6 +87,9 @@ export default function TabLayout() {
         options={{
           href: null,
           title: "routes",
+          headerLeft: () => (
+            <HeaderBackButton onPress={() => router.navigate("/theme")} />
+          ),
         }}
       />
     </Tabs>

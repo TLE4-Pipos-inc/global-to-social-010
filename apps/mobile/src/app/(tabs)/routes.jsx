@@ -67,68 +67,68 @@ export default function Routes() {
   return (
     <>
       <ScrollView contentContainerStyle={styles.container}>
-          <ThemedText style={styles.pageTitle}>Choose a route</ThemedText>
+        <ThemedText style={styles.pageTitle}>Choose a route</ThemedText>
 
-          {routes.map((route) => {
-            const routeStops = allStops.filter(
-              (stop) => stop.routeId === route.id
-            )
+        {routes.map((route) => {
+          const routeStops = allStops.filter(
+            (stop) => stop.routeId === route.id
+          )
 
-            const totalStops = routeStops.length
+          const totalStops = routeStops.length
 
-            const totalMinutes = routeStops.reduce((total, stop) => {
-              return total + stop.plannedDurationMinutes
-            }, 0)
+          const totalMinutes = routeStops.reduce((total, stop) => {
+            return total + stop.plannedDurationMinutes
+          }, 0)
 
-            return (
-              <View key={route.id} style={styles.routeCard}>
-                <ThemedText style={styles.routeTitle}>{route.name}</ThemedText>
+          return (
+            <View key={route.id} style={styles.routeCard}>
+              <ThemedText style={styles.routeTitle}>{route.name}</ThemedText>
 
-                <ThemedText style={styles.routeSubtitle}>
-                  {route.area} • {route.city}
-                </ThemedText>
+              <ThemedText style={styles.routeSubtitle}>
+                {route.area} • {route.city}
+              </ThemedText>
 
-                <View style={styles.infoBox}>
-                  <View style={styles.infoRoute}>
-                    <ThemedText style={styles.infoText}>
-                      {totalStops} stops
-                    </ThemedText>
-                  </View>
-
-                  <View style={styles.infoRoute}>
-                    <ThemedText style={styles.infoText}>
-                      {totalMinutes} min
-                    </ThemedText>
-                  </View>
-                </View>
-
-                <View style={styles.buttonRow}>
-                  <View style={styles.buttonWrapper}>
-                    <PrimaryDarkButton
-                      title="Match with friends"
-                      onPress={() => goToMatching(route)}
-                    />
-                  </View>
-                </View>
-                <View style={styles.buttonRow}>
-                  <View style={styles.buttonWrapper}>
-                    <PrimaryAccentButton
-                      title="Quick queue solo"
-                      onPress={() => goToMatching(route, { solo: true })}
-                    />
-                  </View>
-                </View>
-                <Pressable
-                  style={styles.viewRouteButton}
-                  onPress={() => setSelectedRoute(route)}
-                >
-                  <ThemedText style={styles.viewRouteButtonText}>
-                    View Route
+              <View style={styles.infoBox}>
+                <View style={styles.infoRoute}>
+                  <ThemedText style={styles.infoText}>
+                    {totalStops} stops
                   </ThemedText>
-                </Pressable>
+                </View>
+
+                <View style={styles.infoRoute}>
+                  <ThemedText style={styles.infoText}>
+                    {totalMinutes} min
+                  </ThemedText>
+                </View>
               </View>
-            )
-          })}
+
+              <View style={styles.buttonRow}>
+                <View style={styles.buttonWrapper}>
+                  <PrimaryDarkButton
+                    title="Match with friends"
+                    onPress={() => goToMatching(route)}
+                  />
+                </View>
+              </View>
+              <View style={styles.buttonRow}>
+                <View style={styles.buttonWrapper}>
+                  <PrimaryAccentButton
+                    title="Quick queue solo"
+                    onPress={() => goToMatching(route, { solo: true })}
+                  />
+                </View>
+              </View>
+              <Pressable
+                style={styles.viewRouteButton}
+                onPress={() => setSelectedRoute(route)}
+              >
+                <ThemedText style={styles.viewRouteButtonText}>
+                  View Route
+                </ThemedText>
+              </Pressable>
+            </View>
+          )
+        })}
       </ScrollView>
 
       <Modal
@@ -188,11 +188,11 @@ export default function Routes() {
 
                     <View style={styles.stopHeaderText}>
                       <ThemedText style={styles.venueName}>
-                        {stop.venueName ?? "Venue naam niet gevonden"}
+                        {stop.venueName ?? "Venue name not found"}
                       </ThemedText>
 
                       <ThemedText style={styles.venueType}>
-                        {stop.venueType ?? "Geen type"}
+                        {stop.venueType ?? "No type"}
                       </ThemedText>
                     </View>
                   </View>
@@ -238,7 +238,7 @@ export default function Routes() {
                   if (!selectedRoute) return
                   const routeToMatch = selectedRoute
                   setSelectedRoute(null)
-                  goToMatching(routeToMatch, { solo: true })
+                  goToMatching(route, { solo: true })
                 }}
               />
             </ScrollView>
@@ -319,7 +319,6 @@ const styles = StyleSheet.create({
 
   viewRouteButtonText: {
     color: "#FFFFFF",
-    fontSize: 14,
     fontWeight: "700",
   },
 

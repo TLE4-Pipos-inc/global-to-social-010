@@ -17,7 +17,11 @@ function DealSection({
         {title} ({deals.length})
       </h3>
       {deals.length === 0
-        ? emptyText && <p className="text-sm text-muted-foreground">{emptyText}</p>
+        ? emptyText && (
+            <p className="text-sm text-accent-foreground bg-accent w-fit py-1 px-2 rounded-md">
+              {emptyText}
+            </p>
+          )
         : deals.map((deal) => <DealCard key={deal.id} deal={deal} />)}
     </section>
   )
@@ -42,7 +46,9 @@ function DealList({ deals }: { deals: DealResponse[] }) {
       {other.length > 0 && (
         <DealSection title="Scheduled & inactive deals" deals={other} />
       )}
-      {expired.length > 0 && <DealSection title="Expired deals" deals={expired} />}
+      {expired.length > 0 && (
+        <DealSection title="Expired deals" deals={expired} />
+      )}
     </div>
   )
 }

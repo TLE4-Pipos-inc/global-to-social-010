@@ -6,7 +6,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "#/components/ui/select"
-import { useGetUsers, useGetVenues, useUpdateUser } from "#/features/admin/hooks/query"
+import {
+  useGetUsers,
+  useGetVenues,
+  useUpdateUser,
+} from "#/features/admin/hooks/query"
 import { LinkVenueDialog } from "#/features/admin/components/link-venue-dialog"
 import type { UserResponse, UserRole } from "@pub-hopper/schemas"
 import { toast } from "sonner"
@@ -33,7 +37,9 @@ function UserRow({ user, isSelf }: { user: UserResponse; isSelf: boolean }) {
     <div className="flex flex-wrap items-center justify-between gap-3 border-b py-3">
       <div className="min-w-0">
         <p className="truncate font-medium">{user.name}</p>
-        <p className="truncate text-sm text-muted-foreground">{user.email}</p>
+        <p className="truncate text-sm text-accent-foreground bg-accent py-0.5 px-1 rounded-md">
+          {user.email}
+        </p>
       </div>
       <div className="flex items-center gap-2">
         <Select
