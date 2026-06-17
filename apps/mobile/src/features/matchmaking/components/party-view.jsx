@@ -164,7 +164,7 @@ export function PartyView({ themeId = null, routeId = null, routeName = null }) 
         {isLeader ? (
           <>
             <PrimaryLightButton
-              title={busy ? "Working…" : "Find a group"}
+              title={busy ? "Working…" : "Start route"}
               disabled={busy || !canMatch}
               onPress={() => call(() => queueParty(themeId, routeId))}
             />

@@ -19,11 +19,11 @@ function ProfileContent() {
   return (
     <>
       <View style={styles.block}>
-        <Image
-          source={require("../../../assets/images/emptyprofile.png")}
-          style={styles.image}
-          accessibleLabel="Profile avatar"
-        />
+        {/*<Image*/}
+        {/*  source={require("../../../assets/images/emptyprofile.png")}*/}
+        {/*  style={styles.image}*/}
+        {/*  accessibleLabel="Profile avatar"*/}
+        {/*/>*/}
 
         <View style={styles.textContainer}>
           <View style={styles.imageRow}>
@@ -51,15 +51,15 @@ function ProfileContent() {
           <ThemedText type="text">
             {user.school || "No school selected"}
           </ThemedText>
-
-          <PrimaryLightButton
-            title="settings"
-            onPress={() => router.push("/(tabs)/settings")}
-          />
         </View>
       </View>
 
       <ThemedView style={styles.container}>
+        <PrimaryLightButton
+          title="settings"
+          onPress={() => router.push("/(tabs)/settings")}
+        />
+
         <PrimaryDarkOutlineButton
           title={logout.isPending ? "Logging out…" : "Log Out"}
           disabled={logout.isPending}
