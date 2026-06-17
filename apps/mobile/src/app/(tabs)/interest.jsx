@@ -11,7 +11,7 @@ import { ThemedText } from "@/components/themed-text"
 import { router } from "expo-router"
 import { PrimaryLightButton } from "@/components/buttons"
 import { Suspense, useState } from "react"
-import { useInterestQuery } from "@/features/intrests/hooks/query"
+import { useInterestQuery } from "@/features/intrests"
 import { fetchWithAuth } from "@/lib/api"
 
 function Interest() {

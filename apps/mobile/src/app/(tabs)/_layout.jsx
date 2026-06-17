@@ -75,14 +75,14 @@ export default function TabLayout() {
         name="theme"
         options={{
           href: null,
-          title: "Matching",
+          title: "theme",
         }}
       />
       <Tabs.Screen
         name="routes"
         options={{
           href: null,
-          title: "Matching",
+          title: "routes",
         }}
       />
     </Tabs>

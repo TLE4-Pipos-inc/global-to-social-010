@@ -1,34 +1,33 @@
 import { Pressable, StyleSheet, View } from "react-native"
 import { PrimaryLightOutlineButton } from "@/components/buttons"
 import { router } from "expo-router"
-import { useThemeQuery } from "@/features/themes/hooks/query"
+import { useThemeQuery } from "@/features/themes"
+import { ThemedView } from "@/components/themed-view"
 
 export default function Theme() {
   const { data } = useThemeQuery()
   const themes = data?.result ?? []
 
   return (
-    <View>
+    <ThemedView>
       <View style={styles.buttonContainer}>
         {themes.map((theme) => (
           <View key={theme.id} style={styles.buttonWrapper}>
-            <Pressable>
-              <PrimaryLightOutlineButton
-                title={theme.name}
-                onPress={() => {
-                  router.push({
-                    pathname: "/routes",
-                    params: {
-                      id: theme.id,
-                    },
-                  })
-                }}
-              />
-            </Pressable>
+            <PrimaryLightOutlineButton
+              title={theme.name}
+              onPress={() => {
+                router.push({
+                  pathname: "/routes",
+                  params: {
+                    id: theme.id,
+                  },
+                })
+              }}
+            />
           </View>
         ))}
       </View>
-    </View>
+    </ThemedView>
   )
 }
 

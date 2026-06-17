@@ -25,6 +25,7 @@ function derivePhase({ match, party, sessionStarted }) {
 
 export default function Matching() {
   const { id } = useLocalSearchParams()
+  console.log(id)
   const navigation = useNavigation()
   const mm = useMatchmaking()
   const { status, match, party, sessionStarted, lastError, clearError } = mm

@@ -69,32 +69,6 @@ function validateReferences(routeId?: string, venueId?: string) {
   return null
 }
 
-// router.get("/", (req, res) => {
-//   const parsed = RouteStopQuerySchema.safeParse(req.query)
-//
-//   if (!parsed.success) {
-//     return sendError(res, 400, {
-//       message: "Invalid route stop query",
-//       errors: z.flattenError(parsed.error).fieldErrors,
-//     })
-//   }
-//
-//   const filters: SQL[] = []
-//
-//   if (parsed.data.routeId !== undefined) {
-//     filters.push(eq(routeStops.routeId, parsed.data.routeId))
-//   }
-//
-//   if (parsed.data.venueId !== undefined) {
-//     filters.push(eq(routeStops.venueId, parsed.data.venueId))
-//   }
-//
-//   const query = db.select().from(routeStops)
-//   const items = filters.length ? query.where(and(...filters)).all() : query.all()
-//
-//   return sendSuccess(res, 200, { result: { routeStops: items } })
-// })
-
 router.get("/", (req, res) => {
   const parsed = RouteStopQuerySchema.safeParse(req.query)
 
