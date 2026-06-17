@@ -9,25 +9,23 @@ export default function Theme() {
   const themes = data?.result ?? []
 
   return (
-    <ThemedView>
-      <View style={styles.buttonContainer}>
-        {themes.map((theme) => (
-          <View key={theme.id} style={styles.buttonWrapper}>
-            <PrimaryLightOutlineButton
-              title={theme.name}
-              onPress={() => {
-                router.push({
-                  pathname: "/routes",
-                  params: {
-                    id: theme.id,
-                  },
-                })
-              }}
-            />
-          </View>
-        ))}
-      </View>
-    </ThemedView>
+    <View style={styles.buttonContainer}>
+      {themes.map((theme) => (
+        <View key={theme.id} style={styles.buttonWrapper}>
+          <PrimaryLightOutlineButton
+            title={theme.name}
+            onPress={() => {
+              router.push({
+                pathname: "/routes",
+                params: {
+                  id: theme.id,
+                },
+              })
+            }}
+          />
+        </View>
+      ))}
+    </View>
   )
 }
 

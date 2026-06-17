@@ -35,8 +35,8 @@ export default function Routes() {
 
   return (
     <>
-      <ThemedView>
-        <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView contentContainerStyle={styles.container}>
+        <ThemedView>
           <ThemedText style={styles.pageTitle}>Choose a route</ThemedText>
 
           {routes.map((route) => {
@@ -98,116 +98,116 @@ export default function Routes() {
               </View>
             )
           })}
-        </ScrollView>
+        </ThemedView>
+      </ScrollView>
 
-        <Modal
-          visible={!!selectedRoute}
-          transparent
-          animationType="slide"
-          onRequestClose={() => setSelectedRoute(null)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalCard}>
-              <View style={styles.modalHandle} />
+      <Modal
+        visible={!!selectedRoute}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setSelectedRoute(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHandle} />
 
-              <View style={styles.modalHeader}>
-                <View style={styles.modalHeaderText}>
-                  <ThemedText style={styles.modalTitle}>
-                    {selectedRoute?.name}
-                  </ThemedText>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalHeaderText}>
+                <ThemedText style={styles.modalTitle}>
+                  {selectedRoute?.name}
+                </ThemedText>
 
-                  <ThemedText style={styles.modalSubtitle}>
-                    {selectedRoute?.area} • {selectedRoute?.city}
-                  </ThemedText>
-                </View>
-
-                <Pressable
-                  style={styles.closeButton}
-                  onPress={() => setSelectedRoute(null)}
-                >
-                  <ThemedText style={styles.closeText}>×</ThemedText>
-                </Pressable>
+                <ThemedText style={styles.modalSubtitle}>
+                  {selectedRoute?.area} • {selectedRoute?.city}
+                </ThemedText>
               </View>
 
-              <View style={styles.modalInfoRow}>
-                <View style={styles.modalInfoBox}>
-                  <ThemedText style={styles.modalInfoText}>
-                    {selectedTotalStops} stops
-                  </ThemedText>
-                </View>
+              <Pressable
+                style={styles.closeButton}
+                onPress={() => setSelectedRoute(null)}
+              >
+                <ThemedText style={styles.closeText}>×</ThemedText>
+              </Pressable>
+            </View>
 
-                <View style={styles.modalInfoBox}>
-                  <ThemedText style={styles.modalInfoText}>
-                    {selectedTotalMinutes} min
-                  </ThemedText>
-                </View>
+            <View style={styles.modalInfoRow}>
+              <View style={styles.modalInfoBox}>
+                <ThemedText style={styles.modalInfoText}>
+                  {selectedTotalStops} stops
+                </ThemedText>
               </View>
 
-              <ScrollView contentContainerStyle={styles.stopsContainer}>
-                <ThemedText style={styles.sectionTitle}>Stops</ThemedText>
+              <View style={styles.modalInfoBox}>
+                <ThemedText style={styles.modalInfoText}>
+                  {selectedTotalMinutes} min
+                </ThemedText>
+              </View>
+            </View>
 
-                {selectedRouteStops.map((stop) => (
-                  <View key={stop.id} style={styles.stopCard}>
-                    <View style={styles.stopHeader}>
-                      <View style={styles.stopNumber}>
-                        <ThemedText style={styles.stopNumberText}>
-                          {stop.routeOrder}
-                        </ThemedText>
-                      </View>
+            <ScrollView contentContainerStyle={styles.stopsContainer}>
+              <ThemedText style={styles.sectionTitle}>Stops</ThemedText>
 
-                      <View style={styles.stopHeaderText}>
-                        <ThemedText style={styles.venueName}>
-                          {stop.venueName ?? "Venue naam niet gevonden"}
-                        </ThemedText>
-
-                        <ThemedText style={styles.venueType}>
-                          {stop.venueType ?? "Geen type"}
-                        </ThemedText>
-                      </View>
+              {selectedRouteStops.map((stop) => (
+                <View key={stop.id} style={styles.stopCard}>
+                  <View style={styles.stopHeader}>
+                    <View style={styles.stopNumber}>
+                      <ThemedText style={styles.stopNumberText}>
+                        {stop.routeOrder}
+                      </ThemedText>
                     </View>
 
-                    {stop.venueAddress && (
-                      <ThemedText style={styles.address}>
-                        {stop.venueAddress}
+                    <View style={styles.stopHeaderText}>
+                      <ThemedText style={styles.venueName}>
+                        {stop.venueName ?? "Venue naam niet gevonden"}
                       </ThemedText>
-                    )}
 
-                    {stop.venueDescription && (
-                      <ThemedText style={styles.description}>
-                        {stop.venueDescription}
-                      </ThemedText>
-                    )}
-
-                    {stop.walkLabel && (
-                      <ThemedText style={styles.description}>
-                        {stop.walkLabel}
-                      </ThemedText>
-                    )}
-
-                    <View style={styles.stopFooter}>
-                      <ThemedText style={styles.footerText}>
-                        {stop.plannedDurationMinutes} min
+                      <ThemedText style={styles.venueType}>
+                        {stop.venueType ?? "Geen type"}
                       </ThemedText>
                     </View>
                   </View>
-                ))}
 
-                <PrimaryDarkButton
-                  title="Match Now"
-                  onPress={() => {
-                    router.push({
-                      pathname: "/matching",
-                      params: {
-                        id: selectedRoute?.id,
-                      },
-                    })
-                  }}
-                />
-              </ScrollView>
-            </View>
+                  {stop.venueAddress && (
+                    <ThemedText style={styles.address}>
+                      {stop.venueAddress}
+                    </ThemedText>
+                  )}
+
+                  {stop.venueDescription && (
+                    <ThemedText style={styles.description}>
+                      {stop.venueDescription}
+                    </ThemedText>
+                  )}
+
+                  {stop.walkLabel && (
+                    <ThemedText style={styles.description}>
+                      {stop.walkLabel}
+                    </ThemedText>
+                  )}
+
+                  <View style={styles.stopFooter}>
+                    <ThemedText style={styles.footerText}>
+                      {stop.plannedDurationMinutes} min
+                    </ThemedText>
+                  </View>
+                </View>
+              ))}
+
+              <PrimaryDarkButton
+                title="Match Now"
+                onPress={() => {
+                  router.push({
+                    pathname: "/matching",
+                    params: {
+                      id: selectedRoute?.id,
+                    },
+                  })
+                }}
+              />
+            </ScrollView>
           </View>
-        </Modal>
-      </ThemedView>
+        </View>
+      </Modal>
     </>
   )
 }
