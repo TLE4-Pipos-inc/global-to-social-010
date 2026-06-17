@@ -29,7 +29,7 @@ export function GroupPhotoCard({ photo }) {
         source={{ uri }}
         style={styles.image}
         resizeMode="cover"
-        accessibilityLabel={photo?.venue?.name || "Group memory photo"}
+        accessibleLabel={photo?.venue?.name || "Group memory photo"}
       />
       {photo?.venue?.name ? (
         <View style={styles.caption}>

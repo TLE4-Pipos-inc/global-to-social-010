@@ -18,7 +18,8 @@ function ProfileContent() {
   const user = accountQuery.data.result
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollContent}>
+    <ThemedView style={styles.screen}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
       <View style={styles.block}>
         <Image
           source={require("../../../assets/images/emptyprofile.png")}
@@ -73,7 +74,8 @@ function ProfileContent() {
           }
         />
       </ThemedView>
-    </ScrollView>
+      </ScrollView>
+    </ThemedView>
   )
 }
 
@@ -86,6 +88,10 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+  },
+
   scrollContent: {
     flexGrow: 1,
     paddingBottom: 24,

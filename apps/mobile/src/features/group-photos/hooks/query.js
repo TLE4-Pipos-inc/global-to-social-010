@@ -1,4 +1,4 @@
-import { queryOptions, useQuery } from "@tanstack/react-query"
+import { queryOptions, useSuspenseQuery } from "@tanstack/react-query"
 import { fetchWithAuth } from "@/lib/api"
 
 async function fetchUserGroupPhotos() {
@@ -21,5 +21,5 @@ export const userGroupPhotosQueryOptions = queryOptions({
 })
 
 export function useUserGroupPhotosQuery() {
-  return useQuery(userGroupPhotosQueryOptions)
+  return useSuspenseQuery(userGroupPhotosQueryOptions)
 }
