@@ -20,7 +20,9 @@ import {
 const router = express.Router()
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
-const photoUploadDir = path.resolve(__dirname, "../../uploads/photos")
+const photoUploadDir = process.env.UPLOADS_DIR
+  ? path.resolve(process.env.UPLOADS_DIR, "photos")
+  : path.resolve(__dirname, "../../uploads/photos")
 const maxPhotoBytes = 5 * 1024 * 1024
 const allowedMimeTypes = new Map([
   ["image/jpeg", "jpg"],

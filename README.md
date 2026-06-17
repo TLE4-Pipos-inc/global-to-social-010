@@ -20,6 +20,13 @@ pnpm run dev:tunnel
 # /apps/mobile/constants/api.js
 ```
 
+## Deployment
+
+Two apps deploy independently to Coolify, each with its own Dockerfile and guide:
+
+- **API** — root `Dockerfile`, see [apps/api/README.md](./apps/api/README.md)
+- **Website** — `apps/web/Dockerfile`, see [apps/web/README.md](./apps/web/README.md)
+
 ## Docs
 
 - [Project Structure](./docs/project-structure.md)

@@ -31,6 +31,8 @@ RUN node -e " \
 "
 # Build API (esbuild bundles src, copies drizzle migrations to dist/)
 RUN pnpm --filter api build
+# Bundle the seeder to dist/seed.js so it can run with plain node in the runner image
+RUN pnpm --filter api build:seed
 
 # Production image
 FROM node:22-alpine AS runner
@@ -47,8 +49,11 @@ COPY --from=builder /app/apps/api/dist ./apps/api/dist
 # esbuild rewrites the migrations path to join(process.cwd(), "drizzle"); cwd at runtime is /app/apps/api
 COPY --from=builder /app/apps/api/drizzle ./apps/drizzle
 COPY pnpm-workspace.yaml package.json ./
+# Entrypoint seeds the database once on first boot, then starts the API
+COPY apps/api/docker-entrypoint.sh /app/apps/api/docker-entrypoint.sh
+RUN chmod +x /app/apps/api/docker-entrypoint.sh
 
 ENV NODE_ENV=production
 WORKDIR /app/apps/api
 EXPOSE 8001
-CMD ["node", "dist/index.js"]
+ENTRYPOINT ["/app/apps/api/docker-entrypoint.sh"]
