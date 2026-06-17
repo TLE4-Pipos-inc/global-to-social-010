@@ -7,7 +7,7 @@ WORKDIR /app
 
 # Install dependencies
 FROM base AS deps
-COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json .npmrc ./
 COPY packages/schemas/package.json ./packages/schemas/
 COPY apps/web/package.json ./apps/web/
 RUN pnpm install --frozen-lockfile
@@ -17,7 +17,7 @@ FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/packages/schemas/node_modules ./packages/schemas/node_modules
 COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
-COPY pnpm-workspace.yaml package.json tsconfig.base.json ./
+COPY pnpm-workspace.yaml package.json tsconfig.base.json .npmrc ./
 COPY packages/schemas ./packages/schemas
 COPY apps/web ./apps/web
 # Vite compiles the @pub-hopper/schemas TS source directly — no dist remap needed
