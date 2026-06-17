@@ -9,6 +9,7 @@ import { PartyView } from "@/features/matchmaking/components/party-view"
 import { SearchingView } from "@/features/matchmaking/components/searching-view"
 import { LobbyView } from "@/features/matchmaking/components/lobby-view"
 import { SessionView } from "@/features/matchmaking/components/session-view"
+import { useLocalSearchParams } from "expo-router"
 import {
   SessionHeaderTitle,
   SessionStopCounter,
@@ -23,6 +24,8 @@ function derivePhase({ match, party, sessionStarted }) {
 }
 
 export default function Matching() {
+  const { id } = useLocalSearchParams()
+  console.log(id)
   const navigation = useNavigation()
   const mm = useMatchmaking()
   const { status, match, party, sessionStarted, lastError, clearError } = mm
@@ -58,7 +61,13 @@ export default function Matching() {
     <ThemedView style={styles.container}>
       <ConnectionBanner status={status} />
       <Suspense
-        fallback={<ActivityIndicator size="large" color={Colors.lightGreenColor} style={styles.loader} />}
+        fallback={
+          <ActivityIndicator
+            size="large"
+            color={Colors.lightGreenColor}
+            style={styles.loader}
+          />
+        }
       >
         {phase === "party" && <PartyView />}
         {phase === "searching" && <SearchingView />}
