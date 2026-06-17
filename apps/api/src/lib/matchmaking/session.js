@@ -1,7 +1,8 @@
-import { and, eq, isNull, sql } from "drizzle-orm"
+import { and, eq, inArray, isNull, sql } from "drizzle-orm"
 import { v4 as uuidv4 } from "uuid"
 import { db } from "../../db/client.js"
 import {
+  deals,
   gameSessions,
   groupJoinMatches,
   groupMembers,
@@ -12,8 +13,10 @@ import {
   sessionStops,
   userInterests,
   users,
+  venuePartnerships,
   venues,
 } from "../../db/schema.js"
+import { isDealCurrentlyActive } from "../deals.js"
 
 /**
  * Fetch the data we need to score a user when they enter the queue.
@@ -235,12 +238,59 @@ export function createMatchedSession({ parties, players, selectedTimeSlot, match
         latitude: venues.latitude,
         longitude: venues.longitude,
         plannedDurationMinutes: routeStops.plannedDurationMinutes,
+        walkLabel: routeStops.walkLabel,
       })
       .from(routeStops)
       .leftJoin(venues, eq(venues.id, routeStops.venueId))
       .where(eq(routeStops.routeId, route.id))
       .orderBy(routeStops.routeOrder)
       .all()
+
+    // Resolve partner status + currently-active deals per venue on this route.
+    const venueIds = stops.map((stop) => stop.venueId).filter(Boolean)
+    const partnerVenueIds = new Set()
+    const dealsByVenue = new Map()
+    if (venueIds.length > 0) {
+      const partnerships = tx
+        .select({ venueId: venuePartnerships.venueId })
+        .from(venuePartnerships)
+        .where(inArray(venuePartnerships.venueId, venueIds))
+        .all()
+      for (const partnership of partnerships) {
+        partnerVenueIds.add(partnership.venueId)
+      }
+
+      const dealRows = tx
+        .select({
+          id: deals.id,
+          venueId: venuePartnerships.venueId,
+          title: deals.title,
+          description: deals.description,
+          startsAt: deals.startsAt,
+          endsAt: deals.endsAt,
+          active: deals.active,
+        })
+        .from(deals)
+        .innerJoin(
+          venuePartnerships,
+          eq(venuePartnerships.id, deals.partnershipId)
+        )
+        .where(inArray(venuePartnerships.venueId, venueIds))
+        .all()
+
+      for (const deal of dealRows) {
+        if (!isDealCurrentlyActive(deal)) continue
+        const list = dealsByVenue.get(deal.venueId) ?? []
+        list.push({
+          id: deal.id,
+          title: deal.title,
+          description: deal.description,
+          startsAt: deal.startsAt,
+          endsAt: deal.endsAt,
+        })
+        dealsByVenue.set(deal.venueId, list)
+      }
+    }
 
     const sessionId = uuidv4()
     tx.insert(gameSessions)
@@ -307,6 +357,9 @@ export function createMatchedSession({ parties, players, selectedTimeSlot, match
          latitude: stops[idx].latitude,
          longitude: stops[idx].longitude,
          plannedDurationMinutes: stops[idx].plannedDurationMinutes,
+         walkLabel: stops[idx].walkLabel,
+         isPartner: partnerVenueIds.has(stops[idx].venueId),
+         activeDeals: dealsByVenue.get(stops[idx].venueId) ?? [],
        })),
       members: membersResult,
     }
