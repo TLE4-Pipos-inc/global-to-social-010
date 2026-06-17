@@ -18,39 +18,39 @@ function Home() {
       <div className="flex w-full max-w-2xl flex-col gap-4">
         <Card className="w-2/3 self-start">
           <CardHeader>
-            <CardTitle>Lorem Ipsum</CardTitle>
-            <CardDescription>Dolor sit amet</CardDescription>
+            <CardTitle>Download nu de Global To Social app</CardTitle>
+            <CardDescription>Ontdek routes, ontmoet mensen</CardDescription>
           </CardHeader>
           <CardContent>
             <p>
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do
-              eiusmod tempor incididunt ut labore et dolore magna aliqua.
+              Ga op pad met je groep, ontdek de leukste plekken in de stad en
+              verzamel herinneringen tijdens elke stop. Met de app volg je
+              routes, krijg je conversation starters en bewaar je jullie
+              foto&apos;s als mooie groepsmomenten.
             </p>
           </CardContent>
         </Card>
 
         <Card className="w-2/3 self-end">
           <CardHeader>
-            <CardTitle>Consectetur</CardTitle>
-            <CardDescription>Adipiscing elit</CardDescription>
+            <CardTitle>Word partner van Global To Social</CardTitle>
+            <CardDescription>Promoot jouw locatie</CardDescription>
           </CardHeader>
           <CardContent>
             <p>
-              Ut enim ad minim veniam, quis nostrud exercitation ullamco
-              laboris nisi ut aliquip ex ea commodo consequat.
+              Wil je jouw bar, cafe, restaurant of eventlocatie zichtbaar maken
+              voor nieuwe groepen bezoekers?{" "}
+              <a
+                href="mailto:partners@globaltosocial010.nl"
+                className="font-semibold underline underline-offset-2"
+              >
+                Mail ons
+              </a>{" "}
+              om partner te worden en promoot deals via de app op het moment
+              dat groepen jouw locatie bezoeken.
             </p>
-          </CardContent>
-        </Card>
-
-        <Card className="w-2/3 self-start">
-          <CardHeader>
-            <CardTitle>Excepteur Sint</CardTitle>
-            <CardDescription>Occaecat cupidatat</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p>
-              Duis aute irure dolor in reprehenderit in voluptate velit esse
-              cillum dolore eu fugiat nulla pariatur.
+            <p className="mt-3 font-medium">
+              Jouw deal komt in beeld op het moment dat groepen jouw locatie bezoeken.
             </p>
           </CardContent>
         </Card>

@@ -1,10 +1,12 @@
 import { StatusBar } from "expo-status-bar"
-import { ScrollView, StyleSheet } from "react-native"
+import { ScrollView, StyleSheet, View } from "react-native"
 import MapView, { Marker, Callout, Polyline } from "react-native-maps"
+import { Check } from "lucide-react-native"
 import { ThemedView } from "@/components/themed-view"
 import { ThemedText } from "@/components/themed-text"
 import { useEffect, useState } from "react"
 import { API_URL } from "@/constants/api"
+import { Colors } from "@/constants/theme"
 import { useOSRMRoute } from "@/features/matchmaking/use-osrm-route"
 
 export default function App() {
@@ -82,9 +84,19 @@ export default function App() {
             <Callout style={{ height: 100, width: 400 }}>
               <ThemedView style={styles.popup}>
                 <ScrollView>
-                  <ThemedText style={{ fontWeight: "bold" }}>
-                    {venue.name}
-                  </ThemedText>
+                  <View style={styles.nameRow}>
+                    <ThemedText style={{ fontWeight: "bold" }}>
+                      {venue.name}
+                    </ThemedText>
+                    {venue.isPartner && (
+                      <View style={styles.partnerBadge}>
+                        <Check size={14} color="#fff" />
+                        <ThemedText style={styles.partnerBadgeText}>
+                          Partner
+                        </ThemedText>
+                      </View>
+                    )}
+                  </View>
                   <ThemedText>{venue.description}</ThemedText>
                 </ScrollView>
               </ThemedView>
@@ -111,5 +123,24 @@ const styles = StyleSheet.create({
   popup: {
     padding: 15,
     maxWidth: "80%",
+  },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  partnerBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: Colors.lightGreenColor,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  partnerBadgeText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "700",
   },
 })

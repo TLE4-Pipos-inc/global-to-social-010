@@ -10,22 +10,40 @@ import {
 import { ThemedText } from "@/components/themed-text"
 import { router } from "expo-router"
 import { PrimaryLightButton } from "@/components/buttons"
-import { Suspense, useState } from "react"
-import { useInterestQuery } from "@/features/intrests/hooks/query"
+import { Suspense, useState, useEffect } from "react"
+import { useInterestQuery } from "@/features/intrests"
+import { useUserInterestQuery } from "@/features/userInterest"
 import { fetchWithAuth } from "@/lib/api"
+import { useQueryClient } from "@tanstack/react-query"
 
 function Interest() {
   const [selectedInterest, setSelectedInterest] = useState([])
   const [errorMessage, setErrorMessage] = useState("")
-
+  const queryClient = useQueryClient()
   const { data } = useInterestQuery()
+  const { data: userInterestData } = useUserInterestQuery()
 
   const interests =
     data?.interests || data?.result?.interests || data?.result || []
 
+  useEffect(() => {
+    try {
+      const serverItems =
+        userInterestData?.result || userInterestData?.interests || []
+
+      if (serverItems && serverItems.length > 0 && selectedInterest.length === 0) {
+        const ids = serverItems.map((it) => it.interestId ?? it.interest_id ?? it.id)
+        setSelectedInterest(ids)
+      }
+    } catch (e) {
+
+    }
+  }, [userInterestData])
+
   async function saveUserInterests() {
     try {
       setErrorMessage("")
+
       if (selectedInterest.length < 3) {
         setErrorMessage("Please select at least 3 interests")
         return false
@@ -52,9 +70,9 @@ function Interest() {
 
         return false
       }
+      await queryClient.invalidateQueries({ queryKey: ["userInterest"] })
       return true
     } catch (error) {
-      console.error("Failed to save interests", error)
       setErrorMessage("Could not save interests")
       return false
     }
@@ -130,17 +148,13 @@ function Interest() {
           <ThemedText style={styles.errorText}>{errorMessage}</ThemedText>
         ) : null}
 
-        <View>
-          <Text style={styles.languageTitle}>Languages</Text>
-        </View>
-
         <View style={styles.button}>
           <PrimaryLightButton
-            title="Next"
+            title="Save"
             onPress={async () => {
               const success = await saveUserInterests()
               if (success) {
-                router.push("/matching")
+                router.push("/settings")
               }
             }}
           />

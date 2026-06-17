@@ -33,7 +33,9 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontFamily: Fonts.bold,
-    lineHeight: 32,
+    // Slightly taller than the font size so tall glyphs/emoji aren't clipped
+    // at the top on Android.
+    lineHeight: 40,
   },
   subtitle: {
     fontSize: 20,

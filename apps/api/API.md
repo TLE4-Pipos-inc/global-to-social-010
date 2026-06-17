@@ -23,6 +23,7 @@
   - [Collage Photos](#collage-photos)
   - [Partners](#partners)
   - [Venue Partnerships](#venue-partnerships)
+  - [Deals](#deals)
   - [Thema Routes](#thema-routes)
   - [Routes](#routes)
   - [Route Stops](#route-stops)
@@ -263,6 +264,77 @@ Permanently delete the authenticated user's account and clear auth cookies.
 ### Users
 
 Base path: `/api/users`
+
+---
+
+#### `GET /api/users`
+
+List all user accounts.
+
+**Auth required:** yes (admin only)
+
+**Response `200`**
+```json
+{
+  "result": {
+    "users": [
+      {
+        "id": "uuid",
+        "name": "Alice",
+        "email": "alice@example.com",
+        "role": "user",
+        "school": "EUR",
+        "campus": "Woudestein",
+        "createdAt": "2026-06-14 10:00:00"
+      }
+    ]
+  }
+}
+```
+
+**Errors:** `401` unauthenticated · `403` not an admin
+
+---
+
+#### `PATCH /api/users/:id`
+
+Update any user's profile fields. Admins may additionally change `role`.
+
+**Auth required:** yes (admin only)
+
+**Request body** (all fields optional, at least one required)
+```json
+{
+  "name": "Alice",
+  "school": "EUR",
+  "campus": "Woudestein",
+  "role": "admin"
+}
+```
+
+| Field | Type | Rules |
+|-------|------|-------|
+| `name` | string | trimmed, min 1 |
+| `school` | string | trimmed |
+| `campus` | string | trimmed |
+| `role` | string | admin-only field |
+
+**Response `200`**
+```json
+{
+  "result": {
+    "id": "uuid",
+    "email": "alice@example.com",
+    "name": "Alice",
+    "role": "admin",
+    "school": "EUR",
+    "campus": "Woudestein",
+    "createdAt": "2026-06-14 10:00:00"
+  }
+}
+```
+
+**Errors:** `400` no fields provided or validation failure · `401` unauthenticated · `403` not an admin · `404` user not found · `500` server error
 
 ---
 
@@ -1180,7 +1252,7 @@ Delete a partner profile.
 
 Base path: `/api/venue-partnerships`
 
-Manages deals between venues and partners. Deleting a venue or partner can remove linked venue partnerships through database cascades.
+A venue partnership is a pure link between a [partner](#partners) and a [venue](#venues). Deal terms are managed separately via the [Deals](#deals) resource. Deleting a venue or partner cascades to linked venue partnerships and their deals.
 
 ---
 
@@ -1188,9 +1260,7 @@ Manages deals between venues and partners. Deleting a venue or partner can remov
 
 List venue partnerships. No auth required.
 
-**Query filters:** `venueId`, `partnerId`, `active=true|false`, `currentlyActive=true|false`
-
-`currentlyActive=true` returns deals where `active` is true, `startsAt` is empty or not in the future, and `endsAt` is empty or not in the past.
+**Query filters:** `venueId`, `partnerId`
 
 **Response `200`**
 
@@ -1201,12 +1271,7 @@ List venue partnerships. No auth required.
       {
         "id": "uuid",
         "venueId": "uuid",
-        "partnerId": "uuid",
-        "dealTitle": "Student coffee deal",
-        "dealDescription": "10% off for student groups",
-        "startsAt": "2026-06-14T10:00:00.000Z",
-        "endsAt": "2026-07-14T10:00:00.000Z",
-        "active": true
+        "partnerId": "uuid"
       }
     ]
   }
@@ -1219,18 +1284,13 @@ List venue partnerships. No auth required.
 
 #### `GET /api/venue-partnerships/:id`
 
-Fetch one venue partnership with safe venue and partner details. Partner passwords are never included.
+Fetch one venue partnership with expanded venue and partner details. Partner passwords are never included.
 
 **Response `200`**
 ```json
 {
   "result": {
     "id": "uuid",
-    "dealTitle": "Student coffee deal",
-    "dealDescription": "10% off for student groups",
-    "startsAt": "2026-06-14T10:00:00.000Z",
-    "endsAt": "2026-07-14T10:00:00.000Z",
-    "active": true,
     "venue": {
       "id": "uuid",
       "name": "The Grand Café",
@@ -1254,46 +1314,159 @@ Fetch one venue partnership with safe venue and partner details. Partner passwor
 
 #### `POST /api/venue-partnerships`
 
-Create a venue partnership.
+Create a venue partnership (the link between a partner and a venue). Use [Deals](#deals) to attach deal terms to the partnership afterwards.
 
 **Auth required:** yes
 
 ```json
 {
   "venueId": "uuid",
-  "partnerId": "uuid",
-  "dealTitle": "Student coffee deal",
-  "dealDescription": "10% off for student groups",
+  "partnerId": "uuid"
+}
+```
+
+**Errors:** `400` validation failure or unknown `venueId`/`partnerId` · `409` partnership already exists · `500` server error
+
+---
+
+#### `DELETE /api/venue-partnerships/:id`
+
+Delete a venue partnership. Linked deals are removed by database cascade.
+
+**Auth required:** yes
+
+**Response `204`** - no body
+
+**Errors:** `400` invalid id · `404` not found · `500` server error
+
+---
+
+### Deals
+
+Base path: `/api/deals`
+
+Deal terms attached to a [venue partnership](#venue-partnerships). A partnership can have many deals. Deals carry an optional active window (`startsAt` / `endsAt`); the helper flag `currentlyActive` filters by both `active: true` and the current timestamp falling within the window.
+
+Active deals for each stop's venue are embedded in the [`match:found`](#matchfound) payload's `stops[].activeDeals` array so clients never need to fetch them separately.
+
+---
+
+#### `GET /api/deals`
+
+List deals. No auth required.
+
+**Query parameters**
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `partnershipId` | string | Filter by venue partnership |
+| `partnerId` | string | Filter by partner |
+| `venueId` | string | Filter by venue |
+| `active` | boolean | Filter by `active` flag (`true` or `false`) |
+| `currentlyActive` | boolean | When `true`, returns only deals where `active` is true and the current time is within `startsAt`/`endsAt` |
+
+**Response `200`**
+```json
+{
+  "result": {
+    "deals": [
+      {
+        "id": "uuid",
+        "partnershipId": "uuid",
+        "venueId": "uuid",
+        "partnerId": "uuid",
+        "title": "Student coffee deal",
+        "description": "10% off for student groups",
+        "startsAt": "2026-06-14T10:00:00.000Z",
+        "endsAt": "2026-07-14T10:00:00.000Z",
+        "active": true
+      }
+    ]
+  }
+}
+```
+
+**Errors:** `400` invalid query · `500` server error
+
+---
+
+#### `GET /api/deals/:id`
+
+Fetch one deal. No auth required.
+
+**Response `200`**
+```json
+{
+  "result": {
+    "id": "uuid",
+    "partnershipId": "uuid",
+    "venueId": "uuid",
+    "partnerId": "uuid",
+    "title": "Student coffee deal",
+    "description": "10% off for student groups",
+    "startsAt": "2026-06-14T10:00:00.000Z",
+    "endsAt": "2026-07-14T10:00:00.000Z",
+    "active": true
+  }
+}
+```
+
+**Errors:** `400` invalid id · `404` not found · `500` server error
+
+---
+
+#### `POST /api/deals`
+
+Create a deal under an existing venue partnership.
+
+**Auth required:** yes
+
+```json
+{
+  "partnershipId": "uuid",
+  "title": "Student coffee deal",
+  "description": "10% off for student groups",
   "startsAt": "2026-06-14T10:00:00.000Z",
   "endsAt": "2026-07-14T10:00:00.000Z",
   "active": true
 }
 ```
 
-**Errors:** `400` validation failure, unknown `venueId`/`partnerId`, or `endsAt` before `startsAt` · `409` duplicate deal · `500` server error
+| Field | Type | Required | Rules |
+|-------|------|----------|-------|
+| `partnershipId` | string | yes | must reference an existing venue partnership |
+| `title` | string | yes | trimmed, 1–160 chars |
+| `description` | string \| null | no | trimmed, 1–500 chars |
+| `startsAt` | string \| null | no | valid datetime string |
+| `endsAt` | string \| null | no | valid datetime string; must not be before `startsAt` |
+| `active` | boolean | no | defaults to `true` |
+
+**Response `201`** — same shape as `GET /api/deals/:id`
+
+**Errors:** `400` validation failure, `partnershipId` not found, or `endsAt` before `startsAt` · `500` server error
 
 ---
 
-#### `PATCH /api/venue-partnerships/:id`
+#### `PATCH /api/deals/:id`
 
-Update a venue partnership. All fields are optional, but the body may not be empty. Date order is checked against the new values and existing stored values.
+Update a deal. All fields optional but body must not be empty. `startsAt` and `endsAt` must always be updated together when either is changed.
 
 **Auth required:** yes
 
 ```json
 {
-  "dealTitle": "Updated student deal",
+  "title": "Updated student deal",
   "active": false
 }
 ```
 
-**Errors:** `400` validation failure, unknown `venueId`/`partnerId`, or `endsAt` before `startsAt` · `404` not found · `409` duplicate deal · `500` server error
+**Errors:** `400` validation failure, no fields provided, or `startsAt`/`endsAt` provided without the other · `404` not found · `500` server error
 
 ---
 
-#### `DELETE /api/venue-partnerships/:id`
+#### `DELETE /api/deals/:id`
 
-Delete a venue partnership.
+Delete a deal.
 
 **Auth required:** yes
 
@@ -1599,12 +1772,22 @@ List all route stops. No auth required.
         "venueId": "uuid",
         "routeOrder": 1,
         "plannedDurationMinutes": 45,
-        "walkLabel": "5 min walk"
+        "walkLabel": "5 min walk",
+        "venueName": "The Grand Café",
+        "venueType": "bar",
+        "venueAddress": "Coolsingel 1, Rotterdam",
+        "venueDescription": "Classic brown café",
+        "venueLatitude": 51.922,
+        "venueLongitude": 4.479,
+        "venueSuggestedOrder": 1,
+        "venueVibe": "cosy"
       }
     ]
   }
 }
 ```
+
+> The list endpoint joins venue details inline. The single-record `GET /api/route-stops/:id` returns only the core route stop fields without the joined venue data.
 
 **Errors:** `400` invalid query params
 
@@ -2098,12 +2281,22 @@ When in a party:
 
 #### `party:queue`
 
-Queue the party for matchmaking at a given time slot.
+Queue the party for matchmaking at a given time slot. The leader may optionally pin a route theme or a specific route; parties in the same bucket (same time slot + same theme/route) are matched together.
 
 **Payload**
 ```json
-{ "selectedTimeSlot": "2026-06-10T19:00" }
+{
+  "selectedTimeSlot": "2026-06-10T19:00",
+  "themeId": "uuid-or-null",
+  "routeId": "uuid-or-null"
+}
 ```
+
+| Field | Type | Required | Rules |
+|-------|------|----------|-------|
+| `selectedTimeSlot` | string | yes | ISO time slot string |
+| `themeId` | string \| null | no | must reference an existing active thema route |
+| `routeId` | string \| null | no | must reference an active route; when `themeId` is also set the route must belong to that theme |
 
 **Ack**
 ```json
@@ -2113,6 +2306,8 @@ Queue the party for matchmaking at a given time slot.
   "bucket": { "parties": 1, "players": 2 }
 }
 ```
+
+**Error codes:** `INVALID_TIME_SLOT`, `INVALID_THEME` (themeId not found), `NO_ROUTE_FOR_THEME` (no active route for chosen theme/route)
 
 ---
 
@@ -2243,7 +2438,9 @@ On success the server broadcasts [`stop:timer:started`](#stoptimerstarted) to th
 
 #### `stop:finish`
 
-Finish the timer for a stop. The caller must be a session member and the stop's timer must currently be `running`. Finishing the stop stops its conversation starter stream.
+Request to end a stop. The caller must be a session member and the stop's timer must currently be `running`. This **does not finish the stop immediately**: it moves the stop into `awaiting_photo`, stops its conversation starter stream, and spotlights a **random connected member** to take a group selfie. The stop only finishes once that photo is uploaded and confirmed via [`stop:photo:submit`](#stopphotosubmit).
+
+The server broadcasts [`stop:photo:requested`](#stopphotorequested) to the session room with the chosen member. If the chosen member disconnects or does not submit within **5 minutes**, the spotlight rotates to another connected member (a fresh `stop:photo:requested` is emitted).
 
 **Payload**
 ```json
@@ -2252,12 +2449,32 @@ Finish the timer for a stop. The caller must be a session member and the stop's 
 
 **Ack**
 ```json
-{ "ok": true, "stopId": "uuid", "sessionId": "uuid" }
+{ "ok": true, "stopId": "uuid", "sessionId": "uuid", "awaitingPhoto": true, "chosenUserId": "uuid" }
 ```
 
-On success the server broadcasts [`stop:timer:finished`](#stoptimerfinished) to the session room.
+`chosenUserId` is `null` if no member was connected at pick time (the server keeps retrying).
 
 **Error codes:** `INVALID_STOP`, `INVALID_SESSION`, `STOP_NOT_FOUND`, `INVALID_STATE` (timer not `running`), `NOT_MEMBER`, `FINISH_FAILED`
+
+---
+
+#### `stop:photo:submit`
+
+Confirm the group selfie and finish the stop. Upload the photo first via [`POST /api/photos`](#post-apiphotos) with `sessionStopId` set to this stop (a `proofType` of `group_selfie` is recommended), then emit this event with the returned `photoId`.
+
+The caller **must be the currently spotlighted member** (the `chosenUserId` from `stop:photo:requested`), the stop must be in `awaiting_photo`, and a stored photo with the given `photoId` must be linked to this `stopId`. On success the stop transitions to `finished` and the server broadcasts [`stop:timer:finished`](#stoptimerfinished) to the session room.
+
+**Payload**
+```json
+{ "sessionId": "uuid", "stopId": "uuid", "photoId": "uuid" }
+```
+
+**Ack**
+```json
+{ "ok": true, "stopId": "uuid", "sessionId": "uuid", "photoId": "uuid" }
+```
+
+**Error codes:** `INVALID_STOP`, `INVALID_SESSION`, `INVALID_PHOTO`, `STOP_NOT_FOUND`, `INVALID_STATE` (stop not `awaiting_photo`), `NOT_MEMBER`, `NO_PHOTO_REQUEST`, `NOT_CHOSEN`, `PHOTO_NOT_FOUND`, `FINISH_FAILED`
 
 ---
 
@@ -2305,7 +2522,7 @@ Two shapes depending on context.
 
 **Party queued** — fired to the party room when the party joins the matchmaking queue:
 ```json
-{ "selectedTimeSlot": "2026-06-10T19:00", "parties": 2, "players": 4 }
+{ "selectedTimeSlot": "2026-06-10T19:00", "themeId": "uuid-or-null", "routeId": "uuid-or-null", "parties": 2, "players": 4 }
 ```
 
 **Session readiness** — fired to the session room each time a player sends `session:ready`:
@@ -2324,11 +2541,44 @@ Fired to each matched party when a match is successfully created.
   "matchScore": 87,
   "group": { "id": "uuid", "groupName": "Night Owls", "groupSize": 4 },
   "session": { "id": "uuid", "status": "setup", "selectedTimeSlot": "..." },
-  "route": { "id": "uuid", "name": "Rotterdam Nights", "..." : "..." },
-  "stops": [...],
-  "members": [...]
+  "route": { "id": "uuid", "name": "Rotterdam Nights", "area": "City Centre", "city": "Rotterdam" },
+  "stops": [
+    {
+      "id": "session-stop-uuid",
+      "routeStopId": "uuid",
+      "order": 1,
+      "venueId": "uuid",
+      "name": "The Grand Café",
+      "venueName": "The Grand Café",
+      "venueType": "bar",
+      "address": "Coolsingel 1, Rotterdam",
+      "description": "Classic brown café",
+      "vibe": "cosy",
+      "latitude": 51.922,
+      "longitude": 4.479,
+      "plannedDurationMinutes": 45,
+      "walkLabel": "5 min walk",
+      "isPartner": true,
+      "activeDeals": [
+        {
+          "id": "uuid",
+          "partnershipId": "uuid",
+          "venueId": "uuid",
+          "partnerId": "uuid",
+          "title": "Student coffee deal",
+          "description": "10% off for student groups",
+          "startsAt": "2026-06-14T10:00:00.000Z",
+          "endsAt": "2026-07-14T10:00:00.000Z",
+          "active": true
+        }
+      ]
+    }
+  ],
+  "members": [{ "userId": "uuid", "name": "Alice", "school": "EUR", "campus": "Woudestein" }]
 }
 ```
+
+`stops[].isPartner` is `true` when the venue has at least one active venue partnership. `stops[].activeDeals` contains all currently-active deals for that venue (deals where `active` is true and the current time falls within `startsAt`/`endsAt` if set). Both fields are always present (`isPartner` defaults to `false`, `activeDeals` to `[]`).
 
 ---
 
@@ -2355,12 +2605,22 @@ Fired to the session room when a player starts a stop's timer via [`stop:start`]
 
 ---
 
-#### `stop:timer:finished`
+#### `stop:photo:requested`
 
-Fired to the session room when a player finishes a stop's timer via [`stop:finish`](#stopfinish).
+Fired to the session room after [`stop:finish`](#stopfinish) moves the stop into `awaiting_photo`. `chosenUserId` is the member spotlighted to take the group selfie that ends the stop. If that member goes quiet or disconnects, the server re-emits this event with a new `chosenUserId`.
 
 ```json
-{ "stopId": "uuid", "sessionId": "uuid" }
+{ "sessionId": "uuid", "stopId": "uuid", "chosenUserId": "uuid" }
+```
+
+---
+
+#### `stop:timer:finished`
+
+Fired to the session room when a stop is finished — after the spotlighted member's group selfie is confirmed via [`stop:photo:submit`](#stopphotosubmit). Includes the `photoId` that ended the stop.
+
+```json
+{ "stopId": "uuid", "sessionId": "uuid", "photoId": "uuid" }
 ```
 
 ---
@@ -2550,11 +2810,42 @@ socket.on("conversation:starter", ({ starter, triggerMinute }) => {
   showStarterCard(starter.prompt, triggerMinute)
 })
 
-// leave the stop / move on
+// tap "end stop": this does NOT finish it — it spotlights a random member
+// to take the group selfie that ends the stop.
 socket.emit("stop:finish", { sessionId, stopId }, (ack) => {
   if (!ack.ok) return toast(ack.error.message)
 })
 ```
+
+#### Ending a stop with the group selfie
+
+`stop:finish` moves the stop into `awaiting_photo` and the server emits `stop:photo:requested` naming the spotlighted member. Show a camera prompt to that member; everyone else sees a "waiting for <name>" state. The chosen member uploads the photo via REST, then confirms it over the socket:
+
+```js
+// everyone listens: who has to take the photo?
+socket.on("stop:photo:requested", ({ stopId, chosenUserId }) => {
+  if (chosenUserId === myUserId) openCameraForStop(stopId)
+  else if (chosenUserId != null) showWaitingForPhoto(stopId, chosenUserId)
+})
+
+// the spotlighted member: upload via REST, then confirm over the socket
+async function submitGroupSelfie(sessionId, stopId, imageBase64) {
+  const res = await fetch(`${API}/api/photos`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ sessionStopId: stopId, imageBase64, proofType: "group_selfie" }),
+  })
+  const { result } = await res.json()
+  socket.emit("stop:photo:submit", { sessionId, stopId, photoId: result.id }, (ack) => {
+    if (!ack.ok) return toast(ack.error.message)
+  })
+}
+
+// once the photo is confirmed the stop is finished for the whole group
+socket.on("stop:timer:finished", ({ stopId }) => markStopDone(stopId))
+```
+
+> If the spotlighted member disconnects or doesn't submit within 5 minutes, the server re-emits `stop:photo:requested` with a new `chosenUserId`. Keep the listener attached so the UI follows the spotlight.
 
 > You can also fetch the full session state over REST at any time with [`GET /api/sessions/:id`](#get-apisessionsid) — useful for cold-starting a screen or recovering after the app was backgrounded.
 
@@ -2582,7 +2873,7 @@ socket.disconnect()
 | `party:options`, `party:browse`, `party:join-public` | `party:updated` |
 | `party:queue`, `party:unqueue` | `queue:update`, `match:found` |
 | `session:ready` | `session:started` |
-| `stop:start`, `stop:finish` | `stop:timer:started`, `stop:timer:finished`, `conversation:starter` |
+| `stop:start`, `stop:finish`, `stop:photo:submit` | `stop:timer:started`, `stop:photo:requested`, `stop:timer:finished`, `conversation:starter` |
 | _(any failing emit)_ | `error:matchmaking` |
 
 ---

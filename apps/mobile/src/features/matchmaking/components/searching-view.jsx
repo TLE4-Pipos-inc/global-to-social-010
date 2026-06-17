@@ -15,7 +15,7 @@ export function SearchingView() {
   return (
     <View style={styles.container}>
       <ActivityIndicator size="large" color={Colors.lightGreenColor} style={styles.loader} />
-      <ThemedText type="title">Searching for a group…</ThemedText>
+      <ThemedText type="title" style={styles.title}>Searching for a group…</ThemedText>
       <ThemedText style={styles.muted}>
         We&apos;re matching your party with other students in your time slot.
       </ThemedText>
@@ -24,10 +24,6 @@ export function SearchingView() {
         <View style={styles.stat}>
           <ThemedText style={styles.statValue}>{players}</ThemedText>
           <ThemedText style={styles.statLabel}>players waiting</ThemedText>
-        </View>
-        <View style={styles.stat}>
-          <ThemedText style={styles.statValue}>{parties}</ThemedText>
-          <ThemedText style={styles.statLabel}>parties in queue</ThemedText>
         </View>
       </View>
 
@@ -62,7 +58,6 @@ const styles = StyleSheet.create({
     marginVertical: 16,
   },
   stat: {
-    flex: 1,
     backgroundColor: Colors.offWhite,
     borderRadius: 14,
     padding: 20,
@@ -78,4 +73,7 @@ const styles = StyleSheet.create({
     color: "#777",
     fontSize: 13,
   },
+  title: {
+    textAlign: "center"
+  }
 })

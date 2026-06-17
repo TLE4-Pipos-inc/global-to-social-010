@@ -17,12 +17,12 @@ import {
 
 const userSeedData = [
   {
-    name: "Test Student",
-    email: "test@example.com",
+    name: "Admin",
+    email: "admin@example.com",
     password: "Password123!",
     school: "Hogeschool Rotterdam",
     campus: "Kralingse Zoom",
-    role: "user",
+    role: "admin",
   },
 ]
 
@@ -178,7 +178,8 @@ const venueSeedData = [
     name: "BrewDog Rotterdam",
     venueType: "bar",
     address: "Witte de Withstraat 83, 3012 BN Rotterdam",
-    description: "Busy student nightlife bar and central party hub in Rotterdam city center.",
+    description:
+      "Busy student nightlife bar and central party hub in Rotterdam city center.",
     latitude: 51.91537585257126,
     longitude: 4.475666441833537,
     suggestedOrder: "start",
@@ -188,7 +189,8 @@ const venueSeedData = [
     name: "Cafe restaurant Erasmus",
     venueType: "restaurant",
     address: "Stadhuisplein 23, Rotterdam",
-    description: "Stylish cocktail and dining bar transitioning into nightlife.",
+    description:
+      "Stylish cocktail and dining bar transitioning into nightlife.",
     latitude: 51.91897901259875,
     longitude: 4.481015142324509,
     suggestedOrder: "early stop",
@@ -198,7 +200,8 @@ const venueSeedData = [
     name: "Cafe 't Fust",
     venueType: "bar",
     address: "Stadhuisplein 23, Rotterdam",
-    description: "The oldest café on Stadhuisplein, can you still imagine? Such a different city and era, but still the familiar café.",
+    description:
+      "The oldest café on Stadhuisplein, can you still imagine? Such a different city and era, but still the familiar café.",
     latitude: 51.92248506330943,
     longitude: 4.477184435187327,
     suggestedOrder: "early stop",
@@ -208,7 +211,8 @@ const venueSeedData = [
     name: "Beau Restobar",
     venueType: "bar",
     address: "Stadhuisplein 23, 3012 AR Rotterdam",
-    description: "Restaurant bar that shifts into a lively night crowd later in the evening.",
+    description:
+      "Restaurant bar that shifts into a lively night crowd later in the evening.",
     latitude: 51.9225082148123,
     longitude: 4.476998021039504,
     suggestedOrder: "early stop",
@@ -458,7 +462,8 @@ const routeStopSeedData = [
     name: "Biergarten Rotterdam",
     venueType: "bar",
     address: "Schiestraat 18, Rotterdam",
-    description: "Large open beer hall with long tables, DJs, and group energy.",
+    description:
+      "Large open beer hall with long tables, DJs, and group energy.",
     latitude: 51.925431867492144,
     longitude: 4.476302831137676,
     suggestedOrder: "mid stop",
@@ -468,7 +473,8 @@ const routeStopSeedData = [
     name: "Sijf",
     venueType: "bar",
     address: "Oude Binnenweg 115, Rotterdam",
-    description: "Classic brown café with relaxed atmosphere for conversations.",
+    description:
+      "Classic brown café with relaxed atmosphere for conversations.",
     latitude: 51.91746480752428,
     longitude: 4.474279318970599,
     suggestedOrder: "relax stop",
@@ -479,7 +485,8 @@ const routeStopSeedData = [
     name: "Witte de Aap",
     venueType: "bar",
     address: "Witte de Withstraat 78, Rotterdam",
-    description: "Iconic international bar always full of students, travelers and locals.",
+    description:
+      "Iconic international bar always full of students, travelers and locals.",
     latitude: 51.91543052803871,
     longitude: 4.476314755206046,
     suggestedOrder: "late stop",
@@ -489,7 +496,8 @@ const routeStopSeedData = [
     name: "Bar3",
     venueType: "bar",
     address: "Nieuwe Binnenweg 17, Rotterdam",
-    description: "Alternative bar with music, arcade feel and late-night crowd.",
+    description:
+      "Alternative bar with music, arcade feel and late-night crowd.",
     latitude: 51.91699994266714,
     longitude: 4.471886933284131,
     suggestedOrder: "late stop",
@@ -499,12 +507,13 @@ const routeStopSeedData = [
     name: "Wunderbar",
     venueType: "bar",
     address: "Boomgaardsstraat 71, Rotterdam",
-    description: "Underground cultural bar with experimental music and late-night events.",
+    description:
+      "Underground cultural bar with experimental music and late-night events.",
     latitude: 51.91575741591754,
     longitude: 4.476434284465318,
     suggestedOrder: "final stop",
     vibe: "underground nightlife and events",
-  }
+  },
 ]
 
 const starterSeedData = [
@@ -1371,12 +1380,7 @@ function seedConversationStarters() {
   const interestIdsByName = getInterestIdsByName()
   let inserted = 0
 
-  for (const [
-    interestName,
-    ,
-    prompt,
-    triggerMinute,
-  ] of starterSeedData) {
+  for (const [interestName, , prompt, triggerMinute] of starterSeedData) {
     const interestsId = interestName
       ? interestIdsByName.get(interestName)
       : null

@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm"
 import express, { type Request, type Response } from "express"
 import { v4 as uuidv4 } from "uuid"
 import { db } from "@/db/client.js"
-import { venues } from "@/db/schema.js"
+import { venuePartnerships, venues } from "@/db/schema.js"
 import { requireAuth } from "@/middleware/auth.js"
 import { VenueCreateSchema, VenueUpdateSchema } from "@pub-hopper/schemas"
 import { sendError, sendSuccess } from "@/lib/response"
@@ -13,7 +13,18 @@ const router = express.Router()
 
 router.get("/", (_req, res) => {
   const items = db.select().from(venues).all()
-  return sendSuccess(res, 200, { result: { venues: items } })
+  const partnerVenueIds = new Set(
+    db
+      .select({ venueId: venuePartnerships.venueId })
+      .from(venuePartnerships)
+      .all()
+      .map((row) => row.venueId)
+  )
+  const result = items.map((venue) => ({
+    ...venue,
+    isPartner: partnerVenueIds.has(venue.id),
+  }))
+  return sendSuccess(res, 200, { result: { venues: result } })
 })
 
 router.get("/:id", (req, res) => {

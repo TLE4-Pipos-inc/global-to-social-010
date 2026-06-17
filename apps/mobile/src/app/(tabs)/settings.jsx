@@ -54,13 +54,13 @@ function Settings() {
     <ScrollView>
       <ThemedView style={styles.screen}>
         <ThemedView style={styles.orangeSection}>
-          <View style={styles.avatarWrapper}>
-            <Image
-              source={require("../../../assets/images/emptyprofile.png")}
-              style={styles.image}
-              accessibleLabel="Profile avatar"
-            />
-          </View>
+          {/*<View style={styles.avatarWrapper}>*/}
+          {/*  <Image*/}
+          {/*    source={require("../../../assets/images/emptyprofile.png")}*/}
+          {/*    style={styles.image}*/}
+          {/*    accessibleLabel="Profile avatar"*/}
+          {/*  />*/}
+          {/*</View>*/}
 
           <ThemedView style={styles.card}>
             <form.AppField name="name">
@@ -84,6 +84,11 @@ function Settings() {
                 <field.DropdownField label="Campus" options={campusOptions} />
               )}
             </form.AppField>
+
+            <PrimaryLightOutlineButton
+              title="choose your interests"
+              onPress={() => router.push("/interest")}
+            />
 
             <PrimaryLightButton
               title={updateUser.isPending ? "Saving..." : "Save profile"}

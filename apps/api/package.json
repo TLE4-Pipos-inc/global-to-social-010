@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "tsx watch --env-file=.env src/index.ts",
     "build": "esbuild src/index.ts --bundle --platform=node --format=esm --outfile=dist/index.js --packages=external && cp -r drizzle dist/drizzle",
+    "build:seed": "esbuild src/db/seed.js --bundle --platform=node --format=esm --outfile=dist/seed.js --packages=external",
     "typecheck": "tsc --noEmit",
     "start": "node dist/index.js",
     "tunnel": "ngrok http 8000",

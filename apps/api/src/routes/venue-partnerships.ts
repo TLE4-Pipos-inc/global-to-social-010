@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from "uuid"
 import z from "zod"
 import { db } from "@/db/client"
 import { deals, partners, venuePartnerships, venues } from "@/db/schema"
+import { isDealCurrentlyActive } from "@/lib/deals.js"
 import { sendError, sendSuccess } from "@/lib/response"
 import {
   isForeignKeyError,
@@ -224,14 +225,7 @@ function partnershipExists(partnershipId: string): boolean {
   )
 }
 
-function isCurrentlyActive(item: { active: boolean; startsAt: string | null; endsAt: string | null }) {
-  const now = Date.now()
-  return (
-    item.active &&
-    (!item.startsAt || Date.parse(item.startsAt) <= now) &&
-    (!item.endsAt || Date.parse(item.endsAt) >= now)
-  )
-}
+const isCurrentlyActive = isDealCurrentlyActive
 
 dealsRouter.get("/", (req, res) => {
   const parsed = DealQuerySchema.safeParse(req.query)

@@ -31,13 +31,30 @@ export function SocketProvider({ children }) {
   const [match, setMatch] = useState(null) // { group, session, route, stops, members, matchScore }
   const [sessionReady, setSessionReady] = useState(null) // { ready, total }
   const [sessionStarted, setSessionStarted] = useState(false)
-  const [stopStates, setStopStates] = useState({}) // stopId -> "not_started" | "running" | "finished"
+  const [stopStates, setStopStates] = useState({}) // stopId -> "not_started" | "running" | "awaiting_photo" | "finished"
   const [stopStartedAt, setStopStartedAt] = useState({}) // stopId -> ms timestamp the stop began running
   const [starters, setStarters] = useState([]) // [{ starter, triggerMinute, stopId, receivedAt }]
+  const [photoRequest, setPhotoRequest] = useState(null) // { sessionId, stopId, chosenUserId } | null
   const [lastError, setLastError] = useState(null)
 
   // Keep the live socket in a ref so action callbacks stay stable.
   const socketRef = useRef(null)
+  // Stops we've already advanced past, so a late STOP_PHOTO_REQUESTED (e.g. a
+  // spotlight rotation that fired while the camera was open and the socket
+  // briefly dropped) can never pull the UI back to a finished stop.
+  const finishedStopsRef = useRef(new Set())
+
+  // Mark a stop finished from any source (server broadcast OR our own submit
+  // ack). Advancing on the ack means the chosen member's UI moves on even if the
+  // STOP_TIMER_FINISHED broadcast never reaches them.
+  const markStopFinished = useCallback((stopId) => {
+    if (!stopId) return
+    finishedStopsRef.current.add(stopId)
+    setStopStates((prev) =>
+      prev[stopId] === "finished" ? prev : { ...prev, [stopId]: "finished" },
+    )
+    setPhotoRequest((prev) => (prev?.stopId === stopId ? null : prev))
+  }, [])
 
   const resetMatchmaking = useCallback(() => {
     setParty(null)
@@ -48,6 +65,8 @@ export function SocketProvider({ children }) {
     setStopStates({})
     setStopStartedAt({})
     setStarters([])
+    setPhotoRequest(null)
+    finishedStopsRef.current = new Set()
   }, [])
 
   // --- connection lifecycle, driven by the access token --------------------
@@ -80,6 +99,7 @@ export function SocketProvider({ children }) {
         for (const stop of payload?.stops ?? []) initial[stop.id] = "not_started"
         setStopStates(initial)
         setStopStartedAt({})
+        finishedStopsRef.current = new Set()
       })
       socket.on(SOCKET_EVENTS.SESSION_STARTED, () => setSessionStarted(true))
       socket.on(SOCKET_EVENTS.STOP_TIMER_STARTED, ({ stopId }) => {
@@ -88,9 +108,19 @@ export function SocketProvider({ children }) {
           prev[stopId] ? prev : { ...prev, [stopId]: Date.now() },
         )
       })
-      socket.on(SOCKET_EVENTS.STOP_TIMER_FINISHED, ({ stopId }) =>
-        setStopStates((prev) => ({ ...prev, [stopId]: "finished" })),
-      )
+      socket.on(SOCKET_EVENTS.STOP_PHOTO_REQUESTED, (payload) => {
+        const stopId = payload?.stopId
+        // Ignore a request for a stop we've already finished — it's a stale
+        // rotation and must not drag the UI back to the previous stop.
+        if (!stopId || finishedStopsRef.current.has(stopId)) return
+        setPhotoRequest(payload)
+        setStopStates((prev) =>
+          prev[stopId] === "finished" ? prev : { ...prev, [stopId]: "awaiting_photo" },
+        )
+      })
+      socket.on(SOCKET_EVENTS.STOP_TIMER_FINISHED, ({ stopId }) => {
+        markStopFinished(stopId)
+      })
       socket.on(SOCKET_EVENTS.CONVERSATION_STARTER, (payload) =>
         setStarters((prev) => [{ ...payload, receivedAt: Date.now() }, ...prev]),
       )
@@ -130,7 +160,7 @@ export function SocketProvider({ children }) {
       const socket = getSocket()
       if (socket) socket.removeAllListeners()
     }
-  }, [resetMatchmaking])
+  }, [resetMatchmaking, markStopFinished])
 
   // --- emit helper ---------------------------------------------------------
   const emitWithAck = useCallback((event, payload) => {
@@ -163,6 +193,17 @@ export function SocketProvider({ children }) {
   const actions = useMemo(
     () => ({
       createParty: () => emitWithAck(SOCKET_EVENTS.PARTY_CREATE),
+      // Solo fast path: create a one-person party and immediately queue it.
+      // Pass themeId+routeId to queue for a specific route ("Quick queue this
+      // route"); pass nothing for the "Match anywhere" path (any theme/route).
+      quickMatch: async (themeId = null, routeId = null) => {
+        await emitWithAck(SOCKET_EVENTS.PARTY_CREATE)
+        await emitWithAck(SOCKET_EVENTS.PARTY_QUEUE, {
+          selectedTimeSlot: MATCH_TIME_SLOT,
+          themeId,
+          routeId,
+        })
+      },
       joinParty: (inviteCode) =>
         emitWithAck(SOCKET_EVENTS.PARTY_JOIN, { inviteCode }),
       leaveParty: async () => {
@@ -172,8 +213,12 @@ export function SocketProvider({ children }) {
         return ack
       },
       kickMember: (userId) => emitWithAck(SOCKET_EVENTS.PARTY_KICK, { userId }),
-      queueParty: () =>
-        emitWithAck(SOCKET_EVENTS.PARTY_QUEUE, { selectedTimeSlot: MATCH_TIME_SLOT }),
+      queueParty: (themeId = null, routeId = null) =>
+        emitWithAck(SOCKET_EVENTS.PARTY_QUEUE, {
+          selectedTimeSlot: MATCH_TIME_SLOT,
+          themeId,
+          routeId,
+        }),
       unqueueParty: () => emitWithAck(SOCKET_EVENTS.PARTY_UNQUEUE),
       // Named `readyUp` to avoid colliding with the `sessionReady` state value.
       readyUp: (sessionId) =>
@@ -182,10 +227,21 @@ export function SocketProvider({ children }) {
         emitWithAck(SOCKET_EVENTS.STOP_START, { sessionId, stopId }),
       finishStop: (sessionId, stopId) =>
         emitWithAck(SOCKET_EVENTS.STOP_FINISH, { sessionId, stopId }),
+      submitStopPhoto: async (sessionId, stopId, photoId) => {
+        const ack = await emitWithAck(SOCKET_EVENTS.STOP_PHOTO_SUBMIT, {
+          sessionId,
+          stopId,
+          photoId,
+        })
+        // The server confirmed the stop is done; advance our own UI right away
+        // in case the broadcast doesn't make it back (dropped socket on Android).
+        markStopFinished(stopId)
+        return ack
+      },
       resetMatchmaking,
       clearError: () => setLastError(null),
     }),
-    [emitWithAck, resetMatchmaking],
+    [emitWithAck, resetMatchmaking, markStopFinished],
   )
 
   const value = useMemo(
@@ -199,6 +255,7 @@ export function SocketProvider({ children }) {
       stopStates,
       stopStartedAt,
       starters,
+      photoRequest,
       lastError,
       ...actions,
     }),
@@ -212,6 +269,7 @@ export function SocketProvider({ children }) {
       stopStates,
       stopStartedAt,
       starters,
+      photoRequest,
       lastError,
       actions,
     ],
