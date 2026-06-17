@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useRef } from "react"
+import { Suspense, useEffect, useRef, useState } from "react"
 import { useNavigation } from "expo-router"
 import { ActivityIndicator, Alert, StyleSheet, View } from "react-native"
 import { ThemedText } from "@/components/themed-text"
@@ -42,6 +42,10 @@ export default function Matching() {
   const mm = useMatchmaking()
   const { status, match, party, sessionStarted, lastError, clearError, quickMatch } = mm
 
+  // true while the background party-create + queue is in flight; starts true
+  // when auto=solo so the party screen is never shown even for a single frame.
+  const [isAutoQueuing, setIsAutoQueuing] = useState(auto === "solo")
+
   // Surface socket / matchmaking errors as a toast, then clear them.
   useEffect(() => {
     if (!lastError) return
@@ -56,8 +60,9 @@ export default function Matching() {
     if (auto !== "solo" || autoQueued.current) return
     if (status !== "connected" || party || match) return
     autoQueued.current = true
-    // Errors surface via the lastError effect above.
-    quickMatch(themeId ?? null, routeId ?? null).catch(() => {})
+    quickMatch(themeId ?? null, routeId ?? null)
+      .catch(() => {})
+      .finally(() => setIsAutoQueuing(false))
   }, [auto, status, party, match, themeId, routeId, quickMatch])
 
   const phase = derivePhase({ match, party, sessionStarted })
@@ -92,8 +97,15 @@ export default function Matching() {
           />
         }
       >
-        {phase === "party" && (
+        {phase === "party" && !isAutoQueuing && (
           <PartyView themeId={themeId} routeId={routeId} routeName={routeName} />
+        )}
+        {phase === "party" && isAutoQueuing && (
+          <ActivityIndicator
+            size="large"
+            color={Colors.lightGreenColor}
+            style={styles.loader}
+          />
         )}
         {phase === "searching" && <SearchingView />}
         {phase === "lobby" && <LobbyView />}
