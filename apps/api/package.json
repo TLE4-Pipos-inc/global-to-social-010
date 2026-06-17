@@ -5,12 +5,19 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "dev": "node --watch --env-file=.env src/index.js",
+    "dev": "tsx watch --env-file=.env src/index.ts",
+    "build": "esbuild src/index.ts --bundle --platform=node --format=esm --outfile=dist/index.js --packages=external && cp -r drizzle dist/drizzle",
+    "typecheck": "tsc --noEmit",
+    "start": "node dist/index.js",
+    "tunnel": "ngrok http 8000",
+    "lint": "eslint src/ --max-warnings 0",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:pull": "drizzle-kit pull",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "party:socket": "node --env-file=.env tests/socket.io/e2e-party.mjs",
+    "db:seed": "tsx --env-file=.env src/db/seed.js"
   },
   "keywords": [],
   "author": "",
@@ -20,12 +27,29 @@
     "better-sqlite3": "^12.10.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
+    "dotenv": "^16.0.0",
     "drizzle-orm": "^0.45.2",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
-    "uuid": "^13.0.0"
+    "socket.io": "^4.8.3",
+    "uuid": "^13.0.0",
+    "zod": "catalog:"
   },
   "devDependencies": {
-    "drizzle-kit": "^0.31.10"
+    "esbuild": "^0.25.12",
+    "@types/bcrypt": "^6.0.0",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^25.5.2",
+    "drizzle-kit": "^0.31.10",
+    "socket.io-client": "^4.8.3",
+    "eslint": "^9.0.0",
+    "eslint-plugin-n": "^17.0.0",
+    "ngrok": "5.0.0-beta.2",
+    "tsc-alias": "^1.8.0",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.0"
   }
 }

@@ -1,35 +1,75 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
-
-import { HapticTab } from "../../components/haptic-tab";
-import { IconSymbol } from '../../components/ui/icon-symbol';
-import { Colors } from '../../constants/theme';
-import { useColorScheme } from '../../hooks/use-color-scheme';
+import { Tabs } from "expo-router"
+import { Home, Map, User } from "lucide-react-native"
+import { HapticTab } from "@/components/haptic-tab"
+import { Colors, Fonts } from "@/constants/theme"
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
+      style={{ backgroundColor: Colors.yellowColor }}
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
+        tabBarActiveTintColor: Colors.darkGreenColor,
+        tabBarInactiveTintColor: Colors.text,
         tabBarButton: HapticTab,
-      }}>
+        headerShown: true,
+        headerStyle: { backgroundColor: Colors.yellowColor },
+        tabBarStyle: {
+          backgroundColor: Colors.yellowColor,
+          borderTopWidth: 0,
+        },
+        headerTitleStyle: {
+          fontSize: 24,
+          fontFamily: Fonts.bold,
+        },
+      }}
+    >
+      <Tabs.Screen
+        name="map"
+        options={{
+          title: "Map",
+          tabBarIcon: ({ color }) => <Map size={24} color={color} />,
+        }}
+      />
+
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          title: "Home",
+          tabBarIcon: ({ color }) => <Home size={24} color={color} />,
         }}
       />
+
       <Tabs.Screen
-        name="explore"
+        name="profile"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: "Profile",
+          tabBarIcon: ({ color }) => <User size={24} color={color} />,
+        }}
+      />
+
+      <Tabs.Screen
+        name="settings"
+        options={{
+          href: null,
+          title: "Settings",
+        }}
+      />
+
+      <Tabs.Screen
+        name="interest"
+        options={{
+          href: null,
+          title: "Interests",
+        }}
+      />
+
+      <Tabs.Screen
+        name="matching"
+        options={{
+          href: null,
+          title: "Matching",
         }}
       />
     </Tabs>
-  );
+  )
 }

@@ -1,0 +1,229 @@
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
+import {
+  createSocket,
+  disconnectSocket,
+  getSocket,
+  refreshSocketAuth,
+} from "@/lib/socket"
+import { getAccessToken, subscribeAccessToken } from "@/lib/token"
+import { MATCH_TIME_SLOT, SOCKET_EVENTS } from "@/lib/socket-events"
+
+const SocketContext = createContext(null)
+
+const EMIT_TIMEOUT_MS = 8000
+
+/**
+ * Holds the single Socket.IO connection plus all matchmaking state, and exposes
+ * typed actions to the rest of the app. Mount once near the app root.
+ */
+export function SocketProvider({ children }) {
+  const [status, setStatus] = useState("disconnected") // disconnected | connecting | connected | error
+  const [party, setParty] = useState(null)
+  const [queueStats, setQueueStats] = useState(null) // { parties, players }
+  const [match, setMatch] = useState(null) // { group, session, route, stops, members, matchScore }
+  const [sessionReady, setSessionReady] = useState(null) // { ready, total }
+  const [sessionStarted, setSessionStarted] = useState(false)
+  const [stopStates, setStopStates] = useState({}) // stopId -> "not_started" | "running" | "finished"
+  const [stopStartedAt, setStopStartedAt] = useState({}) // stopId -> ms timestamp the stop began running
+  const [starters, setStarters] = useState([]) // [{ starter, triggerMinute, stopId, receivedAt }]
+  const [lastError, setLastError] = useState(null)
+
+  // Keep the live socket in a ref so action callbacks stay stable.
+  const socketRef = useRef(null)
+
+  const resetMatchmaking = useCallback(() => {
+    setParty(null)
+    setQueueStats(null)
+    setMatch(null)
+    setSessionReady(null)
+    setSessionStarted(false)
+    setStopStates({})
+    setStopStartedAt({})
+    setStarters([])
+  }, [])
+
+  // --- connection lifecycle, driven by the access token --------------------
+  useEffect(() => {
+    function attach(socket) {
+      socket.on("connect", () => setStatus("connected"))
+      socket.on("disconnect", () => setStatus("disconnected"))
+      socket.on("connect_error", (err) => {
+        setStatus("error")
+        setLastError({ code: "CONNECT_ERROR", message: err?.message ?? "Connection failed" })
+      })
+
+      socket.on(SOCKET_EVENTS.PARTY_UPDATED, (payload) => setParty(payload))
+      socket.on(SOCKET_EVENTS.PARTY_DISSOLVED, () => {
+        setParty(null)
+        setQueueStats(null)
+      })
+      socket.on(SOCKET_EVENTS.QUEUE_UPDATE, (payload) => {
+        // Overloaded event: queue stats while searching, ready counter in lobby.
+        if (payload?.sessionId) {
+          setSessionReady({ ready: payload.ready, total: payload.total })
+        } else {
+          setQueueStats({ parties: payload?.parties ?? 0, players: payload?.players ?? 0 })
+        }
+      })
+      socket.on(SOCKET_EVENTS.MATCH_FOUND, (payload) => {
+        setMatch(payload)
+        setQueueStats(null)
+        const initial = {}
+        for (const stop of payload?.stops ?? []) initial[stop.id] = "not_started"
+        setStopStates(initial)
+        setStopStartedAt({})
+      })
+      socket.on(SOCKET_EVENTS.SESSION_STARTED, () => setSessionStarted(true))
+      socket.on(SOCKET_EVENTS.STOP_TIMER_STARTED, ({ stopId }) => {
+        setStopStates((prev) => ({ ...prev, [stopId]: "running" }))
+        setStopStartedAt((prev) =>
+          prev[stopId] ? prev : { ...prev, [stopId]: Date.now() },
+        )
+      })
+      socket.on(SOCKET_EVENTS.STOP_TIMER_FINISHED, ({ stopId }) =>
+        setStopStates((prev) => ({ ...prev, [stopId]: "finished" })),
+      )
+      socket.on(SOCKET_EVENTS.CONVERSATION_STARTER, (payload) =>
+        setStarters((prev) => [{ ...payload, receivedAt: Date.now() }, ...prev]),
+      )
+      socket.on(SOCKET_EVENTS.ERROR, (payload) => setLastError(payload))
+    }
+
+    function connect() {
+      const socket = createSocket()
+      socketRef.current = socket
+      setStatus(socket.connected ? "connected" : "connecting")
+      attach(socket)
+    }
+
+    function teardown() {
+      disconnectSocket()
+      socketRef.current = null
+      setStatus("disconnected")
+      resetMatchmaking()
+    }
+
+    // Connect now if we already have a token.
+    if (getAccessToken()) connect()
+
+    const unsubscribe = subscribeAccessToken((token) => {
+      if (!token) {
+        teardown()
+      } else if (!socketRef.current) {
+        connect()
+      } else {
+        // Token rotated (refresh) — reconnect with the new credentials.
+        refreshSocketAuth()
+      }
+    })
+
+    return () => {
+      unsubscribe()
+      const socket = getSocket()
+      if (socket) socket.removeAllListeners()
+    }
+  }, [resetMatchmaking])
+
+  // --- emit helper ---------------------------------------------------------
+  const emitWithAck = useCallback((event, payload) => {
+    return new Promise((resolve, reject) => {
+      const socket = socketRef.current
+      if (!socket) {
+        // Client-only failure: no server ERROR event will fire, so surface it.
+        setLastError({ code: "NOT_CONNECTED", message: "Not connected" })
+        reject(new Error("Not connected"))
+        return
+      }
+      socket.timeout(EMIT_TIMEOUT_MS).emit(event, payload ?? {}, (err, ack) => {
+        if (err) {
+          setLastError({ code: "TIMEOUT", message: "Request timed out" })
+          reject(new Error("Request timed out"))
+          return
+        }
+        if (!ack?.ok) {
+          // The server also emits an ERROR event for this; that drives the
+          // alert. Just reject so the caller can settle its busy state.
+          reject(new Error(ack?.error?.message ?? `${event} failed`))
+          return
+        }
+        resolve(ack)
+      })
+    })
+  }, [])
+
+  // --- actions -------------------------------------------------------------
+  const actions = useMemo(
+    () => ({
+      createParty: () => emitWithAck(SOCKET_EVENTS.PARTY_CREATE),
+      joinParty: (inviteCode) =>
+        emitWithAck(SOCKET_EVENTS.PARTY_JOIN, { inviteCode }),
+      leaveParty: async () => {
+        const ack = await emitWithAck(SOCKET_EVENTS.PARTY_LEAVE)
+        setParty(null)
+        setQueueStats(null)
+        return ack
+      },
+      kickMember: (userId) => emitWithAck(SOCKET_EVENTS.PARTY_KICK, { userId }),
+      queueParty: () =>
+        emitWithAck(SOCKET_EVENTS.PARTY_QUEUE, { selectedTimeSlot: MATCH_TIME_SLOT }),
+      unqueueParty: () => emitWithAck(SOCKET_EVENTS.PARTY_UNQUEUE),
+      // Named `readyUp` to avoid colliding with the `sessionReady` state value.
+      readyUp: (sessionId) =>
+        emitWithAck(SOCKET_EVENTS.SESSION_READY, { sessionId }),
+      startStop: (sessionId, stopId) =>
+        emitWithAck(SOCKET_EVENTS.STOP_START, { sessionId, stopId }),
+      finishStop: (sessionId, stopId) =>
+        emitWithAck(SOCKET_EVENTS.STOP_FINISH, { sessionId, stopId }),
+      resetMatchmaking,
+      clearError: () => setLastError(null),
+    }),
+    [emitWithAck, resetMatchmaking],
+  )
+
+  const value = useMemo(
+    () => ({
+      status,
+      party,
+      queueStats,
+      match,
+      sessionReady,
+      sessionStarted,
+      stopStates,
+      stopStartedAt,
+      starters,
+      lastError,
+      ...actions,
+    }),
+    [
+      status,
+      party,
+      queueStats,
+      match,
+      sessionReady,
+      sessionStarted,
+      stopStates,
+      stopStartedAt,
+      starters,
+      lastError,
+      actions,
+    ],
+  )
+
+  return <SocketContext.Provider value={value}>{children}</SocketContext.Provider>
+}
+
+export function useMatchmaking() {
+  const ctx = useContext(SocketContext)
+  if (!ctx) {
+    throw new Error("useMatchmaking must be used within a SocketProvider")
+  }
+  return ctx
+}
