@@ -67,7 +67,6 @@ export default function Routes() {
   return (
     <>
       <ScrollView contentContainerStyle={styles.container}>
-        <ThemedView>
           <ThemedText style={styles.pageTitle}>Choose a route</ThemedText>
 
           {routes.map((route) => {
@@ -130,7 +129,6 @@ export default function Routes() {
               </View>
             )
           })}
-        </ThemedView>
       </ScrollView>
 
       <Modal
@@ -227,13 +225,21 @@ export default function Routes() {
 
               <PrimaryDarkButton
                 title="Match with friends"
-                onPress={() => selectedRoute && goToMatching(selectedRoute)}
+                onPress={() => {
+                  if (!selectedRoute) return
+                  const routeToMatch = selectedRoute
+                  setSelectedRoute(null)
+                  goToMatching(routeToMatch)
+                }}
               />
               <PrimaryAccentButton
                 title="Quick queue solo"
-                onPress={() =>
-                  selectedRoute && goToMatching(selectedRoute, { solo: true })
-                }
+                onPress={() => {
+                  if (!selectedRoute) return
+                  const routeToMatch = selectedRoute
+                  setSelectedRoute(null)
+                  goToMatching(routeToMatch, { solo: true })
+                }}
               />
             </ScrollView>
           </View>
@@ -250,6 +256,7 @@ const styles = StyleSheet.create({
   },
 
   pageTitle: {
+    textAlign: "center",
     fontSize: 24,
     fontWeight: "700",
   },
