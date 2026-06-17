@@ -5,7 +5,7 @@ import { router, useLocalSearchParams } from "expo-router"
 import { useRouteQuery } from "@/features/routes"
 import { ThemedText } from "@/components/themed-text"
 import { useStopQuery } from "@/features/routes"
-import { PrimaryDarkButton } from "@/components/buttons"
+import { PrimaryDarkButton, PrimaryDarkOutlineButton } from "@/components/buttons"
 import { Colors } from "@/constants/theme"
 import { ThemedView } from "@/components/themed-view"
 import { useUserInterestQuery } from "@/features/userInterest"
@@ -26,7 +26,28 @@ export default function Routes() {
     userInterestData?.result ||
     []
   const canMatch = interests.length >= 3
-  console.log(interests.length)
+
+  // Navigate into matchmaking for a specific route, carrying theme + route so
+  // the queue can match on them (route is now a hard matching constraint).
+  // `solo: true` adds auto=solo, which makes the matching screen queue a
+  // one-person party immediately, skipping the create/invite party flow.
+  function goToMatching(route, { solo } = {}) {
+    if (!canMatch) {
+      alert(
+        "You need to choose at least 3 interests in settings before matching."
+      )
+      return
+    }
+    router.push({
+      pathname: "/matching",
+      params: {
+        themeId,
+        routeId: route.id,
+        routeName: route.name,
+        ...(solo ? { auto: "solo" } : {}),
+      },
+    })
+  }
 
   const allRoutes = data?.result?.routes ?? []
   const routes = allRoutes.filter((route) => route.themeId === themeId)
@@ -85,21 +106,16 @@ export default function Routes() {
                 <View style={styles.buttonRow}>
                   <View style={styles.buttonWrapper}>
                     <PrimaryDarkButton
-                      title="Match Now"
-                      onPress={() => {
-                        if (canMatch) {
-                          router.push({
-                            pathname: "/matching",
-                            params: {
-                              id: route.id,
-                            },
-                          })
-                        } else {
-                          alert(
-                            "You need to choose at least 3 interests in settings before matching."
-                          )
-                        }
-                      }}
+                      title="Match with friends"
+                      onPress={() => goToMatching(route)}
+                    />
+                  </View>
+                </View>
+                <View style={styles.buttonRow}>
+                  <View style={styles.buttonWrapper}>
+                    <PrimaryDarkOutlineButton
+                      title="Quick queue solo"
+                      onPress={() => goToMatching(route, { solo: true })}
                     />
                   </View>
                 </View>
@@ -210,15 +226,14 @@ export default function Routes() {
               ))}
 
               <PrimaryDarkButton
-                title="Match Now"
-                onPress={() => {
-                  router.push({
-                    pathname: "/matching",
-                    params: {
-                      id: selectedRoute?.id,
-                    },
-                  })
-                }}
+                title="Match with friends"
+                onPress={() => selectedRoute && goToMatching(selectedRoute)}
+              />
+              <PrimaryDarkOutlineButton
+                title="Quick queue solo"
+                onPress={() =>
+                  selectedRoute && goToMatching(selectedRoute, { solo: true })
+                }
               />
             </ScrollView>
           </View>

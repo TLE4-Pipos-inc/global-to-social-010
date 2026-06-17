@@ -1,4 +1,4 @@
-import { Suspense, useEffect } from "react"
+import { Suspense, useEffect, useRef } from "react"
 import { useNavigation } from "expo-router"
 import { ActivityIndicator, Alert, StyleSheet, View } from "react-native"
 import { ThemedText } from "@/components/themed-text"
@@ -23,12 +23,24 @@ function derivePhase({ match, party, sessionStarted }) {
   return "party"
 }
 
+// expo-router params are string | string[]; take the first value.
+function firstParam(value) {
+  return Array.isArray(value) ? value[0] : value
+}
+
 export default function Matching() {
-  const { id } = useLocalSearchParams()
-  console.log(id)
+  // Navigation carries the theme + route the user picked on the route screen.
+  // `auto: "solo"` means "Quick queue this route" — queue solo on arrival
+  // without the create/invite party flow.
+  const params = useLocalSearchParams()
+  const themeId = firstParam(params.themeId)
+  const routeId = firstParam(params.routeId)
+  const routeName = firstParam(params.routeName)
+  const auto = firstParam(params.auto)
+
   const navigation = useNavigation()
   const mm = useMatchmaking()
-  const { status, match, party, sessionStarted, lastError, clearError } = mm
+  const { status, match, party, sessionStarted, lastError, clearError, quickMatch } = mm
 
   // Surface socket / matchmaking errors as a toast, then clear them.
   useEffect(() => {
@@ -36,6 +48,17 @@ export default function Matching() {
     Alert.alert("Matchmaking", lastError.message ?? "Something went wrong")
     clearError()
   }, [lastError, clearError])
+
+  // "Quick queue this route": once connected and not already in a party/match,
+  // create a solo party and queue it for the chosen theme+route. Fire once.
+  const autoQueued = useRef(false)
+  useEffect(() => {
+    if (auto !== "solo" || autoQueued.current) return
+    if (status !== "connected" || party || match) return
+    autoQueued.current = true
+    // Errors surface via the lastError effect above.
+    quickMatch(themeId ?? null, routeId ?? null).catch(() => {})
+  }, [auto, status, party, match, themeId, routeId, quickMatch])
 
   const phase = derivePhase({ match, party, sessionStarted })
 
@@ -69,7 +92,9 @@ export default function Matching() {
           />
         }
       >
-        {phase === "party" && <PartyView />}
+        {phase === "party" && (
+          <PartyView themeId={themeId} routeId={routeId} routeName={routeName} />
+        )}
         {phase === "searching" && <SearchingView />}
         {phase === "lobby" && <LobbyView />}
         {phase === "session" && <SessionView />}

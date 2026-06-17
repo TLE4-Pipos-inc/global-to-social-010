@@ -8,6 +8,7 @@ import {
   finishStopTimer,
   getActiveSessionIdsForUser,
   getSessionStop,
+  isRouteQueueable,
   isSessionMember,
   loadPlayerProfile,
   persistQueuedParty,
@@ -194,6 +195,7 @@ export function attachSocketServer(httpServer, opts = {}) {
         selectedTimeSlot: match.selectedTimeSlot,
         matchScore: match.matchScore,
         themeId: match.themeId ?? null,
+        routeId: match.routeId ?? null,
       })
     } catch (err) {
       console.error("Failed to create matched session:", err)
@@ -367,7 +369,7 @@ function handleStatus(socket, queue) {
   const party = queue.getPartyOfUser(socket.data.userId)
   if (!party) return { ok: true, inParty: false }
   const bucket = party.selectedTimeSlot
-    ? queue.bucketStats(party.selectedTimeSlot, party.themeId)
+    ? queue.bucketStats(party.selectedTimeSlot, party.themeId, party.routeId)
     : null
   return {
     ok: true,
@@ -384,20 +386,27 @@ function handleQueue(io, socket, queue, payload) {
     throw httpError("INVALID_TIME_SLOT", "selectedTimeSlot is required")
   }
 
-  // themeId is optional: null/"" means "any theme" (matches anyone, random route).
-  // A chosen theme must exist and have an active route to run a session on.
+  // themeId/routeId are optional: null/"" means "any" (the Match-anywhere path
+  // matches anyone and runs a random route). When a theme is chosen it must
+  // exist; when a specific route is chosen it must be active and belong to the
+  // theme (routeId is a hard matching constraint).
   const rawThemeId = payload?.themeId
   const themeId = rawThemeId == null ? null : String(rawThemeId).trim() || null
-  if (themeId) {
-    if (!routeThemeExists(themeId)) {
-      throw httpError("INVALID_THEME", "Selected theme does not exist")
+  const rawRouteId = payload?.routeId
+  const routeId = rawRouteId == null ? null : String(rawRouteId).trim() || null
+
+  if (themeId && !routeThemeExists(themeId)) {
+    throw httpError("INVALID_THEME", "Selected theme does not exist")
+  }
+  if (routeId) {
+    if (!isRouteQueueable(routeId, themeId)) {
+      throw httpError("NO_ROUTE_FOR_THEME", "Selected route is not available")
     }
-    if (!themeHasActiveRoute(themeId)) {
-      throw httpError("NO_ROUTE_FOR_THEME", "No active route is available for the selected theme")
-    }
+  } else if (themeId && !themeHasActiveRoute(themeId)) {
+    throw httpError("NO_ROUTE_FOR_THEME", "No active route is available for the selected theme")
   }
 
-  const party = queue.queueParty(leaderId, selectedTimeSlot, themeId)
+  const party = queue.queueParty(leaderId, selectedTimeSlot, themeId, routeId)
 
   // Persist parties that satisfy the existing group_size constraint (4..8).
   // Smaller parties will be written to the DB when the match is confirmed.
@@ -415,10 +424,11 @@ function handleQueue(io, socket, queue, payload) {
   const data = serializeParty(party)
   io.to(partyRoom(party.id)).emit(SOCKET_EVENTS.PARTY_UPDATED, data)
 
-  const stats = queue.bucketStats(selectedTimeSlot, party.themeId)
+  const stats = queue.bucketStats(selectedTimeSlot, party.themeId, party.routeId)
   io.to(partyRoom(party.id)).emit(SOCKET_EVENTS.QUEUE_UPDATE, {
     selectedTimeSlot,
     themeId: party.themeId,
+    routeId: party.routeId,
     ...stats,
   })
   return { ok: true, party: data, bucket: stats }

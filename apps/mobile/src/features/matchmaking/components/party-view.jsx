@@ -3,20 +3,33 @@ import { ScrollView, StyleSheet, TextInput, View } from "react-native"
 import { ThemedText } from "@/components/themed-text"
 import {
   PrimaryLightButton,
+  PrimaryLightOutlineButton,
   PrimaryDarkButton,
   DestructiveOutlineButton,
 } from "@/components/buttons"
 import { Colors } from "@/constants/theme"
 import { useAccountQuery } from "@/features/auth"
+import { useUserInterestQuery } from "@/features/userInterest"
 import { useMatchmaking } from "@/features/matchmaking/socket-context"
 
-export function PartyView() {
+export function PartyView({ themeId = null, routeId = null, routeName = null }) {
   const { data: account } = useAccountQuery()
   // `/api/auth/me` returns the user wrapped as { result: user }; fall back to
   // other shapes defensively so leader detection still works.
   const myId = account?.result?.id ?? account?.id ?? account?.user?.id
   const { party, createParty, quickMatch, joinParty, leaveParty, kickMember, queueParty } =
     useMatchmaking()
+
+  // Matchmaking requires at least 3 interests (mirrors the route screen guard).
+  // Gate every path that actually enters the queue so no one can queue without
+  // enough interests for scoring to be meaningful.
+  const { data: userInterestData } = useUserInterestQuery()
+  const interests =
+    userInterestData?.interests ||
+    userInterestData?.result?.interests ||
+    userInterestData?.result ||
+    []
+  const canMatch = interests.length >= 3
 
   const [inviteCode, setInviteCode] = useState("")
   const [busy, setBusy] = useState(false)
@@ -38,33 +51,25 @@ export function PartyView() {
     return (
       <ScrollView contentContainerStyle={styles.content}>
         <ThemedText type="title">Find your group</ThemedText>
-
-        <View style={styles.quickMatchCard}>
-          <ThemedText type="subtitle" style={styles.quickMatchTitle}>
-            Quick match
+        {routeName ? (
+          <ThemedText style={styles.muted}>
+            Matching for{" "}
+            <ThemedText type="defaultSemiBold">{routeName}</ThemedText>. Create or
+            join a party for this route, or match anywhere instead.
           </ThemedText>
-          <ThemedText style={styles.quickMatchMuted}>
-            Jump straight into matchmaking as a solo player.
+        ) : (
+          <ThemedText style={styles.muted}>
+            Create a party and invite friends, or join one with a code. Then queue
+            to get matched with other students.
           </ThemedText>
-          <PrimaryLightButton
-            title={busy ? "Working…" : "Find a group"}
-            disabled={busy}
-            onPress={() => call(quickMatch)}
-          />
-        </View>
-
-        <View style={styles.dividerRow}>
-          <View style={styles.dividerLine} />
-          <ThemedText style={styles.dividerLabel}>or play with friends</ThemedText>
-          <View style={styles.dividerLine} />
-        </View>
+        )}
 
         <View style={styles.card}>
           <ThemedText type="subtitle">Start a party</ThemedText>
           <ThemedText style={styles.muted}>
             Create a party and share the invite code with friends.
           </ThemedText>
-          <PrimaryDarkButton
+          <PrimaryLightButton
             title={busy ? "Working…" : "Create party"}
             disabled={busy}
             onPress={() => call(createParty)}
@@ -86,6 +91,25 @@ export function PartyView() {
             disabled={busy || !inviteCode.trim()}
             onPress={() => call(() => joinParty(inviteCode.trim()))}
           />
+        </View>
+
+        <View style={styles.dividerRow}>
+          <View style={styles.dividerLine} />
+          <ThemedText style={styles.dividerLabel}>or</ThemedText>
+          <View style={styles.dividerLine} />
+        </View>
+
+        <View style={styles.card}>
+          <ThemedText type="subtitle">Match anywhere</ThemedText>
+          <ThemedText style={styles.muted}>
+            Skip the route and get matched with anyone, on any route, right now.
+          </ThemedText>
+          <PrimaryLightOutlineButton
+            title={busy ? "Working…" : "Match anywhere"}
+            disabled={busy || !canMatch}
+            onPress={() => call(() => quickMatch())}
+          />
+          {!canMatch && <InterestHint />}
         </View>
       </ScrollView>
     )
@@ -138,11 +162,14 @@ export function PartyView() {
 
       <View style={styles.actions}>
         {isLeader ? (
-          <PrimaryLightButton
-            title={busy ? "Working…" : "Find a group"}
-            disabled={busy}
-            onPress={() => call(queueParty)}
-          />
+          <>
+            <PrimaryLightButton
+              title={busy ? "Working…" : "Find a group"}
+              disabled={busy || !canMatch}
+              onPress={() => call(() => queueParty(themeId, routeId))}
+            />
+            {!canMatch && <InterestHint />}
+          </>
         ) : (
           <ThemedText style={styles.muted}>
             Waiting for the host to start matchmaking…
@@ -155,6 +182,15 @@ export function PartyView() {
         />
       </View>
     </ScrollView>
+  )
+}
+
+// Shown beneath a queue button when the user has fewer than 3 interests.
+function InterestHint() {
+  return (
+    <ThemedText style={styles.hint}>
+      Pick at least 3 interests in settings before matching.
+    </ThemedText>
   )
 }
 
@@ -173,18 +209,6 @@ const styles = StyleSheet.create({
   content: {
     padding: 24,
     gap: 20,
-  },
-  quickMatchCard: {
-    gap: 12,
-    backgroundColor: Colors.darkGreenColor,
-    borderRadius: 14,
-    padding: 16,
-  },
-  quickMatchTitle: {
-    color: "#fff",
-  },
-  quickMatchMuted: {
-    color: "rgba(255,255,255,0.7)",
   },
   dividerRow: {
     flexDirection: "row",
@@ -205,6 +229,10 @@ const styles = StyleSheet.create({
   },
   mutedSmall: {
     color: "#777",
+    fontSize: 13,
+  },
+  hint: {
+    color: Colors.orangeColor,
     fontSize: 13,
   },
   card: {

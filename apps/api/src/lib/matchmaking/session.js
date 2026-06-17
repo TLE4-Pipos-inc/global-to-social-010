@@ -48,6 +48,23 @@ export function themeHasActiveRoute(themeId) {
 }
 
 /**
+ * Whether a specific route is queueable: it exists, is active, and (when a
+ * themeId is given) belongs to that theme. Used to validate a leader-chosen
+ * routeId before queueing, since routeId is now a hard matching constraint.
+ *
+ * @param {string} routeId
+ * @param {string|null} [themeId]  When set, the route must belong to this theme.
+ * @returns {boolean}
+ */
+export function isRouteQueueable(routeId, themeId = null) {
+  const conditions = [eq(routes.id, routeId), eq(routes.active, true)]
+  if (themeId) conditions.push(eq(routes.themeId, themeId))
+  return Boolean(
+    db.select({ id: routes.id }).from(routes).where(and(...conditions)).get(),
+  )
+}
+
+/**
  * Fetch the data we need to score a user when they enter the queue.
  *
  * @param {string} userId
@@ -138,12 +155,19 @@ export function removePersistedParty(partyId) {
  * @param {import("./scoring.js").QueuedPlayer[]} params.players  All players across all parties
  * @param {string} params.selectedTimeSlot
  * @param {number} params.matchScore
- * @param {string|null} [params.themeId]  Chosen route theme. When set, the
- *   session route is picked only from active routes of that theme; if none
- *   exist the match fails with a NO_ROUTE_FOR_THEME error. When null, any
- *   active route is eligible (and zero routes falls back to a no-session group).
+ * @param {string|null} [params.themeId]  Chosen route theme. When set (and no
+ *   routeId), the session route is picked only from active routes of that theme.
+ * @param {string|null} [params.routeId]  Chosen specific route. When set, the
+ *   session runs exactly this route (it must be active, and belong to themeId if
+ *   that is also set). Every party in the bucket chose the same route, so there
+ *   is no ambiguity. When null, falls back to themeId/any behaviour above.
+ *
+ *   If an explicitly chosen route/theme cannot resolve to an active route the
+ *   match fails with a NO_ROUTE_FOR_THEME error (e.g. the route was deactivated
+ *   mid-wait). When both are null, any active route is eligible (and zero routes
+ *   falls back to a no-session group).
  */
-export function createMatchedSession({ parties, players, selectedTimeSlot, matchScore, themeId = null }) {
+export function createMatchedSession({ parties, players, selectedTimeSlot, matchScore, themeId = null, routeId = null }) {
   if (players.length < 4 || players.length > 8) {
     throw new Error(
       `Matched group must have 4..8 players, got ${players.length}`,
@@ -151,6 +175,20 @@ export function createMatchedSession({ parties, players, selectedTimeSlot, match
   }
 
   return db.transaction((tx) => {
+    // routeId is a hard constraint: run that exact route. Otherwise narrow by
+    // theme if given, else any active route. RANDOM() only matters for the
+    // theme/any cases — a routeId match returns at most one row.
+    let routeWhere
+    if (routeId) {
+      routeWhere = themeId
+        ? and(eq(routes.active, true), eq(routes.id, routeId), eq(routes.themeId, themeId))
+        : and(eq(routes.active, true), eq(routes.id, routeId))
+    } else if (themeId) {
+      routeWhere = and(eq(routes.active, true), eq(routes.themeId, themeId))
+    } else {
+      routeWhere = eq(routes.active, true)
+    }
+
     const route = tx
       .select({
         id: routes.id,
@@ -160,19 +198,16 @@ export function createMatchedSession({ parties, players, selectedTimeSlot, match
         themeId: routes.themeId,
       })
       .from(routes)
-      .where(
-        themeId
-          ? and(eq(routes.active, true), eq(routes.themeId, themeId))
-          : eq(routes.active, true),
-      )
+      .where(routeWhere)
       .orderBy(sql`RANDOM()`)
       .limit(1)
       .get()
 
-    // An explicitly chosen theme must resolve to a route. The queue-time guard
-    // makes this rare (a route deactivated mid-wait), but never silently match
-    // a group onto a different theme — fail so the socket layer can recover.
-    if (themeId && !route) {
+    // An explicitly chosen route/theme must resolve to an active route. The
+    // queue-time guard makes this rare (deactivated mid-wait), but never
+    // silently match a group onto a different route — fail so the socket layer
+    // can recover (release parties + surface NO_ROUTE_FOR_THEME).
+    if ((routeId || themeId) && !route) {
       const err = new Error("No active route is available for the selected theme")
       err.code = "NO_ROUTE_FOR_THEME"
       throw err
