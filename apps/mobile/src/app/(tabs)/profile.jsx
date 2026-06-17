@@ -1,10 +1,11 @@
 import { Image } from "expo-image"
 import { ThemedText } from "@/components/themed-text"
 import { ThemedView } from "@/components/themed-view"
-import { ActivityIndicator, StyleSheet, View } from "react-native"
+import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native"
 import { router } from "expo-router"
 import { Suspense } from "react"
 import { useAccountQuery, useLogoutMutation } from "@/features/auth"
+import { GroupPhotosSection } from "@/features/group-photos"
 import {
   PrimaryDarkOutlineButton,
   PrimaryLightButton,
@@ -17,7 +18,7 @@ function ProfileContent() {
   const user = accountQuery.data.result
 
   return (
-    <>
+    <ScrollView contentContainerStyle={styles.scrollContent}>
       <View style={styles.block}>
         <Image
           source={require("../../../assets/images/emptyprofile.png")}
@@ -59,6 +60,8 @@ function ProfileContent() {
         </View>
       </View>
 
+      <GroupPhotosSection />
+
       <ThemedView style={styles.container}>
         <PrimaryDarkOutlineButton
           title={logout.isPending ? "Logging out…" : "Log Out"}
@@ -70,7 +73,7 @@ function ProfileContent() {
           }
         />
       </ThemedView>
-    </>
+    </ScrollView>
   )
 }
 
@@ -83,6 +86,11 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 24,
+  },
+
   block: {
     flexDirection: "row",
     alignItems: "center",
