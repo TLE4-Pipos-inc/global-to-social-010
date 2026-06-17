@@ -13,7 +13,9 @@ import {
   persistQueuedParty,
   photoBelongsToStop,
   removePersistedParty,
+  routeThemeExists,
   startStopTimer,
+  themeHasActiveRoute,
 } from "@/lib/matchmaking/session.js"
 import { ConversationStarterScheduler } from "@/lib/conversation-starters.js"
 
@@ -191,12 +193,24 @@ export function attachSocketServer(httpServer, opts = {}) {
         players: match.players,
         selectedTimeSlot: match.selectedTimeSlot,
         matchScore: match.matchScore,
+        themeId: match.themeId ?? null,
       })
     } catch (err) {
       console.error("Failed to create matched session:", err)
+      // Release the parties so their members can re-queue instead of being
+      // stranded in "matched" with no session (e.g. NO_ROUTE_FOR_THEME when a
+      // themed route was deactivated mid-wait). Also drop any persisted rows.
+      for (const party of match.parties) {
+        queue.releaseParty(party.id)
+        try {
+          removePersistedParty(party.id)
+        } catch (cleanupErr) {
+          console.error("Failed to remove party row after match failure:", cleanupErr)
+        }
+      }
       for (const player of match.players) {
         io.to(userRoom(player.userId)).emit(SOCKET_EVENTS.ERROR, {
-          code: "MATCH_FAILED",
+          code: err.code ?? "MATCH_FAILED",
           message: err.message ?? "Failed to start the pub hop",
         })
       }
@@ -353,7 +367,7 @@ function handleStatus(socket, queue) {
   const party = queue.getPartyOfUser(socket.data.userId)
   if (!party) return { ok: true, inParty: false }
   const bucket = party.selectedTimeSlot
-    ? queue.bucketStats(party.selectedTimeSlot)
+    ? queue.bucketStats(party.selectedTimeSlot, party.themeId)
     : null
   return {
     ok: true,
@@ -370,7 +384,20 @@ function handleQueue(io, socket, queue, payload) {
     throw httpError("INVALID_TIME_SLOT", "selectedTimeSlot is required")
   }
 
-  const party = queue.queueParty(leaderId, selectedTimeSlot)
+  // themeId is optional: null/"" means "any theme" (matches anyone, random route).
+  // A chosen theme must exist and have an active route to run a session on.
+  const rawThemeId = payload?.themeId
+  const themeId = rawThemeId == null ? null : String(rawThemeId).trim() || null
+  if (themeId) {
+    if (!routeThemeExists(themeId)) {
+      throw httpError("INVALID_THEME", "Selected theme does not exist")
+    }
+    if (!themeHasActiveRoute(themeId)) {
+      throw httpError("NO_ROUTE_FOR_THEME", "No active route is available for the selected theme")
+    }
+  }
+
+  const party = queue.queueParty(leaderId, selectedTimeSlot, themeId)
 
   // Persist parties that satisfy the existing group_size constraint (4..8).
   // Smaller parties will be written to the DB when the match is confirmed.
@@ -388,9 +415,10 @@ function handleQueue(io, socket, queue, payload) {
   const data = serializeParty(party)
   io.to(partyRoom(party.id)).emit(SOCKET_EVENTS.PARTY_UPDATED, data)
 
-  const stats = queue.bucketStats(selectedTimeSlot)
+  const stats = queue.bucketStats(selectedTimeSlot, party.themeId)
   io.to(partyRoom(party.id)).emit(SOCKET_EVENTS.QUEUE_UPDATE, {
     selectedTimeSlot,
+    themeId: party.themeId,
     ...stats,
   })
   return { ok: true, party: data, bucket: stats }
