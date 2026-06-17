@@ -15,7 +15,7 @@ export function PartyView() {
   // `/api/auth/me` returns the user wrapped as { result: user }; fall back to
   // other shapes defensively so leader detection still works.
   const myId = account?.result?.id ?? account?.id ?? account?.user?.id
-  const { party, createParty, joinParty, leaveParty, kickMember, queueParty } =
+  const { party, createParty, quickMatch, joinParty, leaveParty, kickMember, queueParty } =
     useMatchmaking()
 
   const [inviteCode, setInviteCode] = useState("")
@@ -38,14 +38,33 @@ export function PartyView() {
     return (
       <ScrollView contentContainerStyle={styles.content}>
         <ThemedText type="title">Find your group</ThemedText>
-        <ThemedText style={styles.muted}>
-          Create a party and invite friends, or join one with a code. Then queue
-          to get matched with other students.
-        </ThemedText>
+
+        <View style={styles.quickMatchCard}>
+          <ThemedText type="subtitle" style={styles.quickMatchTitle}>
+            Quick match
+          </ThemedText>
+          <ThemedText style={styles.quickMatchMuted}>
+            Jump straight into matchmaking as a solo player.
+          </ThemedText>
+          <PrimaryLightButton
+            title={busy ? "Working…" : "Find a group"}
+            disabled={busy}
+            onPress={() => call(quickMatch)}
+          />
+        </View>
+
+        <View style={styles.dividerRow}>
+          <View style={styles.dividerLine} />
+          <ThemedText style={styles.dividerLabel}>or play with friends</ThemedText>
+          <View style={styles.dividerLine} />
+        </View>
 
         <View style={styles.card}>
           <ThemedText type="subtitle">Start a party</ThemedText>
-          <PrimaryLightButton
+          <ThemedText style={styles.muted}>
+            Create a party and share the invite code with friends.
+          </ThemedText>
+          <PrimaryDarkButton
             title={busy ? "Working…" : "Create party"}
             disabled={busy}
             onPress={() => call(createParty)}
@@ -154,6 +173,32 @@ const styles = StyleSheet.create({
   content: {
     padding: 24,
     gap: 20,
+  },
+  quickMatchCard: {
+    gap: 12,
+    backgroundColor: Colors.darkGreenColor,
+    borderRadius: 14,
+    padding: 16,
+  },
+  quickMatchTitle: {
+    color: "#fff",
+  },
+  quickMatchMuted: {
+    color: "rgba(255,255,255,0.7)",
+  },
+  dividerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#ddd",
+  },
+  dividerLabel: {
+    color: "#888",
+    fontSize: 13,
   },
   muted: {
     color: "#555",

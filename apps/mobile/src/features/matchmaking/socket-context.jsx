@@ -193,6 +193,10 @@ export function SocketProvider({ children }) {
   const actions = useMemo(
     () => ({
       createParty: () => emitWithAck(SOCKET_EVENTS.PARTY_CREATE),
+      quickMatch: async () => {
+        await emitWithAck(SOCKET_EVENTS.PARTY_CREATE)
+        await emitWithAck(SOCKET_EVENTS.PARTY_QUEUE, { selectedTimeSlot: MATCH_TIME_SLOT })
+      },
       joinParty: (inviteCode) =>
         emitWithAck(SOCKET_EVENTS.PARTY_JOIN, { inviteCode }),
       leaveParty: async () => {
