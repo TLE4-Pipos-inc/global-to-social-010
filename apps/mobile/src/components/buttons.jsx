@@ -21,6 +21,12 @@ export const PrimaryDarkButton = ({ title, ...props }) => (
     </Pressable>
 );
 
+export const PrimaryAccentButton = ({ title, ...props }) => (
+    <Pressable style={styles.accentFilled} {...props}>
+        <Text style={styles.accentText}>{title}</Text>
+    </Pressable>
+);
+
 export const PrimaryDarkOutlineButton = ({ title, ...props }) => (
     <Pressable style={styles.darkOutline} {...props}>
         <Text style={styles.darkOutlineText}>{title}</Text>
@@ -63,6 +69,15 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
 
+    accentFilled: {
+        height: 52,
+        borderRadius: 12,
+        paddingHorizontal: 20,
+        backgroundColor: Colors.yellowColor,
+        justifyContent: "center",
+        alignItems: "center",
+    },
+
     darkOutline: {
         height: 52,
         borderRadius: 12,
@@ -78,6 +93,12 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: "600",
         color: "#fff",
+    },
+
+    accentText: {
+        fontSize: 18,
+        fontWeight: "600",
+        color: Colors.darkGreenColor,
     },
 
     lightOutlineText: {
