@@ -3,16 +3,22 @@ import { verifyAccess } from "@/lib/jwt-helper"
 import { PartyQueue, serializeParty, serializePublicParty } from "@/lib/matchmaking/queue.js"
 import {
   activateSession,
+  beginStopPhoto,
   createMatchedSession,
   finishStopTimer,
   getSessionMemberCount,
   getSessionStop,
   getStopVenueLocation,
+  getActiveSessionIdsForUser,
+  isRouteQueueable,
   isSessionMember,
   loadPlayerProfile,
   persistQueuedParty,
+  photoBelongsToStop,
   removePersistedParty,
+  routeThemeExists,
   startStopTimer,
+  themeHasActiveRoute,
 } from "@/lib/matchmaking/session.js"
 import { ConversationStarterScheduler } from "@/lib/conversation-starters.js"
 
@@ -35,6 +41,7 @@ export const SOCKET_EVENTS = Object.freeze({
   STOP_CHECK_IN: "stop:checkin",
   STOP_START: "stop:start",
   STOP_FINISH: "stop:finish",
+  STOP_PHOTO_SUBMIT: "stop:photo:submit",
 
   // ---- server -> client ----
   PARTY_UPDATED: "party:updated",
@@ -44,6 +51,7 @@ export const SOCKET_EVENTS = Object.freeze({
   SESSION_STARTED: "session:started",
   STOP_PRESENCE: "stop:presence",
   STOP_TIMER_STARTED: "stop:timer:started",
+  STOP_PHOTO_REQUESTED: "stop:photo:requested",
   STOP_TIMER_FINISHED: "stop:timer:finished",
   CONVERSATION_STARTER: "conversation:starter",
   ERROR: "error:matchmaking",
@@ -62,6 +70,10 @@ const STOP_PRESENCE_RADIUS_M = 50
  * member out of the quorum (e.g. phone dies, connection lost).
  */
 const PRESENCE_STALE_MS = 10_000
+ * How long a chosen member has to submit the group selfie before the spotlight
+ * rotates to another connected member (re-pick on no-show / disconnect).
+ */
+const PHOTO_REQUEST_TIMEOUT_MS = 5 * 60_000
 
 /**
  * Wire Socket.IO onto an existing HTTP server.
@@ -95,6 +107,11 @@ export function attachSocketServer(httpServer, opts = {}) {
    * @type {Map<string, { lat: number, lng: number, memberCount: number }>}
    */
   const stopMeta = new Map()
+  /**
+   * Stops that are paused on `awaiting_photo`, keyed by stopId.
+   * @type {Map<string, { sessionId: string, chosenUserId: string|null, timeout: NodeJS.Timeout }>}
+   */
+  const photoRequests = new Map()
 
   // --- AUTH ---------------------------------------------------------------
   io.use((socket, next) => {
@@ -127,6 +144,14 @@ export function attachSocketServer(httpServer, opts = {}) {
     if (existingParty) {
       socket.join(partyRoom(existingParty.id))
       socket.emit(SOCKET_EVENTS.PARTY_UPDATED, serializeParty(existingParty))
+    }
+
+    // Re-join any in-progress session rooms. Socket.IO drops room membership on
+    // disconnect, so a member who briefly dropped (e.g. Android pausing the app
+    // to open the camera) would otherwise stop receiving stop broadcasts and
+    // hang on the current stop while everyone else advances.
+    for (const sessionId of getActiveSessionIdsForUser(userId)) {
+      socket.join(sessionRoom(sessionId))
     }
 
     socket.on(SOCKET_EVENTS.PARTY_CREATE, (payload, ack) =>
@@ -175,7 +200,10 @@ export function attachSocketServer(httpServer, opts = {}) {
       safe(socket, ack, () => handleStopStart(io, socket, scheduler, stopPresence, stopMeta, payload)),
     )
     socket.on(SOCKET_EVENTS.STOP_FINISH, (payload, ack) =>
-      safe(socket, ack, () => handleStopFinish(io, socket, scheduler, payload)),
+      safe(socket, ack, () => handleStopFinish(io, socket, scheduler, photoRequests, payload)),
+    )
+    socket.on(SOCKET_EVENTS.STOP_PHOTO_SUBMIT, (payload, ack) =>
+      safe(socket, ack, () => handleStopPhotoSubmit(io, socket, photoRequests, payload)),
     )
 
     socket.on("disconnect", () => {
@@ -183,6 +211,14 @@ export function attachSocketServer(httpServer, opts = {}) {
       // If this was their last socket, we leave the party in memory but they
       // remain a member; they can rejoin via reconnect. To avoid ghost members
       // we leave it to the leader to kick or call PARTY_LEAVE explicitly.
+
+      // If this user was holding the photo spotlight for a stop and has no other
+      // sockets left in that session, rotate the spotlight so the stop can finish.
+      for (const [stopId, entry] of photoRequests) {
+        if (entry.chosenUserId !== userId) continue
+        if (connectedSessionUserIds(io, entry.sessionId).includes(userId)) continue
+        requestStopPhoto(io, photoRequests, entry.sessionId, stopId, userId)
+      }
     })
   })
 
@@ -195,12 +231,25 @@ export function attachSocketServer(httpServer, opts = {}) {
         players: match.players,
         selectedTimeSlot: match.selectedTimeSlot,
         matchScore: match.matchScore,
+        themeId: match.themeId ?? null,
+        routeId: match.routeId ?? null,
       })
     } catch (err) {
       console.error("Failed to create matched session:", err)
+      // Release the parties so their members can re-queue instead of being
+      // stranded in "matched" with no session (e.g. NO_ROUTE_FOR_THEME when a
+      // themed route was deactivated mid-wait). Also drop any persisted rows.
+      for (const party of match.parties) {
+        queue.releaseParty(party.id)
+        try {
+          removePersistedParty(party.id)
+        } catch (cleanupErr) {
+          console.error("Failed to remove party row after match failure:", cleanupErr)
+        }
+      }
       for (const player of match.players) {
         io.to(userRoom(player.userId)).emit(SOCKET_EVENTS.ERROR, {
-          code: "MATCH_FAILED",
+          code: err.code ?? "MATCH_FAILED",
           message: err.message ?? "Failed to start the pub hop",
         })
       }
@@ -369,7 +418,7 @@ function handleStatus(socket, queue) {
   const party = queue.getPartyOfUser(socket.data.userId)
   if (!party) return { ok: true, inParty: false }
   const bucket = party.selectedTimeSlot
-    ? queue.bucketStats(party.selectedTimeSlot)
+    ? queue.bucketStats(party.selectedTimeSlot, party.themeId, party.routeId)
     : null
   return {
     ok: true,
@@ -386,7 +435,27 @@ function handleQueue(io, socket, queue, payload) {
     throw httpError("INVALID_TIME_SLOT", "selectedTimeSlot is required")
   }
 
-  const party = queue.queueParty(leaderId, selectedTimeSlot)
+  // themeId/routeId are optional: null/"" means "any" (the Match-anywhere path
+  // matches anyone and runs a random route). When a theme is chosen it must
+  // exist; when a specific route is chosen it must be active and belong to the
+  // theme (routeId is a hard matching constraint).
+  const rawThemeId = payload?.themeId
+  const themeId = rawThemeId == null ? null : String(rawThemeId).trim() || null
+  const rawRouteId = payload?.routeId
+  const routeId = rawRouteId == null ? null : String(rawRouteId).trim() || null
+
+  if (themeId && !routeThemeExists(themeId)) {
+    throw httpError("INVALID_THEME", "Selected theme does not exist")
+  }
+  if (routeId) {
+    if (!isRouteQueueable(routeId, themeId)) {
+      throw httpError("NO_ROUTE_FOR_THEME", "Selected route is not available")
+    }
+  } else if (themeId && !themeHasActiveRoute(themeId)) {
+    throw httpError("NO_ROUTE_FOR_THEME", "No active route is available for the selected theme")
+  }
+
+  const party = queue.queueParty(leaderId, selectedTimeSlot, themeId, routeId)
 
   // Persist parties that satisfy the existing group_size constraint (4..8).
   // Smaller parties will be written to the DB when the match is confirmed.
@@ -404,9 +473,11 @@ function handleQueue(io, socket, queue, payload) {
   const data = serializeParty(party)
   io.to(partyRoom(party.id)).emit(SOCKET_EVENTS.PARTY_UPDATED, data)
 
-  const stats = queue.bucketStats(selectedTimeSlot)
+  const stats = queue.bucketStats(selectedTimeSlot, party.themeId, party.routeId)
   io.to(partyRoom(party.id)).emit(SOCKET_EVENTS.QUEUE_UPDATE, {
     selectedTimeSlot,
+    themeId: party.themeId,
+    routeId: party.routeId,
     ...stats,
   })
   return { ok: true, party: data, bucket: stats }
@@ -618,7 +689,7 @@ function handleStopStart(io, socket, scheduler, stopPresence, stopMeta, payload)
   return { ok: true, stopId, sessionId }
 }
 
-function handleStopFinish(io, socket, scheduler, payload) {
+function handleStopFinish(io, socket, scheduler, photoRequests, payload) {
   const userId = socket.data.userId
   const stopId = String(payload?.stopId ?? "")
   const sessionId = String(payload?.sessionId ?? "")
@@ -636,19 +707,150 @@ function handleStopFinish(io, socket, scheduler, payload) {
     throw httpError("NOT_MEMBER", "You are not a member of this session")
   }
 
+  // Pressing "end stop" no longer finishes it: the stop enters `awaiting_photo`
+  // while a randomly chosen member takes the group selfie. It only finishes once
+  // that photo is uploaded (REST) and confirmed via STOP_PHOTO_SUBMIT.
+  const began = beginStopPhoto(stopId)
+  if (!began) throw httpError("FINISH_FAILED", "Could not move the stop to awaiting photo")
+
+  // The socialising window is over; stop the conversation-starter scheduler.
+  scheduler.stopCurrent(sessionId)
+
+  const chosenUserId = requestStopPhoto(io, photoRequests, sessionId, stopId)
+
+  return { ok: true, stopId, sessionId, awaitingPhoto: true, chosenUserId }
+}
+
+function handleStopPhotoSubmit(io, socket, photoRequests, payload) {
+  const userId = socket.data.userId
+  const stopId = String(payload?.stopId ?? "")
+  const sessionId = String(payload?.sessionId ?? "")
+  const photoId = String(payload?.photoId ?? "")
+
+  if (!stopId) throw httpError("INVALID_STOP", "stopId is required")
+  if (!sessionId) throw httpError("INVALID_SESSION", "sessionId is required")
+  if (!photoId) throw httpError("INVALID_PHOTO", "photoId is required")
+
+  const stop = getSessionStop(sessionId, stopId)
+  if (!stop) throw httpError("STOP_NOT_FOUND", "Stop not found in this session")
+  if (stop.timerState !== "awaiting_photo") {
+    throw httpError("INVALID_STATE", `Stop is not awaiting a photo (state: ${stop.timerState})`)
+  }
+
+  if (!isSessionMember(sessionId, userId)) {
+    throw httpError("NOT_MEMBER", "You are not a member of this session")
+  }
+
+  const pending = photoRequests.get(stopId)
+  if (!pending) throw httpError("NO_PHOTO_REQUEST", "No active photo request for this stop")
+  // The spotlight (`pending.chosenUserId`) is only a UX hint for who we *ask*.
+  // Any session member's valid photo finishes the stop — otherwise a spotlight
+  // rotation while the chosen member is mid-capture would reject their upload and
+  // leave the stop stuck in `awaiting_photo` forever.
+
+  // Confirm the photo was actually persisted for this stop (and thus linked to
+  // the session through it) before allowing the stop to finish.
+  if (!photoBelongsToStop(photoId, stopId)) {
+    throw httpError("PHOTO_NOT_FOUND", "No stored photo found for this stop")
+  }
+
   const finished = finishStopTimer(stopId)
   if (!finished) throw httpError("FINISH_FAILED", "Could not finish the stop timer")
 
-  scheduler.stopCurrent(sessionId)
+  clearPhotoRequest(photoRequests, stopId)
 
-  io.to(sessionRoom(sessionId)).emit(SOCKET_EVENTS.STOP_TIMER_FINISHED, { stopId, sessionId })
+  io.to(sessionRoom(sessionId)).emit(SOCKET_EVENTS.STOP_TIMER_FINISHED, { stopId, sessionId, photoId })
 
-  return { ok: true, stopId, sessionId }
+  return { ok: true, stopId, sessionId, photoId }
 }
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+/**
+ * Distinct userIds currently connected to a session room.
+ *
+ * @param {import("socket.io").Server} io
+ * @param {string} sessionId
+ * @returns {string[]}
+ */
+function connectedSessionUserIds(io, sessionId) {
+  const ids = new Set()
+  for (const sid of io.sockets.adapter.rooms.get(sessionRoom(sessionId)) ?? []) {
+    const s = io.sockets.sockets.get(sid)
+    if (s?.data?.userId) ids.add(s.data.userId)
+  }
+  return [...ids]
+}
+
+/**
+ * Pick a random connected session member, preferring someone other than
+ * `excludeUserId` so the spotlight rotates on re-pick. Returns null if nobody
+ * is connected.
+ *
+ * @param {import("socket.io").Server} io
+ * @param {string} sessionId
+ * @param {string|null} [excludeUserId]
+ * @returns {string|null}
+ */
+function pickSessionMember(io, sessionId, excludeUserId = null) {
+  const ids = connectedSessionUserIds(io, sessionId)
+  if (ids.length === 0) return null
+  const others = ids.filter((id) => id !== excludeUserId)
+  const pool = others.length > 0 ? others : ids
+  return pool[Math.floor(Math.random() * pool.length)]
+}
+
+/**
+ * Spotlight a random member to take the group selfie that ends a stop and arm
+ * a timeout that rotates the spotlight if they go quiet. Stores/refreshes the
+ * pending request keyed by stopId and announces the chosen member to the room.
+ *
+ * @param {import("socket.io").Server} io
+ * @param {Map<string, { sessionId: string, chosenUserId: string|null, timeout: NodeJS.Timeout }>} photoRequests
+ * @param {string} sessionId
+ * @param {string} stopId
+ * @param {string|null} [previousChosenId]
+ * @returns {string|null} the chosen userId, or null if nobody is connected
+ */
+function requestStopPhoto(io, photoRequests, sessionId, stopId, previousChosenId = null) {
+  const existing = photoRequests.get(stopId)
+  if (existing) clearTimeout(existing.timeout)
+
+  const chosenUserId = pickSessionMember(io, sessionId, previousChosenId)
+
+  const timeout = setTimeout(
+    () => requestStopPhoto(io, photoRequests, sessionId, stopId, chosenUserId),
+    PHOTO_REQUEST_TIMEOUT_MS,
+  )
+  // Don't let the retry timer keep the process alive (matters for tests/shutdown).
+  timeout.unref?.()
+  photoRequests.set(stopId, { sessionId, chosenUserId, timeout })
+
+  // No one connected to choose yet — keep the stop awaiting and let the timeout retry.
+  if (!chosenUserId) return null
+
+  io.to(sessionRoom(sessionId)).emit(SOCKET_EVENTS.STOP_PHOTO_REQUESTED, {
+    sessionId,
+    stopId,
+    chosenUserId,
+  })
+  return chosenUserId
+}
+
+/**
+ * Cancel and forget a pending photo request (its retry timeout included).
+ *
+ * @param {Map<string, { timeout: NodeJS.Timeout }>} photoRequests
+ * @param {string} stopId
+ */
+function clearPhotoRequest(photoRequests, stopId) {
+  const entry = photoRequests.get(stopId)
+  if (!entry) return
+  clearTimeout(entry.timeout)
+  photoRequests.delete(stopId)
+}
 
 function toQueuedPlayer(profile) {
   return {

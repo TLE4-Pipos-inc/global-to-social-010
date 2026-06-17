@@ -12,6 +12,8 @@ import { scoreGroup, scorePair, scoreUserAgainstGroup } from "./scoring.js"
  * @property {string} leaderId
  * @property {QueuedPlayer[]} members
  * @property {string | null} selectedTimeSlot   // null until queued
+ * @property {string | null} themeId            // chosen route theme; null = any theme
+ * @property {string | null} routeId            // chosen specific route; null = any route in theme
  * @property {"idle"|"queued"|"matched"} status
  * @property {"public"|"private"} visibility     // public = listed in the team browser
  * @property {number | null} maxSize             // leader-chosen final team size; null = system defaults
@@ -20,6 +22,8 @@ import { scoreGroup, scorePair, scoreUserAgainstGroup } from "./scoring.js"
  *
  * @typedef {Object} MatchResult
  * @property {string} selectedTimeSlot
+ * @property {string | null} themeId
+ * @property {string | null} routeId
  * @property {Party[]} parties
  * @property {QueuedPlayer[]} players
  * @property {number} matchScore
@@ -46,7 +50,7 @@ export class PartyQueue extends EventEmitter {
     this.byInvite = new Map()
     /** @type {Map<string, string>} userId -> partyId */
     this.byUser = new Map()
-    /** @type {Map<string, Set<string>>} timeSlot -> set of queued partyIds */
+    /** @type {Map<string, Set<string>>} bucketKey (slot::theme::route) -> set of queued partyIds */
     this.buckets = new Map()
     this.tickHandle = null
   }
@@ -83,6 +87,8 @@ export class PartyQueue extends EventEmitter {
       leaderId: leader.userId,
       members: [leader],
       selectedTimeSlot: null,
+      themeId: null,
+      routeId: null,
       status: "idle",
       visibility: "private",
       maxSize: null,
@@ -155,7 +161,7 @@ export class PartyQueue extends EventEmitter {
 
     // A new member can complete a searching team, so re-evaluate its slot.
     if (party.status === "queued" && party.selectedTimeSlot) {
-      this.evaluateSlot(party.selectedTimeSlot)
+      this.evaluateSlot(party.selectedTimeSlot, party.themeId, party.routeId)
     }
     return party
   }
@@ -229,6 +235,8 @@ export class PartyQueue extends EventEmitter {
       party.status = "idle"
       party.enqueuedAt = null
       party.selectedTimeSlot = null
+      party.themeId = null
+      party.routeId = null
     }
 
     if (party.members.length === 0) {
@@ -270,9 +278,14 @@ export class PartyQueue extends EventEmitter {
    *
    * @param {string} leaderId
    * @param {string} selectedTimeSlot
+   * @param {string|null} [themeId]  Chosen route theme; null/omitted = any theme.
+   * @param {string|null} [routeId]  Chosen specific route; null/omitted = any
+   *   route within the theme. Parties only ever match other parties with the
+   *   same themeId AND routeId (see #bucketKey), so a matched group is always
+   *   both theme- and route-homogeneous.
    * @returns {Party}
    */
-  queueParty(leaderId, selectedTimeSlot) {
+  queueParty(leaderId, selectedTimeSlot, themeId = null, routeId = null) {
     const party = this.getPartyOfUser(leaderId)
     if (!party) throw new Error("You are not in a party")
     if (party.leaderId !== leaderId) throw new Error("Only the leader can queue the party")
@@ -286,13 +299,15 @@ export class PartyQueue extends EventEmitter {
     }
 
     party.selectedTimeSlot = selectedTimeSlot.trim()
+    party.themeId = themeId ?? null
+    party.routeId = routeId ?? null
     party.status = "queued"
     party.enqueuedAt = Date.now()
     // Refresh per-member enqueuedAt so scoring "wait time" is meaningful.
     for (const m of party.members) m.enqueuedAt = party.enqueuedAt
     this.#addToBucket(party)
     this.emit("party:updated", party)
-    this.evaluateSlot(party.selectedTimeSlot)
+    this.evaluateSlot(party.selectedTimeSlot, party.themeId, party.routeId)
     return party
   }
 
@@ -311,9 +326,13 @@ export class PartyQueue extends EventEmitter {
     party.status = "idle"
     party.enqueuedAt = null
     const slot = party.selectedTimeSlot
+    const themeId = party.themeId
+    const routeId = party.routeId
     party.selectedTimeSlot = null
+    party.themeId = null
+    party.routeId = null
     this.emit("party:updated", party)
-    if (slot) this.evaluateSlot(slot)
+    if (slot) this.evaluateSlot(slot, themeId, routeId)
     return party
   }
 
@@ -330,10 +349,12 @@ export class PartyQueue extends EventEmitter {
 
   /**
    * @param {string} slot
+   * @param {string|null} [themeId]  Theme bucket; null/omitted = the "any theme" bucket.
+   * @param {string|null} [routeId]  Route bucket; null/omitted = the "any route" bucket.
    * @returns {{ parties: number, players: number }}
    */
-  bucketStats(slot) {
-    const set = this.buckets.get(slot)
+  bucketStats(slot, themeId = null, routeId = null) {
+    const set = this.buckets.get(this.#bucketKey(slot, themeId, routeId))
     if (!set) return { parties: 0, players: 0 }
     let players = 0
     for (const pid of set) players += this.parties.get(pid)?.members.length ?? 0
@@ -375,24 +396,38 @@ export class PartyQueue extends EventEmitter {
   // --- matchmaking core ---------------------------------------------------
 
   evaluateAll() {
-    for (const slot of [...this.buckets.keys()]) this.evaluateSlot(slot)
+    for (const key of [...this.buckets.keys()]) this.#evaluateBucket(key)
   }
 
   /**
-   * Try to form one or more groups out of the parties currently in `slot`.
-   * Emits `match` for each formed group.
+   * Evaluate the bucket for a (timeSlot, theme, route) tuple. `themeId` and
+   * `routeId` default to null ("any"), so callers and tests that pass only a
+   * slot keep matching the un-themed/un-routed bucket exactly as before.
+   *
+   * @param {string} slot
+   * @param {string|null} [themeId]
+   * @param {string|null} [routeId]
+   */
+  evaluateSlot(slot, themeId = null, routeId = null) {
+    this.#evaluateBucket(this.#bucketKey(slot, themeId, routeId))
+  }
+
+  /**
+   * Try to form one or more groups out of the parties currently in `bucketKey`.
+   * Every party in a bucket shares the same (timeSlot, theme), so a formed group
+   * is always theme-homogeneous. Emits `match` for each formed group.
    *
    * Two phases, in order:
    *   1. Fill public host teams from the random queue (progressive absorption),
    *      forming each once it reaches its max size or relaxes past the window.
    *   2. The classic greedy matcher over the remaining non-public parties.
-   * With no public teams in the slot, phase 1 is a no-op and behaviour is
+   * With no public teams in the bucket, phase 1 is a no-op and behaviour is
    * identical to the original single-phase matcher.
    *
-   * @param {string} slot
+   * @param {string} bucketKey
    */
-  evaluateSlot(slot) {
-    let set = this.buckets.get(slot)
+  #evaluateBucket(bucketKey) {
+    let set = this.buckets.get(bucketKey)
     if (!set || set.size === 0) return
 
     const now = Date.now()
@@ -404,12 +439,12 @@ export class PartyQueue extends EventEmitter {
       .sort((a, b) => (a.enqueuedAt ?? Infinity) - (b.enqueuedAt ?? Infinity))
 
     for (const host of hosts) {
-      this.#fillHostTeam(host, slot, now)
-      this.#maybeFormHost(host, slot, now)
+      this.#fillHostTeam(host, bucketKey, now)
+      this.#maybeFormHost(host, bucketKey, now)
     }
 
     // --- Phase 2: classic greedy over the remaining NON-public parties ---
-    set = this.buckets.get(slot)
+    set = this.buckets.get(bucketKey)
     while (set && set.size > 0) {
       const parties = [...set]
         .map((pid) => this.parties.get(pid))
@@ -426,22 +461,37 @@ export class PartyQueue extends EventEmitter {
         party.status = "matched"
       }
 
+      // All parties in the group share a slot + theme + route; read them off
+      // the group.
+      const sample = group.parties[0]
       this.emit("match", {
-        selectedTimeSlot: slot,
+        selectedTimeSlot: sample.selectedTimeSlot,
+        themeId: sample.themeId ?? null,
+        routeId: sample.routeId ?? null,
         parties: group.parties,
         players: group.players,
         matchScore: group.matchScore,
       })
 
-      set = this.buckets.get(slot)
+      set = this.buckets.get(bucketKey)
       if (set && set.size === 0) {
-        this.buckets.delete(slot)
+        this.buckets.delete(bucketKey)
         set = undefined
       }
     }
   }
 
   // --- internal helpers ---------------------------------------------------
+
+  /**
+   * Composite bucket key: parties only match within the same
+   * (slot, theme, route). routeId is a hard constraint, so a formed group is
+   * always both theme- and route-homogeneous. null theme/route fall back to the
+   * "any" bucket (used by the Match-anywhere path and older theme-less callers).
+   */
+  #bucketKey(slot, themeId, routeId) {
+    return `${slot}::${themeId ?? "any"}::${routeId ?? "any"}`
+  }
 
   /** Max members a party accepts via manual join (invite or browser). */
   #manualJoinCap(party) {
@@ -454,8 +504,8 @@ export class PartyQueue extends EventEmitter {
    * Absorbed parties are dissolved into the host (their members move over).
    * Emits `party:absorbed` once if anything was absorbed.
    */
-  #fillHostTeam(host, slot, now) {
-    const set = this.buckets.get(slot)
+  #fillHostTeam(host, bucketKey, now) {
+    const set = this.buckets.get(bucketKey)
     if (!set) return
     const cap = host.maxSize ?? this.config.MAX_GROUP_SIZE
 
@@ -511,8 +561,8 @@ export class PartyQueue extends EventEmitter {
    * and waited past the relax window. Otherwise it holds (stays queued) so more
    * compatible players can still join. Emits `match` and marks it matched.
    */
-  #maybeFormHost(host, slot, now) {
-    const set = this.buckets.get(slot)
+  #maybeFormHost(host, bucketKey, now) {
+    const set = this.buckets.get(bucketKey)
     if (!set || !set.has(host.id)) return false
 
     const cap = host.maxSize ?? this.config.MAX_GROUP_SIZE
@@ -527,10 +577,12 @@ export class PartyQueue extends EventEmitter {
 
     set.delete(host.id)
     host.status = "matched"
-    if (set.size === 0) this.buckets.delete(slot)
+    if (set.size === 0) this.buckets.delete(bucketKey)
 
     this.emit("match", {
-      selectedTimeSlot: slot,
+      selectedTimeSlot: host.selectedTimeSlot,
+      themeId: host.themeId ?? null,
+      routeId: host.routeId ?? null,
       parties: [host],
       players: [...host.members],
       matchScore: scoreGroup(host.members),
@@ -540,20 +592,22 @@ export class PartyQueue extends EventEmitter {
 
   #addToBucket(party) {
     if (!party.selectedTimeSlot) return
-    let set = this.buckets.get(party.selectedTimeSlot)
+    const key = this.#bucketKey(party.selectedTimeSlot, party.themeId, party.routeId)
+    let set = this.buckets.get(key)
     if (!set) {
       set = new Set()
-      this.buckets.set(party.selectedTimeSlot, set)
+      this.buckets.set(key, set)
     }
     set.add(party.id)
   }
 
   #removeFromBucket(party) {
     if (!party.selectedTimeSlot) return
-    const set = this.buckets.get(party.selectedTimeSlot)
+    const key = this.#bucketKey(party.selectedTimeSlot, party.themeId, party.routeId)
+    const set = this.buckets.get(key)
     if (!set) return
     set.delete(party.id)
-    if (set.size === 0) this.buckets.delete(party.selectedTimeSlot)
+    if (set.size === 0) this.buckets.delete(key)
   }
 
   #freshInviteCode() {
@@ -742,6 +796,8 @@ export function serializeParty(party) {
     visibility: party.visibility,
     maxSize: party.maxSize,
     selectedTimeSlot: party.selectedTimeSlot,
+    themeId: party.themeId ?? null,
+    routeId: party.routeId ?? null,
     enqueuedAt: party.enqueuedAt,
     members: party.members.map((m) => ({
       userId: m.userId,
@@ -769,6 +825,8 @@ export function serializePublicParty(party, requester, config = MATCHMAKING_CONF
     status: party.status,
     visibility: party.visibility,
     selectedTimeSlot: party.selectedTimeSlot,
+    themeId: party.themeId ?? null,
+    routeId: party.routeId ?? null,
     maxSize: party.maxSize,
     memberCount: party.members.length,
     openSlots: Math.max(0, cap - party.members.length),

@@ -15,6 +15,7 @@ export const SOCKET_EVENTS = Object.freeze({
   STOP_CHECK_IN: "stop:checkin",
   STOP_START: "stop:start",
   STOP_FINISH: "stop:finish",
+  STOP_PHOTO_SUBMIT: "stop:photo:submit",
 
   // ---- server -> client ----
   PARTY_UPDATED: "party:updated",
@@ -24,6 +25,7 @@ export const SOCKET_EVENTS = Object.freeze({
   SESSION_STARTED: "session:started",
   STOP_PRESENCE: "stop:presence",
   STOP_TIMER_STARTED: "stop:timer:started",
+  STOP_PHOTO_REQUESTED: "stop:photo:requested",
   STOP_TIMER_FINISHED: "stop:timer:finished",
   CONVERSATION_STARTER: "conversation:starter",
   ERROR: "error:matchmaking",

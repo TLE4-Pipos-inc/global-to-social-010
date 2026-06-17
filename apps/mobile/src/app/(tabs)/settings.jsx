@@ -85,6 +85,11 @@ function Settings() {
               )}
             </form.AppField>
 
+            <PrimaryLightOutlineButton
+              title="choose your interests"
+              onPress={() => router.push("/interest")}
+            />
+
             <PrimaryLightButton
               title={updateUser.isPending ? "Saving..." : "Save profile"}
               onPress={() => form.handleSubmit()}

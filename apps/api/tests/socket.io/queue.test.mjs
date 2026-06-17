@@ -8,6 +8,7 @@ import assert from "node:assert/strict"
 import {
   PartyQueue,
   requiredScoreForWait,
+  serializeParty,
   serializePublicParty,
   tryFormGroup,
 } from "../../src/lib/matchmaking/queue.js"
@@ -473,6 +474,134 @@ test("compatible solos still form their own group while an incompatible public t
   const ids = matched.players.map((m) => m.userId).sort()
   assert.deepEqual(ids, ["a", "b", "c", "d"])
   assert.equal(q.getPartyOfUser("host").members.length, 1, "public host is untouched")
+})
+
+// --- theme buckets --------------------------------------------------------
+
+test("parties with different themes (same slot) never match", () => {
+  const q = new PartyQueue(config)
+  let matched = null
+  q.on("match", (m) => (matched = m))
+
+  // Two want "pub", two want "cafe" — same slot, but themes differ.
+  q.createParty(player("a"))
+  q.queueParty("a", "19:00", "pub")
+  q.createParty(player("b"))
+  q.queueParty("b", "19:00", "pub")
+  q.createParty(player("c"))
+  q.queueParty("c", "19:00", "cafe")
+  q.createParty(player("d"))
+  q.queueParty("d", "19:00", "cafe")
+
+  assert.equal(matched, null, "2 pub + 2 cafe must not form a group of 4")
+})
+
+test("four parties of the same theme + slot -> one themed match", () => {
+  const q = new PartyQueue(config)
+  let matched = null
+  q.on("match", (m) => (matched = m))
+
+  for (const id of ["a", "b", "c", "d"]) {
+    q.createParty(player(id))
+    q.queueParty(id, "19:00", "cafe")
+  }
+
+  assert.ok(matched, "same theme + slot should form a group")
+  assert.equal(matched.players.length, 4)
+  assert.equal(matched.themeId, "cafe", "match carries the chosen theme")
+})
+
+test("themed and un-themed parties bucket separately", () => {
+  const q = new PartyQueue(config)
+  let matched = null
+  q.on("match", (m) => (matched = m))
+
+  // Two themed "pub", two un-themed (null) — must not combine into one group.
+  q.createParty(player("a"))
+  q.queueParty("a", "20:00", "pub")
+  q.createParty(player("b"))
+  q.queueParty("b", "20:00", "pub")
+  q.createParty(player("c"))
+  q.queueParty("c", "20:00") // null theme
+  q.createParty(player("d"))
+  q.queueParty("d", "20:00") // null theme
+
+  assert.equal(matched, null, "themed and 'any' parties are separate buckets")
+  assert.equal(q.bucketStats("20:00", "pub").parties, 2)
+  assert.equal(q.bucketStats("20:00").parties, 2) // the un-themed bucket
+})
+
+test("serialized party exposes themeId (null until a theme is queued)", () => {
+  const q = new PartyQueue(config)
+  const p = q.createParty(player("a"))
+  assert.equal(serializeParty(p).themeId, null)
+  q.queueParty("a", "19:00", "cafe")
+  assert.equal(serializeParty(q.getPartyOfUser("a")).themeId, "cafe")
+})
+
+// --- route buckets (route is a hard matching constraint) ------------------
+
+test("parties with different routes (same theme + slot) never match", () => {
+  const q = new PartyQueue(config)
+  let matched = null
+  q.on("match", (m) => (matched = m))
+
+  // Same theme + slot, but two chose route r1 and two chose route r2.
+  q.createParty(player("a"))
+  q.queueParty("a", "19:00", "pub", "r1")
+  q.createParty(player("b"))
+  q.queueParty("b", "19:00", "pub", "r1")
+  q.createParty(player("c"))
+  q.queueParty("c", "19:00", "pub", "r2")
+  q.createParty(player("d"))
+  q.queueParty("d", "19:00", "pub", "r2")
+
+  assert.equal(matched, null, "different routes must not form a group of 4")
+  assert.equal(q.bucketStats("19:00", "pub", "r1").parties, 2)
+  assert.equal(q.bucketStats("19:00", "pub", "r2").parties, 2)
+})
+
+test("four parties of the same route + theme + slot -> one match carrying routeId", () => {
+  const q = new PartyQueue(config)
+  let matched = null
+  q.on("match", (m) => (matched = m))
+
+  for (const id of ["a", "b", "c", "d"]) {
+    q.createParty(player(id))
+    q.queueParty(id, "19:00", "cafe", "r1")
+  }
+
+  assert.ok(matched, "same route + theme + slot should form a group")
+  assert.equal(matched.players.length, 4)
+  assert.equal(matched.themeId, "cafe")
+  assert.equal(matched.routeId, "r1", "match carries the chosen route")
+})
+
+test("same theme but routed vs un-routed parties bucket separately", () => {
+  const q = new PartyQueue(config)
+  let matched = null
+  q.on("match", (m) => (matched = m))
+
+  q.createParty(player("a"))
+  q.queueParty("a", "20:00", "pub", "r1")
+  q.createParty(player("b"))
+  q.queueParty("b", "20:00", "pub", "r1")
+  q.createParty(player("c"))
+  q.queueParty("c", "20:00", "pub") // theme but no specific route
+  q.createParty(player("d"))
+  q.queueParty("d", "20:00", "pub")
+
+  assert.equal(matched, null, "routed and 'any route' parties are separate buckets")
+  assert.equal(q.bucketStats("20:00", "pub", "r1").parties, 2)
+  assert.equal(q.bucketStats("20:00", "pub").parties, 2) // the any-route bucket
+})
+
+test("serialized party exposes routeId (null until a route is queued)", () => {
+  const q = new PartyQueue(config)
+  const p = q.createParty(player("a"))
+  assert.equal(serializeParty(p).routeId, null)
+  q.queueParty("a", "19:00", "cafe", "r1")
+  assert.equal(serializeParty(q.getPartyOfUser("a")).routeId, "r1")
 })
 
 test("party:absorbed reports the absorbed users and dissolved parties", () => {

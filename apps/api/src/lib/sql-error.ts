@@ -40,6 +40,15 @@ export function isUniquePartnerUserError(error: unknown): boolean {
   )
 }
 
+export function isUniqueVenuePartnershipError(error: unknown): boolean {
+  return (
+    isSqliteError(error) &&
+    error.message.includes("UNIQUE constraint failed") &&
+    error.message.includes("venue_partnerships.venue_id") &&
+    error.message.includes("venue_partnerships.partner_id")
+    )
+}
+
 export function isUniqueCollageSessionError(error: unknown): boolean {
   return (
     isSqliteError(error) &&
