@@ -40,7 +40,13 @@
           }
         }
       ],
-      "expo-font"
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Pub Hopper needs camera access so your group can take the selfie that completes each stop."
+        }
+      ]
     ]
   }
 }
