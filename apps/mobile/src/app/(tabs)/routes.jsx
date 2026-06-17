@@ -8,6 +8,7 @@ import { useStopQuery } from "@/features/routes"
 import { PrimaryDarkButton } from "@/components/buttons"
 import { Colors } from "@/constants/theme"
 import { ThemedView } from "@/components/themed-view"
+import { useUserInterestQuery } from "@/features/userInterest"
 
 export default function Routes() {
   const { id } = useLocalSearchParams()
@@ -17,6 +18,15 @@ export default function Routes() {
 
   const { data } = useRouteQuery(themeId)
   const { data: stopData } = useStopQuery()
+  const { data: userInterestData } = useUserInterestQuery()
+
+  const interests =
+    userInterestData?.interests ||
+    userInterestData?.result?.interests ||
+    userInterestData?.result ||
+    []
+  const canMatch = interests.length >= 3
+  console.log(interests.length)
 
   const allRoutes = data?.result?.routes ?? []
   const routes = allRoutes.filter((route) => route.themeId === themeId)
@@ -77,12 +87,18 @@ export default function Routes() {
                     <PrimaryDarkButton
                       title="Match Now"
                       onPress={() => {
-                        router.push({
-                          pathname: "/matching",
-                          params: {
-                            id: route.id,
-                          },
-                        })
+                        if (canMatch) {
+                          router.push({
+                            pathname: "/matching",
+                            params: {
+                              id: route.id,
+                            },
+                          })
+                        } else {
+                          alert(
+                            "You need to choose at least 3 interests in settings before matching."
+                          )
+                        }
                       }}
                     />
                   </View>

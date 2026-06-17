@@ -13,11 +13,12 @@ import { PrimaryLightButton } from "@/components/buttons"
 import { Suspense, useState } from "react"
 import { useInterestQuery } from "@/features/intrests"
 import { fetchWithAuth } from "@/lib/api"
+import { useQueryClient } from "@tanstack/react-query"
 
 function Interest() {
   const [selectedInterest, setSelectedInterest] = useState([])
   const [errorMessage, setErrorMessage] = useState("")
-
+  const queryClient = useQueryClient()
   const { data } = useInterestQuery()
 
   const interests =
@@ -53,6 +54,7 @@ function Interest() {
 
         return false
       }
+      await queryClient.invalidateQueries({ queryKey: ["userInterest"] })
       return true
     } catch (error) {
       setErrorMessage("Could not save interests")
