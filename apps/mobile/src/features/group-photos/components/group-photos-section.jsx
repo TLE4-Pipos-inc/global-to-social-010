@@ -55,9 +55,7 @@ export function GroupPhotosSection() {
     return (
       <ThemedView style={styles.section}>
         <ThemedText style={styles.title}>Group memories</ThemedText>
-        <ThemedText style={styles.mutedText}>
-          No group memories yet.
-        </ThemedText>
+        <ThemedText style={styles.mutedText}>No group memories yet.</ThemedText>
       </ThemedView>
     )
   }
@@ -74,8 +72,7 @@ export function GroupPhotosSection() {
                 {groupMemory.group.groupName}
               </ThemedText>
               <ThemedText style={styles.groupMeta}>
-                {groupMemory.sessionCount} sessions - {groupMemory.photoCount}{" "}
-                photos
+                {groupMemory.photoCount} photos
               </ThemedText>
             </View>
             <ThemedText style={styles.memberBadge}>
