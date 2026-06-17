@@ -218,10 +218,10 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: "#ddd",
+    backgroundColor: Colors.border,
   },
   dividerLabel: {
-    color: "#888",
+    color: Colors.icon,
     fontSize: 13,
   },
   muted: {
