@@ -5,7 +5,7 @@ import { router, useLocalSearchParams } from "expo-router"
 import { useRouteQuery } from "@/features/routes"
 import { ThemedText } from "@/components/themed-text"
 import { useStopQuery } from "@/features/routes"
-import { PrimaryDarkButton, PrimaryDarkOutlineButton } from "@/components/buttons"
+import { PrimaryDarkButton, PrimaryAccentButton } from "@/components/buttons"
 import { Colors } from "@/constants/theme"
 import { ThemedView } from "@/components/themed-view"
 import { useUserInterestQuery } from "@/features/userInterest"
@@ -113,7 +113,7 @@ export default function Routes() {
                 </View>
                 <View style={styles.buttonRow}>
                   <View style={styles.buttonWrapper}>
-                    <PrimaryDarkOutlineButton
+                    <PrimaryAccentButton
                       title="Quick queue solo"
                       onPress={() => goToMatching(route, { solo: true })}
                     />
@@ -229,7 +229,7 @@ export default function Routes() {
                 title="Match with friends"
                 onPress={() => selectedRoute && goToMatching(selectedRoute)}
               />
-              <PrimaryDarkOutlineButton
+              <PrimaryAccentButton
                 title="Quick queue solo"
                 onPress={() =>
                   selectedRoute && goToMatching(selectedRoute, { solo: true })
