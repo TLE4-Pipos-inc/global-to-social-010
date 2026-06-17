@@ -10,7 +10,13 @@ export default function Theme() {
 
   return (
     <>
-      <ThemedText type="title" style={styles.title}>Choose a theme for your route</ThemedText>
+      <ThemedText type="title" style={styles.title}>
+        Choose a theme for your route
+      </ThemedText>
+      <ThemedText style={styles.text}>
+        Decide which kind of places you want to visit. During your route, there
+        is something for everyone!
+      </ThemedText>
       <View style={styles.buttonContainer}>
         {themes.map((theme) => (
           <View key={theme.id} style={styles.buttonWrapper}>
@@ -37,15 +43,21 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    paddingTop: 100,
-    padding: 20,
+    paddingTop: 60,
+    padding: 16,
   },
   buttonWrapper: {
     width: "48%",
-    marginBottom: 20,
+    marginBottom: 16,
   },
   title: {
-    paddingTop: 20,
+    paddingTop: 60,
+    paddingHorizontal: 16,
     textAlign: "center",
-  }
+  },
+  text: {
+    paddingTop: 16,
+    paddingHorizontal: 16,
+    textAlign: "center",
+  },
 })

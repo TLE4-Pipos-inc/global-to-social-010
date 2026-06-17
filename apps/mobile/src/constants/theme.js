@@ -5,7 +5,7 @@ export const Colors = {
   icon: "#687076",
   tabIconDefault: "#687076",
   tabIconSelected: "#0a7ea4",
-  lightGreenColor: "#548C2F",
+  lightGreenColor: "#008100",
   darkGreenColor: "#104911",
   yellowColor: "#FFD449",
   orangeColor: "#F9A620",

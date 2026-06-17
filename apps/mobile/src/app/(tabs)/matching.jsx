@@ -1,5 +1,5 @@
 import { Suspense, useEffect, useRef, useState } from "react"
-import { useNavigation } from "expo-router"
+import { router, useNavigation } from "expo-router"
 import { ActivityIndicator, Alert, StyleSheet, View } from "react-native"
 import { ThemedText } from "@/components/themed-text"
 import { ThemedView } from "@/components/themed-view"
@@ -9,6 +9,7 @@ import { PartyView } from "@/features/matchmaking/components/party-view"
 import { SearchingView } from "@/features/matchmaking/components/searching-view"
 import { LobbyView } from "@/features/matchmaking/components/lobby-view"
 import { SessionView } from "@/features/matchmaking/components/session-view"
+import { HeaderBackButton } from "@/components/header-back-button"
 import { useLocalSearchParams } from "expo-router"
 import {
   SessionHeaderTitle,
@@ -76,6 +77,24 @@ export default function Matching() {
         headerLeft: () => <SessionStopCounter />,
         headerRight: () => <SessionTimer />,
       })
+    } else if (phase === "party" && !party) {
+      // Only the "find your group" screen (no party yet) gets a back button to
+      // return to route selection. Once in a party, the "Leave party" button
+      // handles backing out instead.
+      navigation.setOptions({
+        headerTitle: undefined,
+        headerLeft: () => (
+          <HeaderBackButton
+            onPress={() =>
+              router.navigate({
+                pathname: "/routes",
+                params: themeId ? { id: themeId } : {},
+              })
+            }
+          />
+        ),
+        headerRight: undefined,
+      })
     } else {
       navigation.setOptions({
         headerTitle: undefined,
@@ -83,7 +102,7 @@ export default function Matching() {
         headerRight: undefined,
       })
     }
-  }, [phase, navigation])
+  }, [phase, party, themeId, navigation])
 
   return (
     <ThemedView style={styles.container}>

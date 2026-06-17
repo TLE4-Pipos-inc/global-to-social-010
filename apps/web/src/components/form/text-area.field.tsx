@@ -7,7 +7,7 @@ import {
   InputGroupTextarea,
 } from "#/components/ui/input-group"
 
-type  TextAreaFieldProps = {
+type TextAreaFieldProps = {
   label: string
   placeholder?: string
   maxCharacters: string
