@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 import {
   createSocket,
   disconnectSocket,
@@ -14,6 +15,7 @@ import {
   refreshSocketAuth,
 } from "@/lib/socket"
 import { getAccessToken, subscribeAccessToken } from "@/lib/token"
+import { userGroupPhotosQueryOptions } from "@/features/group-photos"
 import { MATCH_TIME_SLOT, SOCKET_EVENTS } from "@/lib/socket-events"
 
 const SocketContext = createContext(null)
@@ -25,6 +27,7 @@ const EMIT_TIMEOUT_MS = 8000
  * typed actions to the rest of the app. Mount once near the app root.
  */
 export function SocketProvider({ children }) {
+  const queryClient = useQueryClient()
   const [status, setStatus] = useState("disconnected") // disconnected | connecting | connected | error
   const [party, setParty] = useState(null)
   const [queueStats, setQueueStats] = useState(null) // { parties, players }
@@ -67,7 +70,12 @@ export function SocketProvider({ children }) {
     setStarters([])
     setPhotoRequest(null)
     finishedStopsRef.current = new Set()
-  }, [])
+    // Finishing a route may have produced new group photos; drop the cached
+    // memories so the profile refetches them.
+    queryClient.invalidateQueries({
+      queryKey: userGroupPhotosQueryOptions.queryKey,
+    })
+  }, [queryClient])
 
   // --- connection lifecycle, driven by the access token --------------------
   useEffect(() => {

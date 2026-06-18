@@ -5,17 +5,41 @@ import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native"
 import { router } from "expo-router"
 import { Suspense } from "react"
 import { useAccountQuery, useLogoutMutation } from "@/features/auth"
-import { GroupPhotosSection } from "@/features/group-photos"
+import {
+  GroupPhotosSection,
+  useUserGroupPhotosQuery,
+} from "@/features/group-photos"
 import {
   PrimaryDarkOutlineButton,
   PrimaryLightButton,
 } from "@/components/buttons"
 import { Colors } from "@/constants/theme"
 
+function hasAnyPhotos(data) {
+  const groups = data?.result?.groups ?? []
+  return groups.some((group) =>
+    group.sessions?.some((session) => session.photos?.length),
+  )
+}
+
 function ProfileContent() {
   const accountQuery = useAccountQuery()
   const logout = useLogoutMutation()
+  const groupPhotosQuery = useUserGroupPhotosQuery()
   const user = accountQuery.data.result
+  const hasPhotos = hasAnyPhotos(groupPhotosQuery.data)
+
+  const logoutButton = (
+    <PrimaryDarkOutlineButton
+      title={logout.isPending ? "Logging out…" : "Log Out"}
+      disabled={logout.isPending}
+      onPress={() =>
+        logout.mutate(undefined, {
+          onSettled: () => router.replace("/(auth)/login"),
+        })
+      }
+    />
+  )
 
   return (
     <ThemedView style={styles.screen}>
@@ -61,18 +85,14 @@ function ProfileContent() {
             onPress={() => router.push("/(tabs)/settings")}
           />
 
-          <PrimaryDarkOutlineButton
-            title={logout.isPending ? "Logging out…" : "Log Out"}
-            disabled={logout.isPending}
-            onPress={() =>
-              logout.mutate(undefined, {
-                onSettled: () => router.replace("/(auth)/login"),
-              })
-            }
-          />
+          {hasPhotos && logoutButton}
         </ThemedView>
 
         <GroupPhotosSection />
+
+        {!hasPhotos && (
+          <ThemedView style={styles.logoutBelow}>{logoutButton}</ThemedView>
+        )}
 
         <ThemedText type="text" style={styles.delete}>
           Want to delete all data related to you? email:
@@ -158,12 +178,17 @@ const styles = StyleSheet.create({
   },
 
   container: {
-    flex: 1,
     gap: 16,
     paddingHorizontal: 24,
     paddingTop: 32,
     backgroundColor: Colors.background,
-    justifyContent: "space-between",
+  },
+
+  logoutBelow: {
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 8,
+    backgroundColor: Colors.background,
   },
 
   loader: {
