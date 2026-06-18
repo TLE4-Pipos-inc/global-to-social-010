@@ -18,39 +18,39 @@ function Home() {
       <div className="flex w-full max-w-2xl flex-col gap-4">
         <Card className="w-2/3 self-start">
           <CardHeader>
-            <CardTitle>Download nu de Global To Social app</CardTitle>
-            <CardDescription>Ontdek routes, ontmoet mensen</CardDescription>
+            <CardTitle>Download the Global To Social app now</CardTitle>
+            <CardDescription>Discover routes, meet people</CardDescription>
           </CardHeader>
           <CardContent>
             <p>
-              Ga op pad met je groep, ontdek de leukste plekken in de stad en
-              verzamel herinneringen tijdens elke stop. Met de app volg je
-              routes, krijg je conversation starters en bewaar je jullie
-              foto&apos;s als mooie groepsmomenten.
+              Go out with your group, discover the coolest spots in the city and
+              collect memories at every stop. With the app you follow routes,
+              get conversation starters and save your photos as beautiful group
+              moments.
             </p>
           </CardContent>
         </Card>
 
         <Card className="w-2/3 self-end">
           <CardHeader>
-            <CardTitle>Word partner van Global To Social</CardTitle>
-            <CardDescription>Promoot jouw locatie</CardDescription>
+            <CardTitle>Become a Global To Social partner</CardTitle>
+            <CardDescription>Promote your location</CardDescription>
           </CardHeader>
           <CardContent>
             <p>
-              Wil je jouw bar, cafe, restaurant of eventlocatie zichtbaar maken
-              voor nieuwe groepen bezoekers?{" "}
+              Want to make your bar, cafe, restaurant or event location visible
+              to new groups of visitors?{" "}
               <a
                 href="mailto:partners@globaltosocial010.nl"
                 className="font-semibold underline underline-offset-2"
               >
-                Mail ons
+                Contact us
               </a>{" "}
-              om partner te worden en promoot deals via de app op het moment
-              dat groepen jouw locatie bezoeken.
+              to become a partner and promote deals through the app the moment
+              groups visit your location.
             </p>
             <p className="mt-3 font-medium">
-              Jouw deal komt in beeld op het moment dat groepen jouw locatie bezoeken.
+              Your deal appears when groups visit your location.
             </p>
           </CardContent>
         </Card>
