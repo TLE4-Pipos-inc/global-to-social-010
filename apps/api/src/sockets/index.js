@@ -6,8 +6,10 @@ import {
   beginStopPhoto,
   createMatchedSession,
   finishStopTimer,
-  getActiveSessionIdsForUser,
+  getSessionMemberCount,
   getSessionStop,
+  getStopVenueLocation,
+  getActiveSessionIdsForUser,
   isRouteQueueable,
   isSessionMember,
   loadPlayerProfile,
@@ -36,6 +38,7 @@ export const SOCKET_EVENTS = Object.freeze({
   PARTY_BROWSE: "party:browse",
   PARTY_JOIN_PUBLIC: "party:join-public",
   SESSION_READY: "session:ready",
+  STOP_CHECK_IN: "stop:checkin",
   STOP_START: "stop:start",
   STOP_FINISH: "stop:finish",
   STOP_PHOTO_SUBMIT: "stop:photo:submit",
@@ -46,6 +49,7 @@ export const SOCKET_EVENTS = Object.freeze({
   QUEUE_UPDATE: "queue:update",
   MATCH_FOUND: "match:found",
   SESSION_STARTED: "session:started",
+  STOP_PRESENCE: "stop:presence",
   STOP_TIMER_STARTED: "stop:timer:started",
   STOP_PHOTO_REQUESTED: "stop:photo:requested",
   STOP_TIMER_FINISHED: "stop:timer:finished",
@@ -54,6 +58,18 @@ export const SOCKET_EVENTS = Object.freeze({
 })
 
 /**
+ * A check-in counts toward the "all members present" quorum only when the
+ * member is within this many metres of the stop's venue. Distance is computed
+ * server-side so the client never decides who is present.
+ */
+const STOP_PRESENCE_RADIUS_M = 50
+
+/**
+ * A check-in older than this is ignored when computing the quorum. The client
+ * streams every 3 s, so 10 s covers three missed intervals before dropping a
+ * member out of the quorum (e.g. phone dies, connection lost).
+ */
+const PRESENCE_STALE_MS = 10_000
  * How long a chosen member has to submit the group selfie before the spotlight
  * rotates to another connected member (re-pick on no-show / disconnect).
  */
@@ -79,6 +95,18 @@ export function attachSocketServer(httpServer, opts = {}) {
   const scheduler = new ConversationStarterScheduler()
   /** @type {Map<string, string[]>} sessionId -> partyIds waiting for release */
   const sessionParties = new Map()
+  /** @type {Map<string, Map<string, number>>} `${sessionId}:${stopId}` -> userId -> lastSeenMs */
+  const stopPresence = new Map()
+  /**
+   * Static metadata cached per stop at session-creation time so the hot check-in
+   * path never queries the DB for data that never changes. Keyed by
+   * presenceKey(sessionId, stopId). Entry absence means the stop has already
+   * started (or has no fenceable venue), which is the early-exit signal in
+   * handleStopCheckIn — no separate timerState DB call needed.
+   *
+   * @type {Map<string, { lat: number, lng: number, memberCount: number }>}
+   */
+  const stopMeta = new Map()
   /**
    * Stops that are paused on `awaiting_photo`, keyed by stopId.
    * @type {Map<string, { sessionId: string, chosenUserId: string|null, timeout: NodeJS.Timeout }>}
@@ -159,8 +187,17 @@ export function attachSocketServer(httpServer, opts = {}) {
     socket.on(SOCKET_EVENTS.SESSION_READY, (payload, ack) =>
       safe(socket, ack, () => handleSessionReady(io, socket, queue, sessionParties, payload)),
     )
+    // Check-ins are high-frequency and best-effort: never surface them as a
+    // user-facing ERROR, and don't bother with an ack.
+    socket.on(SOCKET_EVENTS.STOP_CHECK_IN, (payload) => {
+      try {
+        handleStopCheckIn(io, socket, stopPresence, stopMeta, payload)
+      } catch (err) {
+        console.error("Stop check-in failed:", err)
+      }
+    })
     socket.on(SOCKET_EVENTS.STOP_START, (payload, ack) =>
-      safe(socket, ack, () => handleStopStart(io, socket, scheduler, payload)),
+      safe(socket, ack, () => handleStopStart(io, socket, scheduler, stopPresence, stopMeta, payload)),
     )
     socket.on(SOCKET_EVENTS.STOP_FINISH, (payload, ack) =>
       safe(socket, ack, () => handleStopFinish(io, socket, scheduler, photoRequests, payload)),
@@ -223,6 +260,18 @@ export function attachSocketServer(httpServer, opts = {}) {
     if (result.session) {
       // Defer user release until session activates (all players ready).
       sessionParties.set(result.session.id, match.parties.map((p) => p.id))
+      // Pre-populate the check-in cache. Only stops with coordinates are fenced;
+      // unfenced stops are intentionally absent so the check-in handler exits early.
+      const memberCount = result.members.length
+      for (const stop of result.stops) {
+        if (stop.latitude != null && stop.longitude != null) {
+          stopMeta.set(presenceKey(result.session.id, stop.id), {
+            lat: Number(stop.latitude),
+            lng: Number(stop.longitude),
+            memberCount,
+          })
+        }
+      }
     } else {
       // No route configured — no session to wait for, release immediately.
       for (const party of match.parties) queue.releaseParty(party.id)
@@ -535,7 +584,55 @@ function handleSessionReady(io, socket, queue, sessionParties, payload) {
   return { ok: true, ready: readyUserIds.size, total: totalUserIds.size }
 }
 
-function handleStopStart(io, socket, scheduler, payload) {
+/**
+ * Record a member's live location as a check-in for the active stop and
+ * broadcast the updated presence quorum to the whole session. Best-effort:
+ * malformed or out-of-context check-ins are silently ignored rather than
+ * surfaced as errors, since the client streams these continuously.
+ */
+function handleStopCheckIn(io, socket, stopPresence, stopMeta, payload) {
+  const userId = socket.data.userId
+  const sessionId = String(payload?.sessionId ?? "")
+  const stopId = String(payload?.stopId ?? "")
+  const lat = Number(payload?.latitude)
+  const lng = Number(payload?.longitude)
+
+  if (!sessionId || !stopId) return
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return
+
+  // Cache miss means the stop has already started (entry deleted by handleStopStart)
+  // or the venue has no coordinates. Either way, nothing to track.
+  const key = presenceKey(sessionId, stopId)
+  const meta = stopMeta.get(key)
+  if (!meta) return
+
+  // Security: still verify membership via DB — membership can change (kick) and
+  // the cache has no way to reflect that without additional invalidation logic.
+  if (!isSessionMember(sessionId, userId)) return
+
+  const distance = haversineMeters(lat, lng, meta.lat, meta.lng)
+  let checkins = stopPresence.get(key)
+  if (!checkins) {
+    checkins = new Map()
+    stopPresence.set(key, checkins)
+  }
+
+  // Track the last-seen timestamp per user. Wandering out of the radius removes
+  // the entry immediately; a missing or stale entry is treated as absent.
+  if (distance <= STOP_PRESENCE_RADIUS_M) checkins.set(userId, Date.now())
+  else checkins.delete(userId)
+
+  const freshPresent = getFreshPresent(checkins)
+  io.to(sessionRoom(sessionId)).emit(SOCKET_EVENTS.STOP_PRESENCE, {
+    sessionId,
+    stopId,
+    present: freshPresent,
+    total: meta.memberCount,
+    allPresent: meta.memberCount > 0 && freshPresent.length >= meta.memberCount,
+  })
+}
+
+function handleStopStart(io, socket, scheduler, stopPresence, stopMeta, payload) {
   const userId = socket.data.userId
   const stopId = String(payload?.stopId ?? "")
   const sessionId = String(payload?.sessionId ?? "")
@@ -553,8 +650,30 @@ function handleStopStart(io, socket, scheduler, payload) {
     throw httpError("NOT_MEMBER", "You are not a member of this session")
   }
 
+  // Geofence gate: every member must be checked in within range before the
+  // timer can start. Skipped when the venue has no coordinates to fence against.
+  const venue = getStopVenueLocation(sessionId, stopId)
+  if (venue && venue.latitude != null && venue.longitude != null) {
+    const total = getSessionMemberCount(sessionId)
+    const checkins = stopPresence.get(presenceKey(sessionId, stopId))
+    const freshPresent = getFreshPresent(checkins)
+    if (total === 0 || freshPresent.length < total) {
+      throw httpError(
+        "NOT_ALL_PRESENT",
+        "All group members must be at the stop to start it",
+      )
+    }
+  }
+
   const started = startStopTimer(stopId)
   if (!started) throw httpError("START_FAILED", "Could not start the stop timer")
+
+  // Free both the presence quorum and the static metadata for this stop.
+  // Deleting from stopMeta is also the signal that makes future check-ins for
+  // this stop exit immediately via cache miss.
+  const stopKey = presenceKey(sessionId, stopId)
+  stopPresence.delete(stopKey)
+  stopMeta.delete(stopKey)
 
   scheduler.startForStop({
     sessionId,
@@ -771,6 +890,40 @@ function partyRoom(partyId) {
 }
 function sessionRoom(sessionId) {
   return `session:${sessionId}`
+}
+function presenceKey(sessionId, stopId) {
+  return `${sessionId}:${stopId}`
+}
+
+/**
+ * Returns the userIds from a checkins Map whose last-seen timestamp is within
+ * PRESENCE_STALE_MS. Handles undefined (no checkins recorded yet) gracefully.
+ *
+ * @param {Map<string, number> | undefined} checkins
+ * @returns {string[]}
+ */
+function getFreshPresent(checkins) {
+  if (!checkins) return []
+  const cutoff = Date.now() - PRESENCE_STALE_MS
+  const fresh = []
+  for (const [userId, ts] of checkins) {
+    if (ts >= cutoff) fresh.push(userId)
+  }
+  return fresh
+}
+
+/**
+ * Great-circle distance between two lat/lng points in metres (Haversine).
+ */
+function haversineMeters(lat1, lng1, lat2, lng2) {
+  const R = 6371000
+  const toRad = (deg) => (deg * Math.PI) / 180
+  const dLat = toRad(lat2 - lat1)
+  const dLng = toRad(lng2 - lng1)
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2
+  return 2 * R * Math.asin(Math.sqrt(a))
 }
 
 function extractBearer(header) {
