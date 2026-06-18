@@ -4,7 +4,7 @@ Mono Repo for TLE-4
 
 **Target audience:** International students at Hogeschool Rotterdam's International Business programme (700+ per year) who want to build a social network in a new city.
 
-**Problem:** Studying together doesn't translate into knowing each other different languages, cultures and a new city make it hard to form connections outside of class.
+**Problem:** Studying together doesn't translate into knowing each other's different languages, cultures and a new city make it hard to form connections outside of class.
 
 **Solution:** Global To Social 010 matches students into small groups based on shared interests and sends them on social routes through Rotterdam (e.g. a pub crawl or an alcohol-free café route). Each stop comes with interest-based conversation starters and interactive challenges that break the ice, while the app tracks group progress and photo collages of the route.
 
