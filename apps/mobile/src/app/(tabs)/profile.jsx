@@ -73,6 +73,15 @@ function ProfileContent() {
         </ThemedView>
 
         <GroupPhotosSection />
+
+        <ThemedText type="text" style={styles.delete}>
+          Want to delete all data related to you? email:
+          <ThemedText style={styles.deleteEmail}>
+            {" "}
+            support@globaltosocial010.nl{" "}
+          </ThemedText>
+          with your GDPR request.
+        </ThemedText>
       </ScrollView>
     </ThemedView>
   )
@@ -87,6 +96,19 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
+  delete: {
+    paddingHorizontal: 16,
+    fontSize: 12,
+    fontWeight: 500,
+    textAlign: "center",
+  },
+
+  deleteEmail: {
+    fontSize: 12,
+    fontWeight: 500,
+    textDecorationLine: "underline",
+  },
+
   screen: {
     flex: 1,
   },
